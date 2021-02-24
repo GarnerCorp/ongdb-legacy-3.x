@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -383,7 +383,7 @@ public class GraphDatabaseSettings implements LoadableConfig
 
     @Description( "Enables or disables tracking of how much time a query spends actively executing on the CPU. " +
                   "Calling `dbms.listQueries` will display the time. " +
-                  "This can also be logged in the query log by using `log_queries_detailed_time_logging_enabled`." )
+                  "This can also be logged in the query log by using `dbms.logs.query.time_logging_enabled`." )
     @Dynamic
     public static final Setting<Boolean> track_query_cpu_time = setting( "dbms.track_query_cpu_time", BOOLEAN, FALSE );
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -57,7 +57,7 @@ class StatisticsBackedCardinalityModelTest extends CypherFunSuite with LogicalPl
 
   test("query containing a WITH and LIMIT on parameterized cardinality") {
     val i = personCount
-    givenPattern("MATCH (a:Person) WITH a LIMIT {limit} MATCH (a)-[:REL]->()").
+    givenPattern("MATCH (a:Person) WITH a LIMIT $limit MATCH (a)-[:REL]->()").
       withGraphNodes(allNodes).
       withLabel('Person -> i).
       withRelationshipCardinality('Person -> 'REL -> 'Person -> relCount).
@@ -125,7 +125,7 @@ class StatisticsBackedCardinalityModelTest extends CypherFunSuite with LogicalPl
 
   test("should reduce cardinality for a WHERE after a WITH, unknown LIMIT") {
     val i = personCount
-    givenPattern("MATCH (a:Person) WITH a LIMIT {limit} WHERE a.age = 20").
+    givenPattern("MATCH (a:Person) WITH a LIMIT $limit WHERE a.age = 20").
       withGraphNodes(allNodes).
       withLabel('Person -> i).
       shouldHavePlannerQueryCardinality(createCardinalityModel)(

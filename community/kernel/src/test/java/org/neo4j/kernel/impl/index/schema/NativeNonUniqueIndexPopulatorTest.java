@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -46,7 +46,7 @@ public class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>, 
     @Override
     NativeIndexPopulator<KEY,VALUE> createPopulator() throws IOException
     {
-        return testCase.populatorFactory.create( pageCache, fs, getIndexFile(), layout, monitor, indexDescriptor );
+        return testCase.populatorFactory.create( pageCache, fs, getIndexFile(), layout, monitor, indexDescriptor, tokenNameLookup );
     }
 
     @Override

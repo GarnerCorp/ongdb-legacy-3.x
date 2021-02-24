@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -82,7 +82,7 @@ class QueryTaggerTest extends CypherFunSuite {
   }
 
   test(queryTag(ParameterExpressionTag)) {
-    QueryTagger("RETURN {param}") should contain(ParameterExpressionTag)
+    QueryTagger("RETURN $param") should contain(ParameterExpressionTag)
   }
 
   test(queryTag(ComplexExpressionTag)) {

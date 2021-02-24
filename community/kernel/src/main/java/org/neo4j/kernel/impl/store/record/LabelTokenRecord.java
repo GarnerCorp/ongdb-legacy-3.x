@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -42,14 +42,6 @@ public class LabelTokenRecord extends TokenRecord
     @Override
     public LabelTokenRecord clone()
     {
-        LabelTokenRecord labelTokenRecord = new LabelTokenRecord( getIntId() );
-        labelTokenRecord.setInUse( inUse() );
-        if ( isCreated() )
-        {
-            labelTokenRecord.setCreated();
-        }
-        labelTokenRecord.setNameId( getNameId() );
-        labelTokenRecord.addNameRecords( getNameRecords() );
-        return labelTokenRecord;
+        return (LabelTokenRecord) super.clone();
     }
 }

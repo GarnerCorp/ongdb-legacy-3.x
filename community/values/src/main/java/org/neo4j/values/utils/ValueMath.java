@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -33,6 +33,8 @@ import static org.neo4j.values.storable.Values.longValue;
  */
 public final class ValueMath
 {
+    public static final int HASH_CONSTANT = 31;
+
     private ValueMath()
     {
         throw new UnsupportedOperationException( "Do not instantiate" );

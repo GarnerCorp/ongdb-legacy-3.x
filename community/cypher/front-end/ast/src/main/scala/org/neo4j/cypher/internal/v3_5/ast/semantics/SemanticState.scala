@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -269,9 +269,6 @@ case class SemanticState(currentScope: ScopeLocation,
     copy(currentScope = currentScope.importValuesFromScope(scope, exclude))
 
   def withCypher9ComparabilitySemantics(cypher9ComparabilitySemantics: Boolean): SemanticState = copy(cypher9ComparabilitySemantics = cypher9ComparabilitySemantics)
-
-  def mergeSymbolPositionsFromScope(scope: Scope, exclude: Set[String] = Set.empty): SemanticState =
-    copy(currentScope = currentScope.mergeSymbolPositionsFromScope(scope, exclude))
 
   /**
     * @param overriding if `true` then a previous occurrence of that variable is overridden.

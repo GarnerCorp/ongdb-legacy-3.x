@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,11 +79,11 @@ class LiteralsTest extends ParserTest[Any, Any] with Literals {
   }
 
   test("can parse legacy parameter syntax") {
-    implicit val parserToTest = Parameter
+    implicit val parserToTest = OldParameter
 
-    parsing("{p}") shouldGive ast.Parameter("p", CTAny)(t)
-    parsing("{`the funny horse`}") shouldGive ast.Parameter("the funny horse", CTAny)(t)
-    parsing("{0}") shouldGive ast.Parameter("0", CTAny)(t)
+    parsing("{p}") shouldGive ast.ParameterWithOldSyntax("p", CTAny)(t)
+    parsing("{`the funny horse`}") shouldGive ast.ParameterWithOldSyntax("the funny horse", CTAny)(t)
+    parsing("{0}") shouldGive ast.ParameterWithOldSyntax("0", CTAny)(t)
   }
 
   test("can parse new parameter syntax") {

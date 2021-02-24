@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -83,7 +83,7 @@ class TimeZonesTest
         byte[] timeZonesInfo = Files.readAllBytes( path );
         byte[] timeZonesHash = DigestUtils.sha256( timeZonesInfo );
         assertThat( timeZonesHash, equalTo(
-                new byte[]{27, -102, 116, 117, -108, -114, 65, 81, 88, 52, 25, 112, -67, 3, -99, 69, -26, 100, -38, -2, 29, -41, 60, -85, -58, 102, -101, -122,
-                        -40, -66, 49, -65} ) );
+                new byte[]{49, -67, -18, -59, -6, -102, -16, -13, 35, 37, -37, 65, 80, 6, 77, -84, -12, -117, -54, -105, 36, 18, -119, -73, 92, 37, -64, 96,
+                        66, -52, 48, 51} ) );
     }
 }

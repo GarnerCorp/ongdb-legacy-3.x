@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.v3_5.logical.plans.{Expand, ExpandAll, ExpandIn
 import org.neo4j.cypher.internal.v3_5.ast._
 import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
 import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
+
+import scala.collection.immutable.BitSet
 
 
 class ExpandSolverStepTest extends CypherFunSuite with LogicalPlanningTestSupport2 with AstConstructionTestSupport {
@@ -105,6 +107,22 @@ class ExpandSolverStepTest extends CypherFunSuite with LogicalPlanningTestSuppor
         Expand(plan1, "b", SemanticDirection.OUTGOING, Seq.empty, "c", "r3", ExpandInto),
         Expand(plan1, "c", SemanticDirection.INCOMING, Seq.empty, "b", "r3", ExpandInto)
       ))
+    }
+  }
+
+  test("does not expand if goal is entirely compacted") {
+    implicit val registry: DefaultIdRegistry[PatternRelationship] = IdRegistry[PatternRelationship]
+
+    new given().withLogicalPlanningContext { (_, ctx) =>
+      val plan1 = fakeLogicalPlanFor(ctx.planningAttributes, "a", "r1", "b")
+      ctx.planningAttributes.solveds.set(plan1.id, RegularPlannerQuery(QueryGraph.empty.addPatternNodes("a", "b")))
+
+      val compactedPattern1 = BitSet(registry.compact(register(pattern1)))
+      val compactedPattern2 = BitSet(registry.compact(register(pattern2)))
+
+      table.put(compactedPattern1, plan1)
+
+      expandSolverStep(qg)(registry, compactedPattern1 ++ compactedPattern2, table, ctx).toSet should be(empty)
     }
   }
 

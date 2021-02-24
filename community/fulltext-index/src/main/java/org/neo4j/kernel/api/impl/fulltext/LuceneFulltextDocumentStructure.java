@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -31,6 +31,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.WildcardQuery;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -98,6 +99,13 @@ public class LuceneFulltextDocumentStructure
                         new TermQuery( new Term( propertyKey, value.asObject().toString() ) ) );
                 builder.add( valueQuery, BooleanClause.Occur.SHOULD );
             }
+            else if ( value.valueGroup() == ValueGroup.NO_VALUE )
+            {
+                Query valueQuery = new ConstantScoreQuery(
+                        new WildcardQuery( new Term( propertyKey, "*" ) ) );
+                builder.add( valueQuery, BooleanClause.Occur.MUST_NOT );
+            }
+
         }
         return builder.build();
     }

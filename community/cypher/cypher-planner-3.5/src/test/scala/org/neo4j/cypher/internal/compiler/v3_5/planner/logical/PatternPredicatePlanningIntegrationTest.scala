@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -57,6 +57,42 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
     }
   }
 
+  test("should get the right scope for pattern comprehensions in ORDER BY") {
+    // The important thing for this test is "RETURN u.id" instead of "RETURN u".
+    // Like this the scoping is challenged to propagate `u` from the previous scope into the pattern expression.
+    planFor("MATCH (u:User) RETURN u.id ORDER BY size([(u)-[r:FOLLOWS]->(u2:User) | u2.id])")._2 should equal(
+      Projection(
+        Sort(
+          Projection(
+            RollUpApply(
+              NodeByLabelScan("u", LabelName("User")(pos), Set.empty),
+              Projection(
+                Selection(
+                  Seq(hasLabels("u2", "User")),
+                  Expand(
+                    Argument(Set("u")),
+                    "u",
+                    OUTGOING,
+                    Seq(RelTypeName("FOLLOWS")(pos)),
+                    "u2",
+                    "r"
+                  )
+                ),
+                Map("  FRESHID41" -> prop("u2", "id"))
+              ),
+              "  FRESHID42",
+              "  FRESHID41",
+              Set("u")
+            ),
+            Map("  FRESHID36" -> function("size", varFor("  FRESHID42")))
+          ),
+          Seq(Ascending("  FRESHID36"))
+        ),
+        Map("u.id" -> prop("u", "id"))
+      )
+    )
+  }
+
   test("should build plans with getDegree for a single pattern predicate") {
     planFor("MATCH (a) WHERE (a)-[:X]->() RETURN a")._2 should equal(
       Selection(Ands(Set(GreaterThan(GetDegree(Variable("a") _,Some(RelTypeName("X") _), OUTGOING)_,SignedDecimalIntegerLiteral("0")_)_))_,
@@ -100,7 +136,7 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
           GetDegree(Variable("a")_, Some(RelTypeName("X")_),OUTGOING)_,
           SignedDecimalIntegerLiteral("0")_)_,
         GreaterThan(Property(Variable("a") _, PropertyKeyName("prop") _) _, SignedDecimalIntegerLiteral("4") _) _,
-        In(Property(Variable("a") _, PropertyKeyName("prop2") _) _, ListLiteral(Seq(SignedDecimalIntegerLiteral("9") _)) _) _))_))_,
+        Equals(Property(Variable("a") _, PropertyKeyName("prop2") _) _, SignedDecimalIntegerLiteral("9") _) _))_))_,
                 AllNodesScan("a", Set.empty)))
   }
 
@@ -110,7 +146,7 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
         LessThanOrEqual(
           GetDegree(Variable("a")_, Some(RelTypeName("X")_),OUTGOING)_,
           SignedDecimalIntegerLiteral("0")_)_,
-        In(Property(Variable("a") _, PropertyKeyName("prop") _) _, ListLiteral(Seq(SignedDecimalIntegerLiteral("9") _)) _) _))_))_,
+        Equals(Property(Variable("a") _, PropertyKeyName("prop") _) _, SignedDecimalIntegerLiteral("9") _) _))_))_,
                 AllNodesScan("a", Set.empty)))
   }
 
@@ -123,7 +159,7 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
         LessThanOrEqual(
           GetDegree(Variable("a")_, Some(RelTypeName("X")_), OUTGOING)_,
           SignedDecimalIntegerLiteral("0")_)_,
-        In(Property(Variable("a")_, PropertyKeyName("prop")_)_, ListLiteral(Seq(SignedDecimalIntegerLiteral("9")_))_)_))_))_,
+        Equals(Property(Variable("a")_, PropertyKeyName("prop")_)_, SignedDecimalIntegerLiteral("9")_)_))_))_,
                 AllNodesScan("a", Set.empty)))
   }
 
@@ -155,7 +191,7 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
       case Projection(
       VarExpand(_, _, _, _, _,_, _, _, _,_,_,_,_,
                      Seq((Variable("n"),
-                     In(Property(Variable("n"), PropertyKeyName("prop") ), ListLiteral(List(SignedDecimalIntegerLiteral("1337"))))))), _) => ()
+                     Equals(Property(Variable("n"), PropertyKeyName("prop") ), SignedDecimalIntegerLiteral("1337"))))), _) => ()
 
     }
   }
@@ -165,7 +201,7 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
       case Projection(
       VarExpand(_, _, _, _, _,_, _, _, _,_,_,_,_,
                 Seq((Variable("n"),
-                Not(In(Property(Variable("n"), PropertyKeyName("prop") ), ListLiteral(List(SignedDecimalIntegerLiteral("1337")))))))), _) => ()
+                Not(Equals(Property(Variable("n"), PropertyKeyName("prop") ), SignedDecimalIntegerLiteral("1337")))))), _) => ()
 
     }
   }
@@ -190,6 +226,84 @@ class PatternPredicatePlanningIntegrationTest extends CypherFunSuite with Logica
     // The plan that solves the predicates as part of VarExpand is not chosen, but considered, thus we cannot assert on _that_ plan here.
     // Nevertheless the assertion LogicalPlanProducer.assertNoBadExpressionsExists should never fail, even for plans that do not get chosen.
 
+  }
+
+  test("should not use RollupApply for PatternComprehensions in coalesce") {
+    val q =
+      """
+        |MATCH (a)
+        |WHERE coalesce(
+        |     [1, 2, 3],
+        |     [(a)<--(c) | c.prop5 = '0'],
+        |     [true])
+        |RETURN a
+      """.stripMargin
+
+    val plan = planFor(q)._2
+    println(plan)
+    plan.treeExists({
+      case _:RollUpApply => true
+    }) should be(false)
+  }
+
+  test("should not use RollupApply for PatternComprehensions in head") {
+    val q =
+      """
+        |MATCH (a)
+        |WHERE head( [(a)<--(b) | b.prop4 = true] ) = true
+        |RETURN a
+      """.stripMargin
+
+    val plan = planFor(q)._2
+    println(plan)
+    plan.treeExists({
+      case _:RollUpApply => true
+    }) should be(false)
+  }
+
+  test("should not use RollupApply for PatternComprehensions in container index") {
+    val q =
+      """
+        |MATCH (a)
+        |WHERE [(a)<--(b) | b.prop4 = true][2]
+        |RETURN a
+      """.stripMargin
+
+    val plan = planFor(q)._2
+    println(plan)
+    plan.treeExists({
+      case _:RollUpApply => true
+    }) should be(false)
+  }
+
+  test("should not use RollupApply for PatternComprehensions in list slice to") {
+    val q =
+      """
+        |MATCH (a)
+        |WHERE [(a)<--(b) | b.prop4 = true][..5]
+        |RETURN a
+      """.stripMargin
+
+    val plan = planFor(q)._2
+    println(plan)
+    plan.treeExists({
+      case _:RollUpApply => true
+    }) should be(false)
+  }
+
+  test("should not use RollupApply for PatternComprehensions in list slice from/to") {
+    val q =
+      """
+        |MATCH (a)
+        |WHERE [ (a)<--(b) | b.prop4 = true ][2..5]
+        |RETURN a
+      """.stripMargin
+
+    val plan = planFor(q)._2
+    println(plan)
+    plan.treeExists({
+      case _:RollUpApply => true
+    }) should be(false)
   }
 
   private def containsArgumentOnly(queryGraph: QueryGraph): Boolean =

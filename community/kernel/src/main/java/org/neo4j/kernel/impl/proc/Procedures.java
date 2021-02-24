@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -177,7 +177,7 @@ public class Procedures extends LifecycleAdapter
      */
     public void registerBuiltInFunctions( Class<?> func ) throws KernelException
     {
-        for ( CallableUserFunction function : compiler.withoutNamingRestrictions().compileFunction( func ) )
+        for ( CallableUserFunction function : compiler.withoutNamingRestrictions().compileFunction( func, true ) )
         {
             register( function, false );
         }
@@ -219,7 +219,7 @@ public class Procedures extends LifecycleAdapter
      */
     public void registerFunction( Class<?> func, boolean overrideCurrentImplementation ) throws KernelException
     {
-        for ( CallableUserFunction function : compiler.compileFunction( func ) )
+        for ( CallableUserFunction function : compiler.compileFunction( func, false ) )
         {
             register( function, overrideCurrentImplementation );
         }

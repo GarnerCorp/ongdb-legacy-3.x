@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -127,7 +127,7 @@ trait Patterns extends Parser
   )
 
   private def MaybeProperties: Rule1[Option[org.neo4j.cypher.internal.v3_5.expressions.Expression]] = rule("a property map") (
-    optional(WS ~ (MapLiteral | Parameter))
+    optional(WS ~ (MapLiteral | Parameter | OldParameter))
   )
 }
 

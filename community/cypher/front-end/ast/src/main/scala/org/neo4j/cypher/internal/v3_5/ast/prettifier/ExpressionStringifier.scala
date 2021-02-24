@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,6 +57,8 @@ case class ExpressionStringifier(extender: Expression => String = e => throw new
         val is = items.map({ case (k, e) => s"${backtick(k.name)}: ${this.apply(e)}" }).mkString(", ")
         s"{$is}"
       case Parameter(name, _) =>
+        s"$$${backtick(name)}"
+      case ParameterWithOldSyntax(name, _) =>
         s"$$${backtick(name)}"
       case _: CountStar =>
         s"count(*)"

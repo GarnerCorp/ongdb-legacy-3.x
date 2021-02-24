@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,6 @@
  */
 package org.neo4j.cypher.internal.v3_5.frontend.phases
 
-import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.v3_5.ast.Query
 import org.neo4j.cypher.internal.v3_5.util.symbols.CypherType
 import org.neo4j.cypher.internal.v3_5.util.{InputPosition, InternalException}
 import org.neo4j.cypher.internal.v3_5.ast.Statement
@@ -36,10 +34,6 @@ trait BaseState {
 
   def accumulatedConditions: Set[Condition]
 
-  def isPeriodicCommit: Boolean = statement() match {
-    case Query(Some(_), _) => true
-    case _ => false
-  }
 
   def statement(): Statement = maybeStatement getOrElse fail("Statement")
   def semantics(): SemanticState = maybeSemantics getOrElse fail("Semantics")

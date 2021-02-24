@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -37,6 +37,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 import static org.neo4j.values.storable.CoordinateReferenceSystem.WGS84;
 
 public class SpatialIndexAccessorTest extends NativeIndexAccessorTests<SpatialIndexKey,NativeIndexValue>
@@ -51,7 +52,7 @@ public class SpatialIndexAccessorTest extends NativeIndexAccessorTests<SpatialIn
     {
         spatialFile = new SpatialIndexFiles.SpatialFile( CoordinateReferenceSystem.WGS84, configuredSettings, super.getIndexFile() );
         return new SpatialIndexAccessor.PartAccessor( pageCache, fs, spatialFile.getLayoutForNewIndex(), immediate(), monitor, indexDescriptor,
-                new StandardConfiguration(), false );
+                new StandardConfiguration(), false, simpleNameLookup );
     }
 
     @Override

@@ -1,37 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.neo4j</groupId>
-    <artifactId>parent</artifactId>
-    <version>3.5.12</version>
-    <relativePath>..</relativePath>
-  </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.neo4j</groupId>
+        <artifactId>parent</artifactId>
+        <version>3.5.22</version>
+        <relativePath>..</relativePath>
+    </parent>
 
-  <groupId>org.graphfoundation.ongdb</groupId>
-  <artifactId>neo4j-integrationtests</artifactId>
-  <version>3.5.12</version>
+    <groupId>org.graphfoundation.ongdb</groupId>
+    <artifactId>neo4j-integrationtests</artifactId>
+    <version>3.5.22</version>
 
-  <name>Neo4j - Integration Tests</name>
-  <packaging>jar</packaging>
-  <description>A package for cross-module integration tests.</description>
+    <name>ONgDB - Integration Tests</name>
+    <packaging>jar</packaging>
+    <description>A package for cross-module integration tests.</description>
 
-  <properties>
-    <license-text.header>headers/AGPL-3-header.txt</license-text.header>
-    <moduleName>org.neo4j.integrationtests</moduleName>
-  </properties>
+    <properties>
+        <license-text.header>headers/AGPL-3-header.txt</license-text.header>
+        <moduleName>org.neo4j.integrationtests</moduleName>
+    </properties>
 
-  <scm>
-    <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
-    <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
-    <url>https://github.com/neo4j/neo4j</url>
-  </scm>
+    <scm>
+        <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
+        <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
+        <url>https://github.com/graphfoundation/ongdb</url>
+    </scm>
 
-  <licenses>
-    <license>
-      <name>GNU Affero General Public License, Version 3 with the Commons Clause</name>
-      <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
-      <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License, Version 3 with the Commons Clause</name>
+            <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
+            <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
         licensed under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3 with the Commons Clause to all
         third parties and that license is included below.
 
@@ -43,22 +44,22 @@
         LICENSE Version 3 and you may use the Software solely pursuant to the
         terms of the relevant Commercial Agreement.
       </comments>
-    </license>
-  </licenses>
+        </license>
+    </licenses>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>
@@ -175,8 +176,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-             <groupId>org.graphfoundation.ongdb</groupId>
-             <artifactId>neo4j-causal-clustering</artifactId>
+            <groupId>org.graphfoundation.ongdb</groupId>
+            <artifactId>neo4j-causal-clustering</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -236,7 +237,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>2.0.17.Final</version>
+            <version>2.0.28.Final</version>
             <scope>test</scope>
         </dependency>
         <dependency>

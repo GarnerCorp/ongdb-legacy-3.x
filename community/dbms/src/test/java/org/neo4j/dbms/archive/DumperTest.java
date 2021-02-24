@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -41,6 +41,7 @@ import org.neo4j.test.rule.TestDirectory;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.neo4j.dbms.archive.CompressionFormat.GZIP;
 
 @ExtendWith( TestDirectoryExtension.class )
@@ -100,6 +101,7 @@ class DumperTest
         Files.createDirectories( archive.getParent() );
         try ( Closeable ignored = TestUtils.withPermissions( archive.getParent(), emptySet() ) )
         {
+            assumeFalse( archive.getParent().toFile().canWrite() );
             AccessDeniedException exception =
                     assertThrows( AccessDeniedException.class, () -> new Dumper().dump( directory, directory, archive, GZIP, Predicates.alwaysFalse() ) );
             assertEquals( archive.getParent().toString(), exception.getMessage() );

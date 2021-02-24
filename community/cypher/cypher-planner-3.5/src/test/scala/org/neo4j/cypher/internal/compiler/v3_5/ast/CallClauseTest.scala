@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -242,10 +242,11 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
 
     val toList: List[String] = errorTexts(resolved.semanticCheck(SemanticState.clean)).toList
     toList should equal(List(
-      """Procedure call does not provide the required number of arguments: got 0 expected 1.
+      """Procedure call does not provide the required number of arguments: got 0 expected at least 1 (total: 1, 0 of which have default values).
         |
         |Procedure my.proc.foo has signature: my.proc.foo(a :: INTEGER?) :: x :: INTEGER?, y :: LIST? OF NODE?
-        |meaning that it expects 1 argument of type INTEGER? (line 1, column 0 (offset: 0))""".stripMargin
+        |meaning that it expects at least 1 argument of type INTEGER?
+        | (line 1, column 0 (offset: 0))""".stripMargin
     ))
   }
 

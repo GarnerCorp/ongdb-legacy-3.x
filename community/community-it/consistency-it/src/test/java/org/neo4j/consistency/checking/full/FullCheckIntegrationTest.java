@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -62,6 +62,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.helpers.collection.Pair;
 import org.neo4j.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.TokenWrite;
 import org.neo4j.internal.kernel.api.exceptions.KernelException;
@@ -97,6 +98,7 @@ import org.neo4j.kernel.impl.store.SchemaStore;
 import org.neo4j.kernel.impl.store.StoreAccess;
 import org.neo4j.kernel.impl.store.allocator.ReusableRecordsAllocator;
 import org.neo4j.kernel.impl.store.allocator.ReusableRecordsCompositeAllocator;
+import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.store.record.ConstraintRule;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
@@ -141,6 +143,7 @@ import static org.neo4j.kernel.api.StatementConstants.ANY_LABEL;
 import static org.neo4j.kernel.api.StatementConstants.ANY_RELATIONSHIP_TYPE;
 import static org.neo4j.kernel.api.labelscan.NodeLabelUpdate.labelChanges;
 import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
+import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.kernel.impl.store.AbstractDynamicStore.readFullByteArrayFromHeavyRecords;
 import static org.neo4j.kernel.impl.store.DynamicArrayStore.allocateFromNumbers;
@@ -166,6 +169,7 @@ public class FullCheckIntegrationTest
     private static final String PROP2 = "key2";
     private static final Object VALUE1 = "value1";
     private static final Object VALUE2 = "value2";
+    private final TokenNameLookup tokenNameLookup = simpleNameLookup;
 
     private int label1;
     private int label2;
@@ -462,7 +466,7 @@ public class FullCheckIntegrationTest
             StoreIndexDescriptor rule = rules.next();
             IndexSamplingConfig samplingConfig = new IndexSamplingConfig( Config.defaults() );
             IndexPopulator populator = storeAccess.indexes().lookup( rule.providerDescriptor() )
-                .getPopulator( rule, samplingConfig, heapBufferFactory( 1024 ) );
+                .getPopulator( rule, samplingConfig, heapBufferFactory( 1024 ), tokenNameLookup );
             populator.markAsFailed( "Oh noes! I was a shiny index and then I was failed" );
             populator.close( false );
         }
@@ -570,7 +574,7 @@ public class FullCheckIntegrationTest
         {
             StoreIndexDescriptor indexDescriptor = indexDescriptorIterator.next();
             IndexAccessor accessor = fixture.directStoreAccess().indexes().
-                    lookup( indexDescriptor.providerDescriptor() ).getOnlineAccessor( indexDescriptor, samplingConfig );
+                    lookup( indexDescriptor.providerDescriptor() ).getOnlineAccessor( indexDescriptor, samplingConfig, tokenNameLookup );
             try ( IndexUpdater updater = accessor.newUpdater( IndexUpdateMode.ONLINE ) )
             {
                 for ( long nodeId : indexedNodes )
@@ -605,7 +609,7 @@ public class FullCheckIntegrationTest
         {
             StoreIndexDescriptor indexRule = indexRuleIterator.next();
             IndexAccessor accessor = fixture.directStoreAccess().indexes().lookup( indexRule.providerDescriptor() )
-                    .getOnlineAccessor( indexRule, samplingConfig );
+                    .getOnlineAccessor( indexRule, samplingConfig, tokenNameLookup );
             IndexUpdater updater = accessor.newUpdater( IndexUpdateMode.ONLINE );
             updater.process( IndexEntryUpdate.add( 42, indexRule.schema(), values( indexRule ) ) );
             updater.close();
@@ -746,9 +750,9 @@ public class FullCheckIntegrationTest
                 long nodeId = ((long[]) getRightArray( readFullByteArrayFromHeavyRecords( chain, ARRAY ) ).asObject())[0];
                 NodeRecord before = inUse( new NodeRecord( nodeId, false, -1, -1 ) );
                 NodeRecord after = inUse( new NodeRecord( nodeId, false, -1, -1 ) );
-                DynamicRecord record1 = chain.get( 0 ).clone();
-                DynamicRecord record2 = chain.get( 1 ).clone();
-                DynamicRecord record3 = chain.get( 2 ).clone();
+                DynamicRecord record1 = cloneRecord( chain.get( 0 ) );
+                DynamicRecord record2 = cloneRecord( chain.get( 1 ) );
+                DynamicRecord record3 = cloneRecord( chain.get( 2 ) );
 
                 record3.setNextBlock( record2.getId() );
                 before.setLabelField( dynamicPointer( chain ), chain );
@@ -1018,7 +1022,7 @@ public class FullCheckIntegrationTest
                                             GraphStoreFixture.IdGenerator next )
             {
                 DynamicRecord schema = new DynamicRecord( next.schema() );
-                DynamicRecord schemaBefore = schema.clone();
+                DynamicRecord schemaBefore = cloneRecord( schema );
 
                 schema.setNextBlock( next.schema() ); // Point to a record that isn't in use.
                 StoreIndexDescriptor rule = indexRule( schema.getId(), label1, key1, DESCRIPTOR );
@@ -1053,8 +1057,8 @@ public class FullCheckIntegrationTest
 
                 DynamicRecord record1 = new DynamicRecord( ruleId1 );
                 DynamicRecord record2 = new DynamicRecord( ruleId2 );
-                DynamicRecord record1Before = record1.clone();
-                DynamicRecord record2Before = record2.clone();
+                DynamicRecord record1Before = cloneRecord( record1 );
+                DynamicRecord record2Before = cloneRecord( record2 );
 
                 StoreIndexDescriptor rule1 = constraintIndexRule( ruleId1, labelId, propertyKeyId, DESCRIPTOR, ruleId1 );
                 StoreIndexDescriptor rule2 = constraintIndexRule( ruleId2, labelId, propertyKeyId, DESCRIPTOR, ruleId1 );
@@ -1098,8 +1102,8 @@ public class FullCheckIntegrationTest
 
                 DynamicRecord record1 = new DynamicRecord( ruleId1 );
                 DynamicRecord record2 = new DynamicRecord( ruleId2 );
-                DynamicRecord record1Before = record1.clone();
-                DynamicRecord record2Before = record2.clone();
+                DynamicRecord record1Before = cloneRecord( record1 );
+                DynamicRecord record2Before = cloneRecord( record2 );
 
                 StoreIndexDescriptor rule1 = constraintIndexRule( ruleId1, labelId, propertyKeyId, DESCRIPTOR, ruleId2 );
                 ConstraintRule rule2 = uniquenessConstraintRule( ruleId2, labelId, propertyKeyId, ruleId2 );
@@ -2370,7 +2374,7 @@ public class FullCheckIntegrationTest
                 int id = (int) next.schema();
 
                 DynamicRecord recordBefore = new DynamicRecord( id );
-                DynamicRecord recordAfter = recordBefore.clone();
+                DynamicRecord recordAfter = cloneRecord( recordBefore );
 
                 StoreIndexDescriptor index = forSchema( forLabel( labelId, propertyKeyIds ), DESCRIPTOR ).withId( id );
                 Collection<DynamicRecord> records = serializeRule( index, recordAfter );
@@ -2523,4 +2527,10 @@ public class FullCheckIntegrationTest
             return new DynamicRecord( next++ );
         }
     };
+
+    @SuppressWarnings( "unchecked" )
+    private <T extends AbstractBaseRecord> T cloneRecord( T record )
+    {
+        return (T) record.clone();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -89,7 +89,7 @@ public class IndexProvidedValuesNativeBTree10Test extends KernelAPIReadTestBase<
                 Node node = graphDb.createNode( label( "Node" ) );
                 Value propValue = randomValues.nextValueOfTypes( allExceptNonSortable );
                 node.setProperty( "prop", propValue.asObject() );
-                Value pripValue = randomValues.nextValue();
+                Value pripValue = randomValues.nextValueOfTypes( allExceptNonSortable );
                 node.setProperty( "prip", pripValue.asObject() );
 
                 singlePropValues.add( propValue );

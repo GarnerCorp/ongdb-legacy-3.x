@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -31,5 +31,21 @@ public interface JobHandle
     default void registerCancelListener( CancelListener listener )
     {
         throw new UnsupportedOperationException( "Unsupported in this implementation" );
+    }
+
+    JobHandle nullInstance = new NullJobHandle();
+
+    class NullJobHandle implements JobHandle
+    {
+
+        @Override
+        public void cancel( boolean mayInterruptIfRunning )
+        {   // no-op
+        }
+
+        @Override
+        public void waitTermination() throws CancellationException
+        {   // no-op
+        }
     }
 }

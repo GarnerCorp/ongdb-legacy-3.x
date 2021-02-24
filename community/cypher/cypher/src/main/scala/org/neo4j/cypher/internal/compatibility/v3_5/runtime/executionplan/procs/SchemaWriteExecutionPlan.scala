@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.v3_5.util.InternalNotification
 case class SchemaWriteExecutionPlan(name: String, schemaWrite: QueryContext => Unit)
   extends ExecutionPlan {
 
-  override def run(ctx: QueryContext, doProfile: Boolean, params: MapValue): RuntimeResult = {
+  override def run(ctx: QueryContext, executionMode: ExecutionMode, params: MapValue): RuntimeResult = {
 
     ctx.assertSchemaWritesAllowed()
 

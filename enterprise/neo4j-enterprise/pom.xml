@@ -1,39 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.neo4j</groupId>
-    <artifactId>parent</artifactId>
-    <version>3.5.12</version>
-    <relativePath>../..</relativePath>
-  </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.neo4j</groupId>
+        <artifactId>parent</artifactId>
+        <version>3.5.22</version>
+        <relativePath>../..</relativePath>
+    </parent>
 
-  <groupId>org.graphfoundation.ongdb</groupId>
-  <artifactId>neo4j-enterprise</artifactId>
-  <version>3.5.12</version>
+    <groupId>org.graphfoundation.ongdb</groupId>
+    <artifactId>neo4j-enterprise</artifactId>
+    <version>3.5.22</version>
 
-  <name>Neo4j - Enterprise</name>
-  <packaging>jar</packaging>
-  <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
-  <description>A meta package containing the most used Neo4j Enterprise libraries. Intended use: as a Maven dependency.
-  </description>
+    <name>ONgDB - Enterprise</name>
+    <packaging>jar</packaging>
+    <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
+    <description>A meta package containing the most used Neo4j Enterprise libraries. Intended use: as a Maven dependency.
+    </description>
 
-  <properties>
-    <license-text.header>headers/AGPL-3-header.txt</license-text.header>
-    <moduleName>org.neo4j.enterprise</moduleName>
-  </properties>
+    <properties>
+        <license-text.header>headers/AGPL-3-header.txt</license-text.header>
+        <moduleName>org.neo4j.enterprise</moduleName>
+    </properties>
 
-  <scm>
-    <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
-    <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
-    <url>https://github.com/graphfoundation/ongdb</url>
-  </scm>
+    <scm>
+        <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
+        <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
+        <url>https://github.com/graphfoundation/ongdb</url>
+    </scm>
 
-  <licenses>
-    <license>
-      <name>GNU Affero General Public License, Version 3 with the Commons Clause</name>
-      <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
-      <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License, Version 3 with the Commons Clause</name>
+            <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
+            <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
         licensed under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3 with the Commons Clause to all
         third parties and that license is included below.
 
@@ -45,8 +46,8 @@
         LICENSE Version 3 and you may use the Software solely pursuant to the
         terms of the relevant Commercial Agreement.
       </comments>
-    </license>
-  </licenses>
+        </license>
+    </licenses>
 
     <dependencies>
         <dependency>
@@ -75,8 +76,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-             <groupId>org.graphfoundation.ongdb</groupId>
-             <artifactId>neo4j-causal-clustering</artifactId>
+            <groupId>org.graphfoundation.ongdb</groupId>
+            <artifactId>neo4j-causal-clustering</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

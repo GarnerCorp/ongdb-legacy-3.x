@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -220,6 +220,36 @@ class ProjectEndpointsPipeTest extends CypherFunSuite {
     ))
   }
 
+  test("projected endpoints of simple null relationship") {
+    // given
+    val left = newMockedPipe("r", row("r" -> Seq(null)))
+
+    // when
+    val result =
+      ProjectEndpointsPipe(left, "r", "a", startInScope = false, "b", endInScope = false, None, directed = false, simpleLength = true)().
+        createResults(queryState).toList
+
+    // then
+    result should beEquivalentTo(List(
+      Map("r" -> null)
+    ))
+  }
+
+  test("projected endpoints of simple null relationship with type") {
+    // given
+    val left = newMockedPipe("r", row("r" -> Seq(null)))
+
+    // when
+    val result =
+      ProjectEndpointsPipe(left, "r", "a", startInScope = false, "b", endInScope = false, Some(new LazyTypes(Array("B"))), directed = false, simpleLength = true)().
+        createResults(queryState).toList
+
+    // then
+    result should beEquivalentTo(List(
+      Map("r" -> null)
+    ))
+  }
+
   test("projects endpoints of a directed, var length relationship") {
     // given
 
@@ -418,6 +448,36 @@ class ProjectEndpointsPipeTest extends CypherFunSuite {
 
     // then
     result should be('isEmpty)
+  }
+
+  test("projected endpoints of var length null relationship") {
+    // given
+    val left = newMockedPipe("r", row("r" -> Seq(null)))
+
+    // when
+    val result =
+      ProjectEndpointsPipe(left, "r", "a", startInScope = false, "b", endInScope = false, None, directed = false, simpleLength = false)().
+        createResults(queryState).toList
+
+    // then
+    result should beEquivalentTo(List(
+      Map("r" -> null)
+    ))
+  }
+
+  test("projected endpoints of var length null relationship with type") {
+    // given
+    val left = newMockedPipe("r", row("r" -> Seq(null)))
+
+    // when
+    val result =
+      ProjectEndpointsPipe(left, "r", "a", startInScope = false, "b", endInScope = false, Some(new LazyTypes(Array("B"))), directed = false, simpleLength = false)().
+        createResults(queryState).toList
+
+    // then
+    result should beEquivalentTo(List(
+      Map("r" -> null)
+    ))
   }
 
   private def row(values: (String, AnyValue)*) = ExecutionContext.from(values: _*)

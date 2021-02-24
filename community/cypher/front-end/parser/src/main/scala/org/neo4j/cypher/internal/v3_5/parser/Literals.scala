@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -109,15 +109,11 @@ trait Literals extends Parser
   }
 
   def Parameter: Rule1[org.neo4j.cypher.internal.v3_5.expressions.Parameter] = rule("a parameter") {
-    NewParameter | OldParameter
-  }
-
-  def NewParameter: Rule1[org.neo4j.cypher.internal.v3_5.expressions.Parameter] = rule("a parameter (new syntax") {
     ((ch('$') ~~ (UnescapedSymbolicNameString | EscapedSymbolicNameString | UnsignedDecimalInteger ~> (_.toString))) memoMismatches) ~~>> (ast.Parameter(_, CTAny))
   }
 
-  def OldParameter: Rule1[org.neo4j.cypher.internal.v3_5.expressions.Parameter] = rule("a parameter (old syntax)") {
-    ((ch('{') ~~ (UnescapedSymbolicNameString | EscapedSymbolicNameString | UnsignedDecimalInteger ~> (_.toString)) ~~ ch('}')) memoMismatches) ~~>> (ast.Parameter(_, CTAny))
+  def OldParameter: Rule1[org.neo4j.cypher.internal.v3_5.expressions.ParameterWithOldSyntax] = rule("a parameter (old syntax)") {
+    ((ch('{') ~~ (UnescapedSymbolicNameString | EscapedSymbolicNameString | UnsignedDecimalInteger ~> (_.toString)) ~~ ch('}')) memoMismatches) ~~>> (ast.ParameterWithOldSyntax(_, CTAny))
   }
 
   def NumberLiteral: Rule1[org.neo4j.cypher.internal.v3_5.expressions.Literal] = rule("a number") (

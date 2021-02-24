@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -132,8 +132,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
   private def checkHorizon(clause: HorizonClause, state: SemanticState, prevErrors: Seq[SemanticErrorDef]) = {
     val closingResult = clause.semanticCheck(state)
-    val nextState = closingResult.state.newSiblingScope
-    val continuationResult = clause.semanticCheckContinuation(closingResult.state.currentScope.scope)(nextState)
+    val continuationResult = clause.semanticCheckContinuation(closingResult.state)
     semantics.SemanticCheckResult(continuationResult.state, prevErrors ++ closingResult.errors ++ continuationResult.errors)
   }
 }

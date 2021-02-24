@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -79,6 +79,8 @@ object InternalWrapping {
       NotificationCode.DEPRECATED_BINDING_VAR_LENGTH_RELATIONSHIP.notification(pos.withOffset(offset).asInputPosition, NotificationDetail.Factory.bindingVarLengthRelationship(variable))
     case DeprecatedRelTypeSeparatorNotification(pos) =>
       NotificationCode.DEPRECATED_RELATIONSHIP_TYPE_SEPARATOR.notification(pos.withOffset(offset).asInputPosition)
+    case DeprecatedParameterSyntax(pos) =>
+      NotificationCode.DEPRECATED_PARAMETER_SYNTAX.notification(pos.withOffset(offset).asInputPosition)
     case DeprecatedRulePlannerNotification =>
       NotificationCode.DEPRECATED_RULE_PLANNER.notification(graphdb.InputPosition.empty)
     case DeprecatedCompiledRuntimeNotification =>

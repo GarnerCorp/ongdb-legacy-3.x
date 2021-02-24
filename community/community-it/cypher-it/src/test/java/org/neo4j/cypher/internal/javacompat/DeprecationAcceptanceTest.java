@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -111,6 +111,19 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     {
         assertNotifications( "EXPLAIN WITH [1,2,3] AS list RETURN extract(x IN list | x * 10) AS tens",
                              containsItem( deprecatedFeatureWarning ) );
+    }
+
+    @Test
+    public void deprecatedParameterSyntax()
+    {
+        assertNotifications( "EXPLAIN RETURN {param} AS parameter",
+                containsItem( deprecatedParameterSyntax ) );
+    }
+
+    @Test
+    public void deprecatedParameterSyntaxForPropertyMap()
+    {
+        assertNotifications( "EXPLAIN CREATE (:Label {props})", containsItem( deprecatedParameterSyntax ) );
     }
 
     @Test
@@ -361,6 +374,9 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
             deprecation( "The semantics of using colon in the separation of alternative relationship " +
                          "types in conjunction with the use of variable binding, inlined property " +
                          "predicates, or variable length will change in a future version." );
+
+    private Matcher<Notification> deprecatedParameterSyntax =
+            deprecation( "The parameter syntax `{param}` is deprecated, please use `$param` instead" );
 
     private Matcher<Notification> deprecation( String message )
     {

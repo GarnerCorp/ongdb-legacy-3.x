@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -192,4 +192,25 @@ class IndexPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTe
 
     Await.result(futurePlan, 1.minutes)
   }
+
+  test("should not plan index scan if predicate variable is an argument") {
+    val plan =
+      new given {
+        indexOn("Label", "prop")
+      } getLogicalPlanFor
+        """
+           |MATCH (a: Label {prop: $param})
+           |MATCH (b)
+           |WHERE (a:Label {prop: $param})-[]-(b)
+           |RETURN a
+           |""".stripMargin
+
+    plan._2 should beLike {
+      case SemiApply(
+             CartesianProduct(_: NodeIndexSeek, _: AllNodesScan),
+             Expand(
+               Selection(_, _: Argument), _, _, _, _, _, _)) => ()
+    }
+  }
+
 }

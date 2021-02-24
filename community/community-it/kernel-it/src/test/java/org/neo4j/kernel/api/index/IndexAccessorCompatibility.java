@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -68,10 +68,10 @@ public abstract class IndexAccessorCompatibility extends IndexProviderCompatibil
     public void before() throws Exception
     {
         IndexSamplingConfig indexSamplingConfig = new IndexSamplingConfig( Config.defaults() );
-        IndexPopulator populator = indexProvider.getPopulator( descriptor, indexSamplingConfig, heapBufferFactory( 1024 ) );
+        IndexPopulator populator = indexProvider.getPopulator( descriptor, indexSamplingConfig, heapBufferFactory( 1024 ), tokenNameLookup );
         populator.create();
         populator.close( true );
-        accessor = indexProvider.getOnlineAccessor( descriptor, indexSamplingConfig );
+        accessor = indexProvider.getOnlineAccessor( descriptor, indexSamplingConfig, tokenNameLookup );
     }
 
     @After

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,12 +32,12 @@ class ASTRewriter(rewriterSequencer: String => RewriterStepSequencer,
 
     val contract = rewriterSequencer("ASTRewriter")(
       recordScopes(semanticState),
+      expandStar(semanticState),
       desugarMapProjection(semanticState),
       normalizeComparisons,
       enableCondition(noReferenceEqualityAmongVariables),
       enableCondition(containsNoNodesOfType[UnaliasedReturnItem]),
       enableCondition(noDuplicatesInReturnItems),
-      expandStar(semanticState),
       enableCondition(containsNoReturnAll),
       foldConstants,
       nameMatchPatternElements,

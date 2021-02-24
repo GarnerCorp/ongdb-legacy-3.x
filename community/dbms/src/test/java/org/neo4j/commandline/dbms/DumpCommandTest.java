@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -66,6 +66,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -88,6 +89,7 @@ class DumpCommandTest
     private Path archive;
     private Dumper dumper;
     private Path databaseDirectory;
+    private PrintStream output;
 
     @BeforeEach
     void setUp() throws Exception
@@ -96,6 +98,7 @@ class DumpCommandTest
         configDir = testDirectory.directory( "config-dir" ).toPath();
         archive = testDirectory.file( "some-archive.dump" ).toPath();
         dumper = mock( Dumper.class );
+        output = mock( PrintStream.class );
         putStoreInDirectory( homeDir.resolve( "data/databases/foo.db" ) );
         databaseDirectory = homeDir.resolve( "data/databases/foo.db" );
     }
@@ -160,14 +163,14 @@ class DumpCommandTest
     void shouldCalculateTheArchiveNameIfPassedAnExistingDirectory() throws Exception
     {
         File to = testDirectory.directory( "some-dir" );
-        new DumpCommand( homeDir, configDir, dumper ).execute( new String[]{"--database=" + "foo.db", "--to=" + to} );
+        new DumpCommand( homeDir, configDir, dumper, output ).execute( new String[]{"--database=" + "foo.db", "--to=" + to} );
         verify( dumper ).dump( any( Path.class ), any( Path.class ), eq( to.toPath().resolve( "foo.db.dump" ) ), any(), any() );
     }
 
     @Test
     void shouldConvertToCanonicalPath() throws Exception
     {
-        new DumpCommand( homeDir, configDir, dumper )
+        new DumpCommand( homeDir, configDir, dumper, output )
                 .execute( new String[]{"--database=" + "foo.db", "--to=foo.dump"} );
         verify( dumper ).dump( any( Path.class ), any( Path.class ),
                 eq( Paths.get( new File( "foo.dump" ).getCanonicalPath() ) ), any(), any() );
@@ -251,6 +254,7 @@ class DumpCommandTest
 
             try ( Closeable ignored = withPermissions( storeLayout.storeLockFile().toPath(), emptySet() ) )
             {
+                assumeFalse( storeLayout.storeLockFile().canWrite() );
                 CommandFailed commandFailed = assertThrows( CommandFailed.class, () -> execute( "foo.db" ) );
                 assertEquals( commandFailed.getMessage(), "you do not have permission to dump the database -- is Neo4j running as a different user?" );
             }
@@ -281,7 +285,7 @@ class DumpCommandTest
         putStoreInDirectory( databaseDir );
         Files.write( configDir.resolve( Config.DEFAULT_CONFIG_FILE_NAME ), singletonList( formatProperty( data_directory, dataDir ) ) );
 
-        new DumpCommand( homeDir, configDir, dumper ).execute( new String[]{"--to=" + archive} );
+        new DumpCommand( homeDir, configDir, dumper, output ).execute( new String[]{"--to=" + archive} );
         verify( dumper ).dump( eq( databaseDir ), eq( databaseDir ), any(), any(), any() );
     }
 
@@ -290,7 +294,7 @@ class DumpCommandTest
     {
 
         IllegalArgumentException exception = assertThrows( IllegalArgumentException.class,
-                () -> new DumpCommand( homeDir, configDir, null ).execute( new String[]{"--database=something"} ) );
+                () -> new DumpCommand( homeDir, configDir, null, output ).execute( new String[]{"--database=something"} ) );
         assertEquals( "Missing argument 'to'", exception.getMessage() );
     }
 
@@ -359,7 +363,7 @@ class DumpCommandTest
 
     private void execute( final String database ) throws IncorrectUsage, CommandFailed
     {
-        new DumpCommand( homeDir, configDir, dumper )
+        new DumpCommand( homeDir, configDir, dumper, output )
                 .execute( new String[]{"--database=" + database, "--to=" + archive} );
     }
 

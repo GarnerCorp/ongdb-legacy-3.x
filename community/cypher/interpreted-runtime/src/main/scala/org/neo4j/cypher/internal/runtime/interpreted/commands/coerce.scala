@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -73,5 +73,5 @@ object coerce {
   }
 
   private def cantCoerce(value: Any, typ: CypherType, cause: Option[Throwable] = None) =
-    new CypherTypeException(s"Can't coerce `$value` to $typ", cause.orNull)
+    new CypherTypeException(s"Wrong argument type: Can't coerce `$value` to $typ", cause.orNull)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -38,10 +38,10 @@ class StatisticsBackedCardinalityModel(queryGraphCardinalityModel: QueryGraphCar
   def apply(query: PlannerQuery, input0: QueryGraphSolverInput, semanticTable: SemanticTable): Cardinality = {
     val output = query.fold(input0) {
       case (input, RegularPlannerQuery(graph, _, horizon, _)) =>
-        val QueryGraphSolverInput(newLabels, graphCardinality, laziness) = calculateCardinalityForQueryGraph(graph, input, semanticTable)
+        val newInput = calculateCardinalityForQueryGraph(graph, input, semanticTable)
 
-        val horizonCardinality = calculateCardinalityForQueryHorizon(graphCardinality, horizon, semanticTable)
-        QueryGraphSolverInput(newLabels, horizonCardinality, laziness)
+        val horizonCardinality = calculateCardinalityForQueryHorizon(newInput.inboundCardinality, horizon, semanticTable)
+        newInput.copy( inboundCardinality = horizonCardinality)
     }
     output.inboundCardinality
   }
@@ -124,8 +124,6 @@ class StatisticsBackedCardinalityModel(queryGraphCardinalityModel: QueryGraphCar
 
   private def calculateCardinalityForQueryGraph(graph: QueryGraph, input: QueryGraphSolverInput,
                                                 semanticTable: SemanticTable) = {
-    val newLabels = input.labelInfo.fuse(graph.patternNodeLabels)(_ ++ _)
-    val newCardinality = queryGraphCardinalityModel(graph, input, semanticTable)
-    QueryGraphSolverInput(newLabels, newCardinality, input.strictness)
+    input.copy(labelInfo = input.labelInfo.fuse(graph.patternNodeLabels)(_ ++ _), inboundCardinality = queryGraphCardinalityModel(graph, input, semanticTable))
   }
 }

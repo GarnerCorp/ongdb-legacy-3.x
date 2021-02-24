@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +41,7 @@ trait StartPoints extends Parser
     "(" ~~ (
         LiteralIds ~~> ((i: Variable, p: InputPosition, ids) => ast.NodeByIds(i, ids)(p))
       | Parameter ~~> ((i: Variable, p: InputPosition, param) => ast.NodeByParameter(i, param)(p))
+      | OldParameter ~~> ((i: Variable, p: InputPosition, param) => ast.NodeByParameter(i, param)(p))
       | "*" ~~> ((i: Variable, p: InputPosition) => ast.AllNodes(i)(p))
     ) ~~ ")"
   }
@@ -61,6 +62,7 @@ trait StartPoints extends Parser
     "(" ~~ (
         LiteralIds ~~> ((i: Variable, p: InputPosition, ids) => ast.RelationshipByIds(i, ids)(p))
       | Parameter ~~> ((i: Variable, p: InputPosition, param) => ast.RelationshipByParameter(i, param)(p))
+      | OldParameter ~~> ((i: Variable, p: InputPosition, param) => ast.RelationshipByParameter(i, param)(p))
       | "*" ~~> ((i: Variable, p: InputPosition) => ast.AllRelationships(i)(p))
     ) ~~ ")"
   }
@@ -76,11 +78,11 @@ trait StartPoints extends Parser
   }
 
   private def IdentifiedIndexLookup: Rule3[String, String, org.neo4j.cypher.internal.v3_5.expressions.Expression] = rule {
-    ":" ~~ SymbolicNameString ~~ "(" ~~ SymbolicNameString ~~ operator("=") ~~ (StringLiteral | Parameter) ~~ ")"
+    ":" ~~ SymbolicNameString ~~ "(" ~~ SymbolicNameString ~~ operator("=") ~~ (StringLiteral | Parameter | OldParameter) ~~ ")"
   }
 
   private def IndexQuery: Rule2[String, org.neo4j.cypher.internal.v3_5.expressions.Expression] = rule {
-    ":" ~~ SymbolicNameString ~~ "(" ~~ (StringLiteral | Parameter) ~~ ")"
+    ":" ~~ SymbolicNameString ~~ "(" ~~ (StringLiteral | Parameter | OldParameter) ~~ ")"
   }
 
   private def LiteralIds: Rule1[Seq[org.neo4j.cypher.internal.v3_5.expressions.UnsignedIntegerLiteral]] = rule("an unsigned integer") {

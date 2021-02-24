@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.compiler.v3_5.planner.logical.LogicalPlanningCo
 import org.neo4j.cypher.internal.compiler.v3_5.planner.logical.steps.PatternExpressionSolver
 import org.neo4j.cypher.internal.ir.v3_5._
 import org.neo4j.cypher.internal.v3_5.expressions.{Ands, Expression, LogicalVariable}
-import org.neo4j.cypher.internal.v3_5.logical.plans.{ExpandAll, ExpandInto, LogicalPlan}
+import org.neo4j.cypher.internal.v3_5.logical.plans.{Argument, ExpandAll, ExpandInto, LogicalLeafPlan, LogicalPlan}
 
 case class expandSolverStep(qg: QueryGraph) extends IDPSolverStep[PatternRelationship, LogicalPlan, LogicalPlanningContext] {
 
@@ -64,6 +64,7 @@ object expandSolverStep {
                             nodeId: String,
                             context: LogicalPlanningContext): Option[LogicalPlan] = {
     val availableSymbols = sourcePlan.availableSymbols
+
     if (availableSymbols(nodeId)) {
       Some(produceLogicalPlan(qg, patternRel, sourcePlan, nodeId, availableSymbols, context))
     } else {

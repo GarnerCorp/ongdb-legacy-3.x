@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -184,10 +184,10 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
       "MATCH (a) WITH count(a) AS `  AGGREGATION17` RETURN `  AGGREGATION17` > 0 AS bool")
   }
 
-  test("MATCH (a) RETURN count(a) > {param} AS bool") {
+  test("MATCH (a) RETURN count(a) > $param AS bool") {
     assertRewrite(
-      "MATCH (a) RETURN count(a) > {param} AS bool",
-      "MATCH (a) WITH count(a) AS `  AGGREGATION17` RETURN `  AGGREGATION17` > {param} AS bool")
+      "MATCH (a) RETURN count(a) > $param AS bool",
+      "MATCH (a) WITH count(a) AS `  AGGREGATION17` RETURN `  AGGREGATION17` > $param AS bool")
   }
 
   test("should not introduce multiple return items for the same expression") {

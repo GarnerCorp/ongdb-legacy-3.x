@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -48,6 +48,7 @@ case class RealLogicalPlanningConfiguration(cypherCompilerConfig: CypherPlannerC
   override def procedureSignatures: Set[ProcedureSignature] = Set.empty
   override def labelCardinality: Map[String, Cardinality] = Map.empty
   override def knownLabels: Set[String] = Set.empty
+  override def knownRelationships: Set[String] = Set.empty
   override def labelsById: Map[Int, String] = Map.empty
 
   override def qg: QueryGraph = ???

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -156,8 +156,8 @@ class MatchPredicateNormalizerTest extends CypherFunSuite with RewriteTest {
 
   test("varlength with labels and parameters") {
     assertRewrite(
-      "MATCH (a:Artist)-[r:WORKED_WITH* { year: {foo} }]->(b:Artist) RETURN *",
-      "MATCH (a)-[r:WORKED_WITH*]->(b) WHERE a:Artist AND b:Artist AND ALL(`  FRESHID16` in r where `  FRESHID16`.year = {foo})  RETURN *")
+      "MATCH (a:Artist)-[r:WORKED_WITH* { year: $foo }]->(b:Artist) RETURN *",
+      "MATCH (a)-[r:WORKED_WITH*]->(b) WHERE a:Artist AND b:Artist AND ALL(`  FRESHID16` in r where `  FRESHID16`.year = $foo)  RETURN *")
   }
 
   test("rewrite outgoing pattern to getDegree call") {

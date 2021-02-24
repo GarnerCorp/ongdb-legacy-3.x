@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -228,12 +228,12 @@ case class Prettifier(mkStringOf: ExpressionStringifier) {
       start.items.map {
         case AllNodes(v) => s"${v.name} = NODE( * )"
         case NodeByIds(v, ids) => s"${v.name} = NODE( ${ids.map(_.value.toString).mkString(", ")} )"
-        case NodeByParameter(v, param) => s"${v.name} = NODE( $$${param.name} )"
+        case NodeByParameter(v, param) => s"${v.name} = NODE( $$${param.parameterName} )"
         case NodeByIdentifiedIndex(v, index, key, value) => s"${v.name} = NODE:$index( $key = ${mkStringOf(value)} )"
         case NodeByIndexQuery(v, index, query) => s"${v.name} = NODE:$index( ${mkStringOf(query)} )"
         case AllRelationships(v) => s"${v.name} = RELATIONSHIP( * )"
         case RelationshipByIds(v, ids) => s"${v.name} = RELATIONSHIP( ${ids.map(_.value.toString).mkString(", ")} )"
-        case RelationshipByParameter(v, param) => s"${v.name} = RELATIONSHIP( $$${param.name} )"
+        case RelationshipByParameter(v, param) => s"${v.name} = RELATIONSHIP( $$${param.parameterName} )"
         case RelationshipByIdentifiedIndex(v, index, key, value) => s"${v.name} = RELATIONSHIP:$index( $key = ${mkStringOf(value)} )"
         case RelationshipByIndexQuery(v, index, query) => s"${v.name} = RELATIONSHIP:$index( ${mkStringOf(query)} )"
       }

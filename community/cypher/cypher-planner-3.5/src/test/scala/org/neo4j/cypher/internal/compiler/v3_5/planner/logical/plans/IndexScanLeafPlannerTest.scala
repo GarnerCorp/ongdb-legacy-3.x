@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -504,6 +504,51 @@ class IndexScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSu
       resultPlans should beLike {
         case Seq(NodeIndexEndsWithScan(`idName`, _, IndexedProperty(_, CanGetValue), `stringLiteral`, _, _)) => ()
       }
+    }
+  }
+
+  test("does not plan index scans for arguments for: n.prop = <value>") {
+    new given {
+      qg = queryGraph(eqPredicate, hasLabels)
+        .copy(argumentIds = Set(idName))
+
+      indexOn("Awesome", "prop")
+    }.withLogicalPlanningContext { (cfg, ctx) =>
+      // when
+      val resultPlans = indexScanLeafPlanner(cfg.qg, InterestingOrder.empty, ctx)
+
+      // then
+      resultPlans shouldBe empty
+    }
+  }
+
+  test("does not plan index contains scan for arguments") {
+    new given {
+      qg = queryGraph(containsPredicate, hasLabels)
+        .copy(argumentIds = Set(idName))
+
+      indexOn("Awesome", "prop")
+    }.withLogicalPlanningContext { (cfg, ctx) =>
+      // when
+      val resultPlans = indexScanLeafPlanner(cfg.qg, InterestingOrder.empty, ctx)
+
+      // then
+      resultPlans shouldBe empty
+    }
+  }
+
+  test("does not plan index ends with scan for arguments") {
+    new given {
+      qg = queryGraph(endsWithPredicate, hasLabels)
+        .copy(argumentIds = Set(idName))
+
+      indexOn("Awesome", "prop")
+    }.withLogicalPlanningContext { (cfg, ctx) =>
+      // when
+      val resultPlans = indexScanLeafPlanner(cfg.qg, InterestingOrder.empty, ctx)
+
+      // then
+      resultPlans shouldBe empty
     }
   }
 

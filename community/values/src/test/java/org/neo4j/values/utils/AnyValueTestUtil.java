@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -53,6 +53,16 @@ public class AnyValueTestUtil
         assertEquals( a + " should be equivalent to " + b, b, a );
         assertTrue( a + " should be equal to " + b, a.ternaryEquals( b ) );
         assertTrue( a + " should be equal to " + b, b.ternaryEquals( a ) );
+        assertEquals( a + ".hashCode() should be equivalent to " + b + ".hashCode()", a.hashCode(), b.hashCode() );
+    }
+
+    public static void assertEqualWithNoValues( AnyValue a, AnyValue b )
+    {
+        assertEquals( a + " should be equivalent to " + b, a, b );
+        assertEquals( a + " should be equivalent to " + b, b, a );
+        assertEquals( a + " should not be equal to " + b, null, a.ternaryEquals( b ) );
+        assertEquals( a + " should not be equal to " + b, null, b.ternaryEquals( a ) );
+        assertEquals( a + ".hashCode() should be equivalent to " + b + ".hashCode()", a.hashCode(), b.hashCode() );
     }
 
     public static void assertNotEqual( AnyValue a, AnyValue b )

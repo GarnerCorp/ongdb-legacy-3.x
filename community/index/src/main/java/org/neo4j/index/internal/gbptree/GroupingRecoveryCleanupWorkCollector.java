@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -55,7 +55,7 @@ public class GroupingRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCol
         if ( !jobs.isEmpty() )
         {
             StringJoiner joiner = new StringJoiner( String.format( "%n  " ), "Did not expect there to be any cleanup jobs still here. Jobs[", "]" );
-            consumeAndCloseJobs( cj -> joiner.add( jobs.toString() ) );
+            consumeAndCloseJobs( cj -> joiner.add( cj.toString() ) );
             throw new IllegalStateException( joiner.toString() );
         }
         scheduleJobs();

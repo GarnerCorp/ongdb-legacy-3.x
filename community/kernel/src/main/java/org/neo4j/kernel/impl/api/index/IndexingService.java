@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -328,14 +328,12 @@ public class IndexingService extends LifecycleAdapter implements IndexingUpdateS
                 switch ( state )
                 {
                 case ONLINE:
-                    // Don't do anything, index is ok.
+                case FAILED:
+                    proxy.start();
                     break;
                 case POPULATING:
-                    // Remember for rebuilding
+                    // Remember for rebuilding right below in this method
                     rebuildingDescriptors.put( indexId, descriptor );
-                    break;
-                case FAILED:
-                    // Don't do anything, the user needs to drop the index and re-create
                     break;
                 default:
                     throw new IllegalStateException( "Unknown state: " + state );

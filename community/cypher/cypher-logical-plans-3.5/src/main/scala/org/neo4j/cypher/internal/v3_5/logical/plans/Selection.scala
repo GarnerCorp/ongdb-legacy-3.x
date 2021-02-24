@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -46,7 +46,9 @@ object Selection {
 }
 
 object SelectionMatcher {
-  def unapply(arg: Selection): Option[(Seq[Expression], LogicalPlan)] = Some(
-  (arg.predicate.exprs.toSeq, arg.source)
-  )
+  def unapply(arg: Selection): Option[(Seq[Expression], LogicalPlan)] = {
+    Some(
+      (arg.predicate.exprs.toSeq, arg.source)
+      )
+  }
 }

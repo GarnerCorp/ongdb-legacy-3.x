@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -33,6 +33,7 @@ import org.neo4j.graphdb.index.fulltext.AnalyzerProvider;
 import org.neo4j.internal.kernel.api.IndexCapability;
 import org.neo4j.internal.kernel.api.IndexReference;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.MisconfiguredIndexException;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
@@ -66,6 +67,7 @@ import org.neo4j.kernel.impl.storemigration.participant.SchemaIndexMigrator;
 import org.neo4j.logging.Log;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.EntityType;
+import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexReader;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
@@ -224,7 +226,8 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
     }
 
     @Override
-    public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory )
+    public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory,
+            TokenNameLookup tokenNameLookup )
     {
         PartitionedIndexStorage indexStorage = getIndexStorage( descriptor.getId() );
         FulltextIndexDescriptor fulltextIndexDescriptor = readOrInitialiseDescriptor(
@@ -246,7 +249,8 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
     }
 
     @Override
-    public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig ) throws IOException
+    public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig,
+            TokenNameLookup tokenNameLookup ) throws IOException
     {
         PartitionedIndexStorage indexStorage = getIndexStorage( descriptor.getId() );
 
@@ -314,6 +318,15 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
         SchemaDescriptor schema = SchemaDescriptorFactory.multiToken( entityTokenIds, type, propertyIds );
         indexConfiguration.putIfAbsent( FulltextIndexSettings.INDEX_CONFIG_ANALYZER, defaultAnalyzerName );
         indexConfiguration.putIfAbsent( FulltextIndexSettings.INDEX_CONFIG_EVENTUALLY_CONSISTENT, defaultEventuallyConsistentSetting );
+        String analyzerName = indexConfiguration.getProperty( FulltextIndexSettings.INDEX_CONFIG_ANALYZER );
+        try
+        {
+            FulltextIndexSettings.createAnalyzer( analyzerName );
+        }
+        catch ( RuntimeException e )
+        {
+            throw new IllegalArgumentException( "No such analyzer: " + analyzerName, e );
+        }
         return new FulltextSchemaDescriptor( schema, indexConfiguration );
     }
 
@@ -324,7 +337,7 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
         AllStoreHolder allStoreHolder = (AllStoreHolder) kti.dataRead();
         IndexReference indexReference = kti.schemaRead().indexGetForName( indexName );
         FulltextIndexReader fulltextIndexReader;
-        if ( kti.hasTxStateWithChanges() && !((FulltextSchemaDescriptor) indexReference.schema()).isEventuallyConsistent() )
+        if ( kti.hasTxStateWithChanges() && !isEventuallyConsistent( indexReference ) )
         {
             FulltextAuxiliaryTransactionState auxiliaryTxState = (FulltextAuxiliaryTransactionState) allStoreHolder.auxiliaryTxState( TX_STATE_PROVIDER_KEY );
             fulltextIndexReader = auxiliaryTxState.indexReader( indexReference, kti );
@@ -335,6 +348,16 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
             fulltextIndexReader = (FulltextIndexReader) indexReader;
         }
         return fulltextIndexReader.query( queryString );
+    }
+
+    private boolean isEventuallyConsistent( IndexReference indexReference )
+    {
+        if ( indexReference instanceof CapableIndexDescriptor )
+        {
+            CapableIndexDescriptor index = (CapableIndexDescriptor) indexReference;
+            return index.isEventuallyConsistent();
+        }
+        return ((FulltextSchemaDescriptor) indexReference.schema()).isEventuallyConsistent();
     }
 
     @Override

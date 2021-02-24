@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -154,9 +154,13 @@ public class LimitedRecordGenerators implements RecordGenerators
     @Override
     public Generator<LabelTokenRecord> labelToken()
     {
-        return ( recordSize, format, recordId ) -> new LabelTokenRecord( toIntExact( recordId ) ).initialize(
-                random.nextBoolean(),
-                random.nextInt( tokenBits ) );
+        return ( recordSize, format, recordId ) ->
+        {
+            assert recordId < 0xffffffffL : "Record id too big: " + recordId;
+            return new LabelTokenRecord( recordId ).initialize(
+                    random.nextBoolean(),
+                    random.nextInt( tokenBits ) );
+        };
     }
 
     @Override

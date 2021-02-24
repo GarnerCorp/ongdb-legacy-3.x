@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -112,7 +112,7 @@ public class ProcedureJarLoader
         {
             Class<?> next = classes.next();
             target.addAllProcedures( compiler.compileProcedure( next, null, false ) );
-            target.addAllFunctions( compiler.compileFunction( next ) );
+            target.addAllFunctions( compiler.compileFunction( next, false ) );
             target.addAllAggregationFunctions( compiler.compileAggregationFunction( next ) );
         }
         return target;

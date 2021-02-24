@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -571,7 +571,8 @@ case class LogicalPlanProducer(cardinalityModel: CardinalityModel, planningAttri
   }
 
   def planUnion(left: LogicalPlan, right: LogicalPlan, context: LogicalPlanningContext): LogicalPlan = {
-    annotate(Union(left, right), solveds.get(left.id), ProvidedOrder.empty, context)
+    val solvedWithAllHints = solveds.get(left.id).amendQueryGraph(qg => qg.copy(hints = qg.hints ++ solveds.get(right.id).allHints))
+    annotate(Union(left, right), solvedWithAllHints, ProvidedOrder.empty, context)
     /* TODO: This is not correct in any way: solveds.get(left.id)
      LogicalPlan.solved contains a PlannerQuery, but to represent a Union, we'd need a UnionQuery instead
      Not very important at the moment, but dirty.

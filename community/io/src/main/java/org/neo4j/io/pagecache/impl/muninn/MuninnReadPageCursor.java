@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -110,25 +110,26 @@ final class MuninnReadPageCursor extends MuninnPageCursor
         MuninnReadPageCursor cursor = this;
         do
         {
-            if ( cursor.pinnedPageRef != 0 )
+            long pageRef = cursor.pinnedPageRef;
+            if ( pageRef != 0 )
             {
-                cursor.startRetry();
+                cursor.startRetry( pageRef );
             }
             cursor = (MuninnReadPageCursor) cursor.linkedCursor;
         }
         while ( cursor != null );
     }
 
-    private void startRetry() throws IOException
+    private void startRetry( long pageRef ) throws IOException
     {
         setOffset( 0 );
         checkAndClearBoundsFlag();
         clearCursorException();
-        lockStamp = pagedFile.tryOptimisticReadLock( pinnedPageRef );
+        lockStamp = pagedFile.tryOptimisticReadLock( pageRef );
         // The page might have been evicted while we held the optimistic
         // read lock, so we need to check with page.pin that this is still
         // the page we're actually interested in:
-        if ( !pagedFile.isBoundTo( pinnedPageRef, pagedFile.swapperId, currentPageId ) )
+        if ( !pagedFile.isBoundTo( pageRef, pagedFile.swapperId, currentPageId ) )
         {
             // This is no longer the page we're interested in, so we have
             // to redo the pinning.

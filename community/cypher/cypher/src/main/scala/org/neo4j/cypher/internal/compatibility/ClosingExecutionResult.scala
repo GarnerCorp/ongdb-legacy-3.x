@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,8 +24,8 @@ import java.util
 import java.util.NoSuchElementException
 
 import org.neo4j.cypher.exceptionHandler.RunSafely
-import org.neo4j.cypher.internal.runtime.planDescription.InternalPlanDescription
 import org.neo4j.cypher.internal.runtime._
+import org.neo4j.cypher.internal.runtime.planDescription.InternalPlanDescription
 import org.neo4j.cypher.result.QueryResult.QueryResultVisitor
 import org.neo4j.graphdb
 import org.neo4j.graphdb.Result.ResultVisitor
@@ -139,7 +139,7 @@ class ClosingExecutionResult private(val query: ExecutingQuery,
     inner.close(reason)
     reason match {
       case Success => monitor.endSuccess(query)
-      case Failure => monitor.endFailure(query, null)
+      case Failure => monitor.endFailure(query)
       case Error(t) => monitor.endFailure(query, t)
     }
   })( handleErrorOnClose(reason) )

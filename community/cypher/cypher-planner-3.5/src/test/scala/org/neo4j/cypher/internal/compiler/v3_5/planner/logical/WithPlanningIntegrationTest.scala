@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -65,7 +65,7 @@ class WithPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
   test("should build plans with WITH and selections") {
     val result = planFor("MATCH (a) WITH a LIMIT 1 MATCH (a)-[r1]->(b) WHERE r1.prop = 42 RETURN r1")._2
     val expected = Selection(
-      Seq(In(Property(Variable("r1")(pos), PropertyKeyName("prop")(pos))(pos), ListLiteral(List(SignedDecimalIntegerLiteral("42")(pos)))(pos))(pos)),
+      Seq(Equals(Property(Variable("r1")(pos), PropertyKeyName("prop")(pos))(pos), SignedDecimalIntegerLiteral("42")(pos))(pos)),
       Expand(
         Limit(
           AllNodesScan("a", Set()),
@@ -233,14 +233,17 @@ class WithPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
 
     result should beLike {
       case
-        SelectionMatcher(Seq(LessThan(FunctionInvocation(Namespace(List()),FunctionName("rand"),false,Vector(), false),Variable("p"))),
-        Limit(
-        Distinct(
-        Apply(
-        Projection(_, _),
-        AllNodesScan("n1", _)
-        ),_), _, _)
-        ) => ()
+        Projection(
+          SelectionMatcher(Seq(
+            LessThan(FunctionInvocation(Namespace(List()), FunctionName("rand"), false, Vector(), false),
+                 Variable("  p@111"))),
+                         Limit(
+                         Distinct(
+                         Apply(
+                         Projection(_, _),
+                         AllNodesScan("  n1@66", _)
+                         ), _), _, _)
+        ),_) => ()
     }
   }
 
@@ -253,7 +256,7 @@ class WithPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
 
     result should beLike {
       case
-        SelectionMatcher(Seq(LessThan(FunctionInvocation(Namespace(List()),FunctionName("rand"),false,Vector(), false),Variable("p"))),
+        SelectionMatcher(Seq(LessThan(FunctionInvocation(Namespace(List()),FunctionName("rand"),false,Vector(), false),Variable("  p@114"))),
         Aggregation(
         Apply(
         Projection(_, _),
@@ -285,9 +288,10 @@ class WithPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
 
     result should beLike {
       case
+        Projection(
         Selection(ands,
         Limit(_,_,_)
-        ) if hasPathExpression(ands)=> ()
+        ), _) if hasPathExpression(ands)=> ()
     }
   }
 

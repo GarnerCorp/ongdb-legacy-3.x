@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.v3_5.planner.logical.plans.rewriter.un
 import org.neo4j.cypher.internal.ir.v3_5.{InterestingOrder, QueryGraph}
 import org.neo4j.cypher.internal.v3_5.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.v3_5.ast.UsingJoinHint
+import org.neo4j.cypher.internal.v3_5.logical.plans.Argument
 
 trait OptionalSolver {
   def apply(qg: QueryGraph, lp: LogicalPlan, interestingOrder: InterestingOrder, context: LogicalPlanningContext): Option[LogicalPlan]
@@ -44,12 +45,20 @@ case object applyOptional extends OptionalSolver {
 
 abstract class outerHashJoin extends OptionalSolver {
   override def apply(optionalQg: QueryGraph, side1: LogicalPlan, interestingOrder: InterestingOrder, context: LogicalPlanningContext): Option[LogicalPlan] = {
-    val joinNodes = optionalQg.argumentIds intersect optionalQg.patternNodes
+    val joinNodes = optionalQg.argumentIds
     val solvedHints = optionalQg.joinHints.filter { hint =>
       val hintVariables = hint.variables.map(_.name).toSet
       hintVariables.subsetOf(joinNodes)
     }
-    val side2 = context.strategy.plan(optionalQg.withoutArguments().withoutHints(solvedHints), interestingOrder, context)
+
+    // If side1 is just an Argument, any Apply above this will get written out so the incoming cardinality should be 1
+    // This will be the case as [AssumeIndependenceQueryGraphCardinalityModel] will always use a cardinality of 1 if there are no
+    // arguments and we delete the arguments below.
+    // If not, then we're probably under an apply that will stay, so we need to force the cardinality to be multiplied by the incoming
+    // cardinality.
+    val side2Context = if (!side1.isInstanceOf[Argument]) context.copy(input = context.input.copy(alwaysMultiply = true)) else context
+
+    val side2 = context.strategy.plan(optionalQg.withoutArguments().withoutHints(solvedHints), interestingOrder, side2Context)
 
     if (joinNodes.nonEmpty &&
       joinNodes.forall(side1.availableSymbols) &&

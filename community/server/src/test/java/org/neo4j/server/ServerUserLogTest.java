@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -201,6 +201,11 @@ public class ServerUserLogTest
             @Override
             protected GraphFactory createGraphFactory( Config config )
             {
+                config.augment( stringMap(
+                        "dbms.connector.bolt.listen_address", ":0",
+                        "dbms.connector.http.listen_address", ":0",
+                        "dbms.connector.https.listen_address", ":0"
+                ) );
                 return new CommunityGraphFactory();
             }
 

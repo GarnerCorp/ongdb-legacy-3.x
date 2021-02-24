@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -80,6 +80,7 @@ case class ProjectEndpointsPipe(source: Pipe, relName: String,
       val relValue = context(relName) match {
         case relValue: RelationshipValue => relValue
         case relRef: RelationshipReference => qtx.relationshipOps.getById(relRef.id())
+        case _ =>  return None
       }
       val rel = Some(relValue).filter(hasAllowedType)
     rel.flatMap( rel => pickStartAndEnd(rel, rel, context, qtx) )
@@ -110,6 +111,7 @@ case class ProjectEndpointsPipe(source: Pipe, relName: String,
       val next = iterator.next() match {
         case relValue: RelationshipValue => relValue
         case relRef: RelationshipReference => qtx.relationshipOps.getById(relRef.id())
+        case _ =>  return false
       }
       if (!hasAllowedType(next)) return false
     }
