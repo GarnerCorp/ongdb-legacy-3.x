@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.neo4j.collection.RawIterator;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
+import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.ResourceTracker;
 import org.neo4j.kernel.api.StubResourceManager;
@@ -65,6 +66,24 @@ public class BuiltInDbmsProceduresIT extends KernelIntegrationTest
         assertEquals( names.stream()
                 .filter( n -> n.startsWith( "unsupported" ) )
                 .count(), 0 );
+    }
+
+    @Test
+    public void listClientConfig() throws Exception
+    {
+        QualifiedName procedureName = procedureName( "dbms", "clientConfig" );
+        int procedureId = procs().procedureGet( procedureName ).id();
+        RawIterator<Object[],ProcedureException> callResult =
+                dbmsOperations()
+                        .procedureCallDbms( procedureId, new Object[]{},  dependencyResolver, AUTH_DISABLED, resourceTracker,
+                        ProcedureCallContext.EMPTY );
+        List<Object[]> config = asList( callResult );
+        assertEquals( 3, config.size());
+
+        assertEquals( config.get( 0 )[0], "browser.post_connect_cmd" );
+        assertEquals( config.get( 1 )[0], "browser.remote_content_hostname_whitelist" );
+        assertEquals( config.get( 2 )[0], "dbms.security.auth_enabled");
+
     }
 
     @Test
@@ -111,11 +130,12 @@ public class BuiltInDbmsProceduresIT extends KernelIntegrationTest
         assertFalse( (Boolean) config.get(0)[3] );
     }
 
-    private List<Object[]> callListConfig( String seatchString ) throws ProcedureException
+    private List<Object[]> callListConfig( String searchString ) throws ProcedureException
     {
         QualifiedName procedureName = procedureName( "dbms", "listConfig" );
         RawIterator<Object[],ProcedureException> callResult =
-                dbmsOperations().procedureCallDbms( procedureName, toArray( seatchString ), dependencyResolver, AUTH_DISABLED, resourceTracker );
+                dbmsOperations().procedureCallDbms( procedureName, toArray( searchString ), dependencyResolver, AUTH_DISABLED, resourceTracker,
+                        ProcedureCallContext.EMPTY );
         return asList( callResult );
     }
 }

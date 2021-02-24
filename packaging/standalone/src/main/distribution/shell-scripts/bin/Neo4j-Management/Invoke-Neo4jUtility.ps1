@@ -1,9 +1,12 @@
+# Copyright (c) 2018-2020 "Graph Foundation,"
+# Graph Foundation, Inc. [https://graphfoundation.org]
+#
 # Copyright (c) 2002-2018 "Neo4j,"
 # Neo4j Sweden AB [http://neo4j.com]
 #
-# This file is part of Neo4j.
+# This file is part of ONgDB.
 #
-# Neo4j is free software: you can redistribute it and/or modify
+# ONgDB is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -36,7 +39,7 @@ System.Int32
 non-zero = an error occured
 
 .NOTES
-Only supported on version 3.x Neo4j Community and Enterprise Edition databases
+Only supported on version 3.x ONgDB Community and Enterprise Edition databases
 
 .NOTES
 This function is private to the powershell module
@@ -113,8 +116,17 @@ function Invoke-Neo4jUtility
 
     $ShellArgs = $JavaCMD.args
     if ($ShellArgs -eq $null) { $ShellArgs = @() }
-    # Add unbounded command line arguments
-    $ShellArgs += $CommandArgs
+
+    # Parameters need to be wrapped in double quotes to avoid issues in case they contain spaces.
+    # https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.management/start-process?view=powershell-7#parameters
+    # https://github.com/PowerShell/PowerShell/issues/5576
+    foreach ($CmdArg in $CommandArgs) {
+      if ($CmdArg -match '^".*"$' -or $CmdArg -match "^'.*'$") {
+        $ShellArgs += $CmdArg
+      } else {
+        $ShellArgs += "`"$CmdArg`""
+      }
+    }
 
     Write-Verbose "Starting neo4j utility using command line $($JavaCMD.java) $ShellArgs"
     $result = (Start-Process -FilePath $JavaCMD.java -ArgumentList $ShellArgs -Wait -NoNewWindow -Passthru)

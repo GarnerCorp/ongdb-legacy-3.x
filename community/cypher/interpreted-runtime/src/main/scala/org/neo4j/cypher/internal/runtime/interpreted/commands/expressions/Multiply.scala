@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherMath
 import org.neo4j.values.AnyValue
@@ -35,6 +36,8 @@ case class Multiply(a: Expression, b: Expression) extends Expression  {
   override def rewrite(f: (Expression) => Expression): Expression = f(Multiply(a.rewrite(f), b.rewrite(f)))
 
   override def arguments: Seq[Expression] = Seq(a, b)
+
+  override def children: Seq[AstNode[_]] = Seq(a, b)
 
   override def symbolTableDependencies: Set[String] = a.symbolTableDependencies ++ b.symbolTableDependencies
 }

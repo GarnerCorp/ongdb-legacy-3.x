@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -25,8 +25,8 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
-import static org.neo4j.index.internal.gbptree.TreeNode.Type.INTERNAL;
 import static org.junit.Assert.assertThat;
+import static org.neo4j.index.internal.gbptree.TreeNode.Type.INTERNAL;
 
 public class InternalTreeLogicDynamicSizeTest extends InternalTreeLogicTestBase<RawBytes,RawBytes>
 {
@@ -37,7 +37,9 @@ public class InternalTreeLogicDynamicSizeTest extends InternalTreeLogicTestBase<
         {
             long baseSeed = layout.keySeed( base );
             long addSeed = layout.keySeed( add );
-            return layout.value( baseSeed + addSeed );
+            RawBytes merged = layout.value( baseSeed + addSeed );
+            base.copyFrom( merged );
+            return ValueMerger.MergeResult.MERGED;
         };
     }
 
@@ -112,7 +114,7 @@ public class InternalTreeLogicDynamicSizeTest extends InternalTreeLogicTestBase<
         }
 
         // when
-        RawBytes rawBytes = keyAt( rootId, 0, INTERNAL );
+        RawBytes rawBytes = keyAt( root.id(), 0, INTERNAL );
 
         // then
         assertEquals( "expected no tail on internal key but was " + rawBytes.toString(), Long.BYTES, rawBytes.bytes.length );

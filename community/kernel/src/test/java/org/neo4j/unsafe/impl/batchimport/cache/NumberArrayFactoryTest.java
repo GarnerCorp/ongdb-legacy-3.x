@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,6 +20,8 @@
 package org.neo4j.unsafe.impl.batchimport.cache;
 
 import org.junit.Test;
+
+import org.neo4j.unsafe.impl.internal.dragons.NativeMemoryAllocationRefusedError;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -117,11 +119,29 @@ public class NumberArrayFactoryTest
     }
 
     @Test
-    public void shouldPickFirstAvailableCandidateIntArrayWhenSomeDontHaveEnoughMemory()
+    public void shouldPickFirstAvailableCandidateIntArrayWhenSomeThrowOutOfMemoryError()
     {
         // GIVEN
         NumberArrayFactory lowMemoryFactory = mock( NumberArrayFactory.class );
         doThrow( OutOfMemoryError.class ).when( lowMemoryFactory ).newIntArray( anyLong(), anyInt(), anyLong() );
+        NumberArrayFactory factory = new NumberArrayFactory.Auto( NO_MONITOR, lowMemoryFactory, NumberArrayFactory.HEAP );
+
+        // WHEN
+        IntArray array = factory.newIntArray( KILO, -1 );
+        array.set( KILO - 10, 12345 );
+
+        // THEN
+        verify( lowMemoryFactory, times( 1 ) ).newIntArray( KILO, -1, 0 );
+        assertTrue( array instanceof HeapIntArray );
+        assertEquals( 12345, array.get( KILO - 10 ) );
+    }
+
+    @Test
+    public void shouldPickFirstAvailableCandidateIntArrayWhenSomeThrowNativeMemoryAllocationRefusedError()
+    {
+        // GIVEN
+        NumberArrayFactory lowMemoryFactory = mock( NumberArrayFactory.class );
+        doThrow( NativeMemoryAllocationRefusedError.class ).when( lowMemoryFactory ).newIntArray( anyLong(), anyInt(), anyLong() );
         NumberArrayFactory factory = new NumberArrayFactory.Auto( NO_MONITOR, lowMemoryFactory, NumberArrayFactory.HEAP );
 
         // WHEN

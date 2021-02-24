@@ -1,10 +1,13 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j.
+ * This file is part of ONgDB.
  *
- * Neo4j is free software: you can redistribute it and/or modify
+ * ONgDB is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,6 +23,7 @@
 package org.neo4j.cypher.internal.runtime.slotted.expressions
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{Expression, PathValueBuilder}
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 
@@ -92,5 +96,7 @@ case class SlottedProjectedPath(symbolTableDependencies: Set[String], projector:
   def arguments = Seq.empty
 
   def rewrite(f: (Expression) => Expression): Expression = f(this)
+
+  override def children: Seq[AstNode[_]] = Seq.empty // Empty arguments
 }
 

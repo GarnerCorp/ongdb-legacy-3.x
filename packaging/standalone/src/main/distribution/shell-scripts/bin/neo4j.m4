@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Copyright (c) 2002-2018 "Neo4j,"
+# Copyright (c) 2018-2020 "Graph Foundation"
+# Graph Foundation, Inc. [https://graphfoundation.org]
+#
+# Copyright (c) 2002-2019 "Neo4j,"
 # Neo4j Sweden AB [http://neo4j.com]
 #
-# This file is part of Neo4j.
+# This file is part of ONgDB.
 #
-# Neo4j is free software: you can redistribute it and/or modify
+# ONgDB is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -29,7 +32,7 @@ include(src/main/distribution/shell-scripts/bin/neo4j-shared.m4)
 
 setup_arbiter_options() {
   is_arbiter() {
-    compgen -G "${NEO4J_LIB}/neo4j-server-enterprise-*.jar" >/dev/null && \
+    compgen -G "${NEO4J_LIB}/ongdb-server-enterprise-*.jar" >/dev/null && \
       [[ "$(echo "${dbms_mode:-}" | tr [:lower:] [:upper:])" == "ARBITER" ]]
   }
 
@@ -105,9 +108,7 @@ check_limits() {
 }
 
 setup_java_opts() {
-  JAVA_OPTS=("-server")
-
-  [[ -n "${JAVA_MEMORY_OPTS:-}" ]] && JAVA_OPTS+=("${JAVA_MEMORY_OPTS[@]}")
+  JAVA_OPTS=("-server" ${JAVA_MEMORY_OPTS_XMS-} ${JAVA_MEMORY_OPTS_XMX-})
 
   if [[ "${dbms_logs_gc_enabled:-}" = "true" ]]; then
     if [[ "${JAVA_VERSION}" = "1.8"* ]]; then
@@ -167,6 +168,10 @@ do_start() {
   if [[ "${NEO4J_PID:-}" ]] ; then
     echo "Neo4j is already running (pid ${NEO4J_PID})."
     exit 0
+  fi
+  # check dir for pidfile exists
+  if [[ ! -d $(dirname "${NEO4J_PIDFILE}") ]]; then
+    mkdir -p $(dirname "${NEO4J_PIDFILE}")
   fi
 
   echo "Starting Neo4j."

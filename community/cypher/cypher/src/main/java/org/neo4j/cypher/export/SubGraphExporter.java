@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -98,7 +98,7 @@ public class SubGraphExporter
                     throw new RuntimeException( "Exporting compound indexes is not implemented yet" );
                 }
 
-                if ( !index.isMultiTokenIndex() )
+                if ( !index.isMultiTokenIndex() && index.isNodeIndex() )
                 {
                     String key = quote( id );
                     String label = quote( single( index.getLabels() ).name() );

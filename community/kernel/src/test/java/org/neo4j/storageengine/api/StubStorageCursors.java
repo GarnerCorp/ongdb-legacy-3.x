@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -182,6 +182,12 @@ public class StubStorageCursors implements StorageReader
 
     @Override
     public Iterator<CapableIndexDescriptor> indexesGetForLabel( int labelId )
+    {
+        throw new UnsupportedOperationException( "Not implemented yet" );
+    }
+
+    @Override
+    public Iterator<CapableIndexDescriptor> indexesGetForRelationshipType( int relationshipType )
     {
         throw new UnsupportedOperationException( "Not implemented yet" );
     }
@@ -412,6 +418,12 @@ public class StubStorageCursors implements StorageReader
     public StorageRelationshipScanCursor allocateRelationshipScanCursor()
     {
         return new StubStorageRelationshipScanCursor();
+    }
+
+    @Override
+    public StorageSchemaReader schemaSnapshot()
+    {
+        throw new UnsupportedOperationException( "Not implemented yet" );
     }
 
     private static class NodeData

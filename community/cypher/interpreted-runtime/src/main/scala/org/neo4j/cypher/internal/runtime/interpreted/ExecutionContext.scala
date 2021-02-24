@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,9 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted
 
-import org.neo4j.cypher.internal.v3_5.logical.plans.CachedNodeProperty
-import org.neo4j.cypher.internal.v3_5.util.InternalException
+import org.neo4j.cypher.internal.runtime.EntityById
+import org.neo4j.cypher.internal.v3_6.logical.plans.CachedNodeProperty
+import org.neo4j.cypher.internal.v3_6.util.InternalException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.{Value, Values}
 import org.neo4j.values.virtual._
@@ -54,7 +55,7 @@ trait ExecutionContext extends MutableMap[String, AnyValue] {
   def set(key: String, value: AnyValue): Unit
   def set(key1: String, value1: AnyValue, key2: String, value2: AnyValue): Unit
   def set(key1: String, value1: AnyValue, key2: String, value2: AnyValue, key3: String, value3: AnyValue): Unit
-  def mergeWith(other: ExecutionContext): Unit
+  def mergeWith(other: ExecutionContext, entityById: EntityById): Unit
   def createClone(): ExecutionContext
 
   def setCachedProperty(key: CachedNodeProperty, value: Value): Unit
@@ -94,13 +95,30 @@ trait ExecutionContext extends MutableMap[String, AnyValue] {
 class MapExecutionContext(private val m: MutableMap[String, AnyValue], private var cachedProperties: MutableMap[CachedNodeProperty, Value] = null)
   extends ExecutionContext {
 
-  override def copyTo(target: ExecutionContext, fromLongOffset: Int = 0, fromRefOffset: Int = 0, toLongOffset: Int = 0, toRefOffset: Int = 0): Unit = fail()
+  override def copyTo(target: ExecutionContext,
+                      fromLongOffset: Int = 0,
+                      fromRefOffset: Int = 0,
+                      toLongOffset: Int = 0,
+                      toRefOffset: Int = 0): Unit = target match {
+    case other: MapExecutionContext => m.keys.foreach(k => other.set(k, m(k)))
+    case _ => fail()
+  }
 
   override def copyFrom(input: ExecutionContext, nLongs: Int, nRefs: Int): Unit = fail()
 
-  def copyCachedFrom(input: ExecutionContext): Unit = input match {
+  override def copyCachedFrom(input: ExecutionContext): Unit = input match {
     case context : MapExecutionContext =>
-      cachedProperties = if (context.cachedProperties == null) null else context.cachedProperties.clone()
+      val oldCachedProperties = context.cachedProperties
+      if (oldCachedProperties == null) cachedProperties = null
+      else
+      {
+        cachedProperties = oldCachedProperties.clone()
+        oldCachedProperties.foreach {
+          case (CachedNodeProperty(varName,_),_) =>
+            set(varName, context.getOrElse(varName, throw new IllegalStateException("The variable of a cached node property should be in the context.")))
+        }
+      }
+
     case _ =>
       fail()
   }
@@ -119,7 +137,7 @@ class MapExecutionContext(private val m: MutableMap[String, AnyValue], private v
 
   override def size: Int = m.size
 
-  override def mergeWith(other: ExecutionContext): Unit = other match {
+  override def mergeWith(other: ExecutionContext, entityById: EntityById): Unit = other match {
     case otherMapCtx: MapExecutionContext =>
       m ++= otherMapCtx.m
       if (otherMapCtx.cachedProperties != null) {

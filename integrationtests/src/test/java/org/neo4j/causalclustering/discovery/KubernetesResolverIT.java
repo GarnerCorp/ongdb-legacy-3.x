@@ -1,24 +1,21 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.causalclustering.discovery;
 
@@ -35,6 +32,7 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -106,7 +104,8 @@ public class KubernetesResolverIT
     @Test
     public void shouldResolveAddressesFromApiReturningShortJson() throws Throwable
     {
-        withServer( shortJson(), () -> {
+        withServer( shortJson(), () ->
+        {
             Collection<AdvertisedSocketAddress> addresses = resolver.resolve( null );
 
             assertThat( addresses, contains( expectedAddress ) );
@@ -116,7 +115,8 @@ public class KubernetesResolverIT
     @Test
     public void shouldResolveAddressesFromApiReturningLongJson() throws Throwable
     {
-        withServer( longJson(), () -> {
+        withServer( longJson(), () ->
+        {
             Collection<AdvertisedSocketAddress> addresses = resolver.resolve( null );
 
             assertThat( addresses, contains( expectedAddress ) );
@@ -126,9 +126,15 @@ public class KubernetesResolverIT
     @Test
     public void shouldLogResolvedAddressesToUserLog() throws Throwable
     {
-        withServer( longJson(), () -> {
-           resolver.resolve( null );
-           userLogProvider.assertContainsMessageContaining( "Resolved %s from Kubernetes API at %s namespace %s labelSelector %s" );
+        withServer( longJson(), () ->
+        {
+            resolver.resolve( null );
+
+            userLogProvider.rawMessageMatcher().assertContains(
+                    Matchers.allOf(
+                            Matchers.containsString( "Resolved %s from Kubernetes API at %s namespace %s labelSelector %s" )
+                    )
+            );
         } );
     }
 
@@ -136,9 +142,15 @@ public class KubernetesResolverIT
     public void shouldLogEmptyAddressesToDebugLog() throws Throwable
     {
         String response = "{ \"kind\":\"ServiceList\", \"items\":[] }";
-        withServer( response, () -> {
+        withServer( response, () ->
+        {
             resolver.resolve( null );
-            logProvider.assertContainsMessageContaining( "Resolved empty hosts from Kubernetes API at %s namespace %s labelSelector %s" );
+
+            logProvider.rawMessageMatcher().assertContains(
+                    Matchers.allOf(
+                            Matchers.containsString( "Resolved empty hosts from Kubernetes API at %s namespace %s labelSelector %s" )
+                    )
+            );
         } );
     }
 
@@ -146,9 +158,10 @@ public class KubernetesResolverIT
     public void shouldLogParseErrorToDebugLog() throws Throwable
     {
         String response = "{}";
-        withServer( response, () -> {
+        withServer( response, () ->
+        {
             resolver.resolve( null );
-            logProvider.assertContainsMessageContaining( "Failed to parse result from Kubernetes API" );
+            logProvider.formattedMessageMatcher().assertContains( "Failed to parse result from Kubernetes API" );
         } );
     }
 
@@ -158,7 +171,8 @@ public class KubernetesResolverIT
         expected.expect( IllegalStateException.class );
         expected.expectMessage( "Forbidden" );
 
-        withServer( failJson(), () -> {
+        withServer( failJson(), () ->
+        {
             resolver.resolve( null );
         } );
     }

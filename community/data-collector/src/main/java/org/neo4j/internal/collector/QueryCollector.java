@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,9 +19,10 @@
  */
 package org.neo4j.internal.collector;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
@@ -32,58 +33,70 @@ import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
 
 /**
- * Simple Thread-safe query collector.
+ * Thread-safe query collector.
  *
- * Note that is has several potentially not-so-nice properties:
- *
- *  - It buffers all query data until collection is done. On high-workload systems
- *    this could use substantial memory
- *
- *  - All threads that report queries on {@link QueryCollector#endSuccess(org.neo4j.kernel.api.query.ExecutingQuery)}
- *    contend for writing to the queue, which might cause delays before the first result on highly concurrent systems
+ * Delegates to RingRecentBuffer to hard limit the number of collected queries at any point in time.
  */
-class QueryCollector extends CollectorStateMachine<Iterator<QuerySnapshot>> implements QueryExecutionMonitor
+class QueryCollector extends CollectorStateMachine<Iterator<TruncatedQuerySnapshot>> implements QueryExecutionMonitor
 {
     private volatile boolean isCollecting;
-    private final ConcurrentLinkedQueue<QuerySnapshot> queries;
+    private final RingRecentBuffer<TruncatedQuerySnapshot> queries;
     private final JobScheduler jobScheduler;
+    private final int maxQueryTextSize;
 
-    QueryCollector( JobScheduler jobScheduler )
+    QueryCollector( JobScheduler jobScheduler,
+                    int maxRecentQueryCount,
+                    int maxQueryTextSize )
     {
+        super( true );
         this.jobScheduler = jobScheduler;
+        this.maxQueryTextSize = maxQueryTextSize;
         isCollecting = false;
-        queries = new ConcurrentLinkedQueue<>();
+
+        // Round down to the nearest power of 2
+        int queryBufferSize = Integer.highestOneBit( maxRecentQueryCount );
+        queries = new RingRecentBuffer<>( queryBufferSize );
+    }
+
+    long numSilentQueryDrops()
+    {
+        return queries.numSilentQueryDrops();
     }
 
     // CollectorStateMachine
 
     @Override
-    Result doCollect( Map<String,Object> config, long collectionId ) throws InvalidArgumentsException
+    protected Result doCollect( Map<String,Object> config, long collectionId ) throws InvalidArgumentsException
     {
         int collectSeconds = QueryCollectorConfig.of( config ).collectSeconds;
-        jobScheduler.schedule( Group.DATA_COLLECTOR, () -> QueryCollector.this.stop( collectionId ), collectSeconds, TimeUnit.SECONDS );
+        if ( collectSeconds > 0 )
+        {
+            jobScheduler.schedule( Group.DATA_COLLECTOR, () -> QueryCollector.this.stop( collectionId ), collectSeconds, TimeUnit.SECONDS );
+        }
         isCollecting = true;
         return success( "Collection started." );
     }
 
     @Override
-    Result doStop()
+    protected Result doStop()
     {
         isCollecting = false;
         return success( "Collection stopped." );
     }
 
     @Override
-    Result doClear()
+    protected Result doClear()
     {
         queries.clear();
         return success( "Data cleared." );
     }
 
     @Override
-    Iterator<QuerySnapshot> doGetData()
+    protected Iterator<TruncatedQuerySnapshot> doGetData()
     {
-        return queries.iterator();
+        List<TruncatedQuerySnapshot> querySnapshots = new ArrayList<>();
+        queries.foreach( querySnapshots::add );
+        return querySnapshots.iterator();
     }
 
     // QueryExecutionMonitor
@@ -94,11 +107,24 @@ class QueryCollector extends CollectorStateMachine<Iterator<QuerySnapshot>> impl
     }
 
     @Override
+    public void endFailure( ExecutingQuery query, String reason )
+    {
+    }
+
+    @Override
     public void endSuccess( ExecutingQuery query )
     {
         if ( isCollecting )
         {
-            queries.add( query.snapshot() );
+            QuerySnapshot snapshot = query.snapshot();
+            queries.produce(
+                    new TruncatedQuerySnapshot( snapshot.queryText(),
+                                                snapshot.queryPlanSupplier(),
+                                                snapshot.queryParameters(),
+                                                snapshot.elapsedTimeMicros(),
+                                                snapshot.compilationTimeMicros(),
+                                                snapshot.startTimestampMillis(),
+                                                maxQueryTextSize ) );
         }
     }
 }

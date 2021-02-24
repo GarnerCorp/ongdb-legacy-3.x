@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,11 @@
  */
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
+import org.eclipse.collections.api.block.predicate.primitive.BooleanPredicate;
+
 import java.io.IOException;
+import java.util.function.BooleanSupplier;
+
 import org.neo4j.graphdb.Resource;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -35,7 +39,6 @@ import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 
 import static java.lang.System.currentTimeMillis;
-
 import static org.neo4j.helpers.Format.duration;
 
 public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer
@@ -89,7 +92,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer
         ioLimiter.disableLimit();
         try ( Resource lock = mutex.checkPoint() )
         {
-            return doCheckPoint( info, LogCheckPointEvent.NULL );
+            return doCheckPoint( info );
         }
         finally
         {
@@ -100,6 +103,12 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer
     @Override
     public long tryCheckPoint( TriggerInfo info ) throws IOException
     {
+        return tryCheckPoint( info, () -> false );
+    }
+
+    @Override
+    public long tryCheckPoint( TriggerInfo info, BooleanSupplier timeout ) throws IOException
+    {
         ioLimiter.disableLimit();
         try
         {
@@ -108,16 +117,23 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer
             {
                 try ( Resource lock = lockAttempt )
                 {
-                    return doCheckPoint( info, LogCheckPointEvent.NULL );
+                    return doCheckPoint( info );
                 }
             }
             else
             {
-                try ( Resource lock = mutex.checkPoint() )
+                try ( Resource lock = mutex.tryCheckPoint( timeout ) )
                 {
-                    msgLog.info( info.describe( lastCheckPointedTx ) +
-                                 " Check pointing was already running, completed now" );
-                    return lastCheckPointedTx;
+                    if ( lock != null )
+                    {
+                        msgLog.info( info.describe( lastCheckPointedTx ) +
+                                " Check pointing was already running, completed now" );
+                        return lastCheckPointedTx;
+                    }
+                    else
+                    {
+                        return -1;
+                    }
                 }
             }
         }
@@ -132,18 +148,17 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer
     {
         if ( threshold.isCheckPointingNeeded( transactionIdStore.getLastClosedTransactionId(), info ) )
         {
-            try ( LogCheckPointEvent event = tracer.beginCheckPoint();
-                    Resource lock = mutex.checkPoint() )
+            try ( Resource lock = mutex.checkPoint() )
             {
-                return doCheckPoint( info, event );
+                return doCheckPoint( info );
             }
         }
         return -1;
     }
 
-    private long doCheckPoint( TriggerInfo triggerInfo, LogCheckPointEvent logCheckPointEvent ) throws IOException
+    private long doCheckPoint( TriggerInfo triggerInfo ) throws IOException
     {
-        try
+        try ( LogCheckPointEvent event = tracer.beginCheckPoint() )
         {
             long[] lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
             long lastClosedTransactionId = lastClosedTransaction[0];
@@ -168,7 +183,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer
              * repair the damages.
              */
             databaseHealth.assertHealthy( IOException.class );
-            appender.checkPoint( logPosition, logCheckPointEvent );
+            appender.checkPoint( logPosition, event );
             threshold.checkPointHappened( lastClosedTransactionId );
             msgLog.info( prefix + " checkpoint completed in " + duration( currentTimeMillis() - startTime ) );
             /*

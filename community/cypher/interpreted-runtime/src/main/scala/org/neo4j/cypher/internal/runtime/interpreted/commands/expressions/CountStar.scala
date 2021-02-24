@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,14 +19,17 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.CountStarFunction
 
 case class CountStar() extends AggregationExpression {
-  def rewrite(f: (Expression) => Expression) = f(CountStar())
+  override def rewrite(f: Expression => Expression): Expression = f(CountStar())
 
-  def createAggregationFunction = new CountStarFunction
+  override def createAggregationFunction = new CountStarFunction
 
-  def arguments = Nil
+  override def arguments: Seq[Expression] = Seq.empty
 
-  def symbolTableDependencies = Set()
+  override def symbolTableDependencies: Set[String] = Set.empty
+
+  override def children: Seq[AstNode[_]] = Seq.empty
 }

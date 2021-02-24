@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -64,6 +64,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 import static org.neo4j.kernel.api.index.IndexProvider.Monitor.EMPTY;
+import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 import static org.neo4j.test.rule.PageCacheRule.config;
 import static org.neo4j.values.storable.CoordinateReferenceSystem.WGS84;
 
@@ -96,7 +97,9 @@ public class GenericAccessorPointsTest
         descriptor = TestIndexDescriptorFactory.forLabel( 1, 1 ).withId( 1 );
         IndexDirectoryStructure.Factory factory = IndexDirectoryStructure.directoriesByProvider( directory.storeDir() );
         IndexDirectoryStructure structure = factory.forProvider( GenericNativeIndexProvider.DESCRIPTOR );
-        accessor = new GenericNativeIndexAccessor( pc, fs, file, layout, collector, EMPTY, descriptor, indexSettings, structure, new StandardConfiguration() );
+        IndexDropAction dropAction = new FileSystemIndexDropAction( fs, structure );
+        accessor = new GenericNativeIndexAccessor(
+                pc, fs, file, layout, collector, EMPTY, descriptor, indexSettings, new StandardConfiguration(), dropAction, false, simpleNameLookup );
     }
 
     @After
@@ -186,6 +189,33 @@ public class GenericAccessorPointsTest
 
         // then
         exactMatchOnAllValues( pointArrays );
+    }
+
+    /**
+     * The test mustHandlePointArraysWithinSameTile was flaky on random numbers that placed points just
+     * within the tile upper bound, and allocated points to adjacent tiles due to rounding errors.
+     * This test uses a specific point that triggers that exact failure in a non-flaky way.
+     */
+    @Test
+    public void shouldNotGetRoundingErrorsWithPointsJustWithinTheTileUpperBound()
+    {
+        PointValue origin = Values.pointValue( WGS84, 0.0, 0.0 );
+        long derivedValueForCenterPoint = curve.derivedValueFor( origin.coordinate() );
+        double[] centerPoint = curve.centerPointFor( derivedValueForCenterPoint ); // [1.6763806343078613E-7, 8.381903171539307E-8]
+
+        double xWidthMultiplier = curve.getTileWidth( 0, curve.getMaxLevel() ) / 2; // 1.6763806343078613E-7
+        double yWidthMultiplier = curve.getTileWidth( 1, curve.getMaxLevel() ) / 2; // 8.381903171539307E-8
+
+        double[] faultyCoords = new double[]{1.874410632171803E-8, 1.6763806281859016E-7};
+
+        assertTrue( "inside upper x limit", centerPoint[0] + xWidthMultiplier > faultyCoords[0] );
+        assertTrue( "inside lower x limit", centerPoint[0] - xWidthMultiplier < faultyCoords[0] );
+
+        assertTrue( "inside upper y limit", centerPoint[1] + yWidthMultiplier > faultyCoords[1] );
+        assertTrue( "inside lower y limit", centerPoint[1] - yWidthMultiplier < faultyCoords[1] );
+
+        long derivedValueForFaultyCoords = curve.derivedValueFor( faultyCoords );
+        assertEquals( derivedValueForCenterPoint, derivedValueForFaultyCoords, "expected same derived value" );
     }
 
     private long addPointsToLists( List<Value> pointValues, List<IndexEntryUpdate<?>> updates, long nodeId, PointValue... values )

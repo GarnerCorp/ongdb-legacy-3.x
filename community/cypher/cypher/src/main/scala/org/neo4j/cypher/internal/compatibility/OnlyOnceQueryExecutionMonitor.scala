@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -25,10 +25,16 @@ import org.neo4j.kernel.impl.query.QueryExecutionMonitor
 case class OnlyOnceQueryExecutionMonitor(monitor: QueryExecutionMonitor) extends QueryExecutionMonitor {
   private var closed = false
 
-  override def endFailure(query: ExecutingQuery, failure: Throwable): Unit =
+  override def endFailure(query: ExecutingQuery, failure: Throwable = null): Unit =
     if (!closed) {
       closed = true
       monitor.endFailure(query, failure)
+    }
+
+  override def endFailure(query: ExecutingQuery, reason: String): Unit =
+    if (!closed) {
+      closed = true
+      monitor.endFailure(query, reason)
     }
 
   override def endSuccess(query: ExecutingQuery): Unit =

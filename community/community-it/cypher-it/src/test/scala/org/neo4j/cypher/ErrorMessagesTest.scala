@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,7 +21,7 @@ package org.neo4j.cypher
 
 import org.hamcrest.CoreMatchers._
 import org.junit.Assert._
-import org.neo4j.cypher.internal.v3_5.util.helpers.StringHelper._
+import org.neo4j.cypher.internal.v3_6.util.helpers.StringHelper._
 
 class ErrorMessagesTest extends ExecutionEngineFunSuite {
 
@@ -85,7 +85,7 @@ class ErrorMessagesTest extends ExecutionEngineFunSuite {
   test("noIndexName") {
     expectSyntaxError(
       "start a = node(name=\"sebastian\") match (a)-[:WORKED_ON]-b return b",
-      "Invalid input 'n': expected whitespace, an unsigned integer, a parameter or '*' (line 1, column 16 (offset: 15))",
+      "Invalid input 'n': expected whitespace, an unsigned integer, a parameter, a parameter (old syntax) or '*' (line 1, column 16 (offset: 15))",
       15
     )
   }
@@ -152,7 +152,7 @@ class ErrorMessagesTest extends ExecutionEngineFunSuite {
   test("relTypeInsteadOfRelIdInStart") {
     expectSyntaxError(
       "start r = relationship(:WORKED_ON) return r",
-      "Invalid input ':': expected whitespace, an unsigned integer, a parameter or '*' (line 1, column 24 (offset: " +
+      "Invalid input ':': expected whitespace, an unsigned integer, a parameter, a parameter (old syntax) or '*' (line 1, column 24 (offset: " +
         "23))",
       23
     )
@@ -161,7 +161,7 @@ class ErrorMessagesTest extends ExecutionEngineFunSuite {
   test("noNodeIdInStart") {
     expectSyntaxError(
       "start r = node() return r",
-      "Invalid input ')': expected whitespace, an unsigned integer, a parameter or '*' (line 1, column 16 (offset: 15))",
+      "Invalid input ')': expected whitespace, an unsigned integer, a parameter, a parameter (old syntax) or '*' (line 1, column 16 (offset: 15))",
       15
     )
   }
@@ -245,7 +245,7 @@ class ErrorMessagesTest extends ExecutionEngineFunSuite {
   test("should give proper error message when trying to use Node Key constraint on community") {
     expectError("CREATE CONSTRAINT ON (n:Person) ASSERT (n.firstname) IS NODE KEY",
                 String.format("Unable to create CONSTRAINT ON ( person:Person ) ASSERT exists(person.firstname):%n" +
-                  "Node Key constraint requires Neo4j Enterprise Edition"))
+                  "Node Key constraint requires ONgDB Enterprise Edition"))
   }
 
   test("trying to store mixed type array") {

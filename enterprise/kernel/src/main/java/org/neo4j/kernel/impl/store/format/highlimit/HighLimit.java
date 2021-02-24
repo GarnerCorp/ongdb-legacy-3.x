@@ -1,24 +1,21 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.kernel.impl.store.format.highlimit;
 
@@ -49,16 +46,16 @@ import static org.neo4j.kernel.impl.store.format.highlimit.HighLimitFormatSettin
  */
 public class HighLimit extends BaseRecordFormats
 {
-    public static final String STORE_VERSION = StoreVersion.HIGH_LIMIT_V3_4_0.versionString();
+    public static final String STORE_VERSION = StoreVersion.HIGH_LIMIT_V3_6_0.versionString();
 
     public static final RecordFormats RECORD_FORMATS = new HighLimit();
     public static final String NAME = "high_limit";
 
     protected HighLimit()
     {
-        super( STORE_VERSION, StoreVersion.HIGH_LIMIT_V3_4_0.introductionVersion(), 5, Capability.DENSE_NODES,
+        super( STORE_VERSION, StoreVersion.HIGH_LIMIT_V3_6_0.introductionVersion(), 6, Capability.DENSE_NODES,
                 Capability.RELATIONSHIP_TYPE_3BYTES, Capability.SCHEMA, Capability.LUCENE_5, Capability.POINT_PROPERTIES, Capability.TEMPORAL_PROPERTIES,
-                Capability.SECONDARY_RECORD_UNITS );
+                Capability.SECONDARY_RECORD_UNITS, Capability.SORT );
     }
 
     @Override

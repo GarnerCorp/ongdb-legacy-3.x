@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -94,7 +94,7 @@ public class RecoveryCleanupIT
     }
 
     @Test
-    public void recoveryCleanupShouldBlockCheckpoint() throws Throwable
+    public void recoveryCleanupShouldBlockRecoveryWritingToCleanedIndexes() throws Throwable
     {
         // GIVEN
         AtomicReference<Throwable> error = new AtomicReference<>();
@@ -106,14 +106,16 @@ public class RecoveryCleanupIT
             Barrier.Control recoveryCompleteBarrier = new Barrier.Control();
             LabelScanStore.Monitor recoveryBarrierMonitor = new RecoveryBarrierMonitor( recoveryCompleteBarrier );
             setMonitor( recoveryBarrierMonitor );
-            db = startDatabase();
+            Future<?> recovery = executor.submit( () ->
+            {
+                db = startDatabase();
+            } );
             recoveryCompleteBarrier.awaitUninterruptibly(); // Ensure we are mid recovery cleanup
 
             // THEN
-            Future<?> checkpointFuture = executor.submit( () -> reportError( () -> checkpoint( db ), error ) );
-            shouldWait( checkpointFuture );
+            shouldWait( recovery );
             recoveryCompleteBarrier.release();
-            checkpointFuture.get();
+            recovery.get();
 
             db.shutdown();
         }
@@ -140,14 +142,14 @@ public class RecoveryCleanupIT
         startDatabase().shutdown();
 
         // then
-        logProvider.assertContainsLogCallContaining( "Label index cleanup job registered" );
-        logProvider.assertContainsLogCallContaining( "Label index cleanup job started" );
-        logProvider.assertContainsMessageMatching( Matchers.stringContainsInOrder( Iterables.asIterable(
+        logProvider.rawMessageMatcher().assertContains( "Label index cleanup job registered" );
+        logProvider.rawMessageMatcher().assertContains( "Label index cleanup job started" );
+        logProvider.rawMessageMatcher().assertContains( Matchers.stringContainsInOrder( Iterables.asIterable(
                 "Label index cleanup job finished",
                 "Number of pages visited",
                 "Number of cleaned crashed pointers",
                 "Time spent" ) ) );
-        logProvider.assertContainsLogCallContaining( "Label index cleanup job closed" );
+        logProvider.rawMessageMatcher().assertContains( "Label index cleanup job closed" );
     }
 
     @Test
@@ -188,7 +190,8 @@ public class RecoveryCleanupIT
             matchers.add( indexRecoveryFinishedLogMatcher( subType ) );
             matchers.add( indexRecoveryLogMatcher( "Schema index cleanup job closed", subType ) );
         }
-        matchers.forEach( logProvider::assertContainsExactlyOneMessageMatching );
+        AssertableLogProvider.MessageMatcher messageMatcher = logProvider.rawMessageMatcher();
+        matchers.forEach( messageMatcher::assertContainsSingle );
     }
 
     private Matcher<String> indexRecoveryLogMatcher( String logMessage, String subIndexProviderKey )

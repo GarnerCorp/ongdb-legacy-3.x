@@ -1,10 +1,13 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j.
+ * This file is part of ONgDB.
  *
- * Neo4j is free software: you can redistribute it and/or modify
+ * ONgDB is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -19,8 +22,9 @@
  */
 package org.neo4j.cypher.internal.runtime.slotted.expressions
 
-import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
+import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.AbstractCachedNodeProperty
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.AnyValue
@@ -34,6 +38,8 @@ case class SlottedCachedNodeProperty(nodeOffset: Int,
   override def getCachedProperty(ctx: ExecutionContext): AnyValue = ctx.getCachedPropertyAt(cachedPropertyOffset)
 
   override def getPropertyKey(tokenContext: TokenContext): Int = propertyKey
+
+  override def children: Seq[AstNode[_]] = Seq.empty
 }
 
 case class SlottedCachedNodePropertyLate(nodeOffset: Int,
@@ -46,4 +52,7 @@ case class SlottedCachedNodePropertyLate(nodeOffset: Int,
 
   override def getPropertyKey(tokenContext: TokenContext): Int =
     tokenContext.getOptPropertyKeyId(propertyKey).getOrElse(StatementConstants.NO_SUCH_PROPERTY_KEY)
+
+
+  override def children: Seq[AstNode[_]] = Seq.empty
 }

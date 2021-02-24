@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -36,9 +36,9 @@ public class DefaultFileDeletionEventListenerTest
         listener.fileDeleted( "testFile.db" );
         listener.fileDeleted( "anotherDirectory" );
 
-        internalLogProvider.assertContainsMessageContaining(
+        internalLogProvider.rawMessageMatcher().assertContains(
                 "'testFile.db' which belongs to the store was deleted while database was running." );
-        internalLogProvider.assertContainsMessageContaining(
+        internalLogProvider.rawMessageMatcher().assertContains(
                 "'anotherDirectory' which belongs to the store was deleted while database was running." );
     }
 

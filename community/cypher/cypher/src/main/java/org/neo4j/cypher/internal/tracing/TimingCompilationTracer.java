@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.neo4j.cypher.internal.v3_5.frontend.phases.CompilationPhaseTracer;
+import org.neo4j.cypher.internal.v3_6.frontend.phases.CompilationPhaseTracer;
 
 public class TimingCompilationTracer implements CompilationTracer
 {

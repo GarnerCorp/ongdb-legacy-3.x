@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +32,7 @@ import java.util.Optional;
 
 import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.LabelSet;
+import org.neo4j.internal.kernel.api.NamedToken;
 import org.neo4j.internal.kernel.api.Write;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.exceptions.InvalidTransactionTypeKernelException;
@@ -41,10 +43,14 @@ import org.neo4j.internal.kernel.api.helpers.TestRelationshipChain;
 import org.neo4j.internal.kernel.api.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.kernel.api.schema.constraints.ConstraintDescriptor;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.api.exceptions.schema.AlreadyConstrainedException;
 import org.neo4j.kernel.api.explicitindex.AutoIndexOperations;
 import org.neo4j.kernel.api.explicitindex.AutoIndexing;
+import org.neo4j.kernel.api.schema.RelationTypeSchemaDescriptor;
 import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
 import org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory;
+import org.neo4j.kernel.api.schema.constraints.NodeExistenceConstraintDescriptor;
+import org.neo4j.kernel.api.schema.constraints.NodeKeyConstraintDescriptor;
 import org.neo4j.kernel.api.schema.constraints.RelExistenceConstraintDescriptor;
 import org.neo4j.kernel.api.schema.constraints.UniquenessConstraintDescriptor;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
@@ -52,10 +58,11 @@ import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.SchemaState;
-import org.neo4j.kernel.impl.api.index.IndexingProvidersService;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.api.state.TxState;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
+import org.neo4j.kernel.impl.core.TokenHolders;
 import org.neo4j.kernel.impl.index.ExplicitIndexStore;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.locking.ResourceTypes;
@@ -64,6 +71,7 @@ import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
+import org.neo4j.storageengine.api.StorageSchemaReader;
 import org.neo4j.storageengine.api.lock.LockTracer;
 import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.values.storable.Value;
@@ -71,6 +79,7 @@ import org.neo4j.values.storable.Values;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -79,11 +88,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.neo4j.collection.PrimitiveLongCollections.EMPTY_LONG_ARRAY;
 import static org.neo4j.graphdb.factory.GraphDatabaseSettings.default_schema_provider;
 import static org.neo4j.helpers.collection.Iterators.asList;
 import static org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory.existsForRelType;
+import static org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory.existsForSchema;
+import static org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory.nodeKeyForSchema;
 import static org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory.uniqueForLabel;
 import static org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory.uniqueForSchema;
 import static org.neo4j.kernel.impl.newapi.TwoPhaseNodeForRelationshipLockingTest.returnRelationships;
@@ -104,7 +116,9 @@ public class OperationsLockTest
     private AllStoreHolder allStoreHolder;
     private final LabelSchemaDescriptor descriptor = SchemaDescriptorFactory.forLabel( 123, 456 );
     private StorageReader storageReader;
+    private StorageSchemaReader storageReaderSnapshot;
     private ConstraintIndexCreator constraintIndexCreator;
+    private TokenHolders tokenHolders;
 
     @Before
     public void setUp() throws InvalidTransactionTypeKernelException
@@ -131,19 +145,22 @@ public class OperationsLockTest
         when( autoindexing.relationships() ).thenReturn( autoIndexOperations );
         StorageEngine engine = mock( StorageEngine.class );
         storageReader = mock( StorageReader.class );
+        storageReaderSnapshot = mock( StorageSchemaReader.class );
         when( storageReader.nodeExists( anyLong() ) ).thenReturn( true );
         when( storageReader.constraintsGetForLabel( anyInt() )).thenReturn( Collections.emptyIterator() );
         when( storageReader.constraintsGetAll() ).thenReturn( Collections.emptyIterator() );
+        when( storageReader.schemaSnapshot() ).thenReturn( storageReaderSnapshot );
         when( engine.newReader() ).thenReturn( storageReader );
         allStoreHolder = new AllStoreHolder( storageReader,  transaction, cursors, mock(
                 ExplicitIndexStore.class ), mock( Procedures.class ), mock( SchemaState.class ), new Dependencies() );
         constraintIndexCreator = mock( ConstraintIndexCreator.class );
-        operations = new Operations( allStoreHolder, mock( IndexTxStateUpdater.class ),storageReader,
-                 transaction, new KernelToken( storageReader, transaction, mockedTokenHolders() ), cursors, autoindexing,
-                constraintIndexCreator, mock( ConstraintSemantics.class ), mock( IndexingProvidersService.class ), Config.defaults() );
+        tokenHolders = mockedTokenHolders();
+        operations = new Operations( allStoreHolder, mock( IndexTxStateUpdater.class ), storageReader,
+                 transaction, new KernelToken( storageReader, transaction, tokenHolders ), cursors, autoindexing,
+                constraintIndexCreator, mock( ConstraintSemantics.class ), mock( IndexingService.class ), Config.defaults() );
         operations.initialize();
 
-        this.order = inOrder( locks, txState, storageReader );
+        this.order = inOrder( locks, txState, storageReader, storageReaderSnapshot );
     }
 
     @After
@@ -308,19 +325,17 @@ public class OperationsLockTest
     public void shouldAcquireSchemaReadLockBeforeSettingPropertyOnNode() throws Exception
     {
         // given
-        when( nodeCursor.next() ).thenReturn( true );
-        when( nodeCursor.labels() ).thenReturn( LabelSet.NONE );
         int relatedLabelId = 50;
         int unrelatedLabelId = 51;
         int propertyKeyId = 8;
-        int unrelatedPropertyKeyId = 88;
+        when( nodeCursor.next() ).thenReturn( true );
+        LabelSet labelSet = mock( LabelSet.class );
+        when( labelSet.all() ).thenReturn( new long[]{relatedLabelId} );
+        when( nodeCursor.labels() ).thenReturn( labelSet );
         Value value = Values.of( 9 );
         when( propertyCursor.next() ).thenReturn( true );
         when( propertyCursor.propertyKey() ).thenReturn( propertyKeyId );
         when( propertyCursor.propertyValue() ).thenReturn( NO_VALUE );
-        when( storageReader.constraintsGetAll() ).thenReturn(
-                Iterators.iterator( ConstraintDescriptorFactory.uniqueForLabel( relatedLabelId, propertyKeyId ),
-                                    ConstraintDescriptorFactory.uniqueForLabel( unrelatedLabelId, unrelatedPropertyKeyId )) );
 
         // when
         operations.nodeSetProperty( 123, propertyKeyId, value );
@@ -389,8 +404,7 @@ public class OperationsLockTest
     }
 
     @Test
-    public void shouldAcquireEntityWriteLockBeforeDeletingNode()
-            throws AutoIndexingKernelException
+    public void shouldAcquireEntityWriteLockBeforeDeletingNode() throws AutoIndexingKernelException
     {
         // GIVEN
         when( nodeCursor.next() ).thenReturn( true );
@@ -432,6 +446,28 @@ public class OperationsLockTest
     }
 
     @Test
+    public void shouldNotAcquireSchemaReadLockBeforeGettingIndexesByLabelAndProperty()
+    {
+        // WHEN
+        allStoreHolder.index( descriptor );
+
+        // THEN
+        verifyNoMoreInteractions( locks );
+        verify( storageReader ).indexGetForSchema( descriptor );
+    }
+
+    @Test
+    public void shouldNotAcquireSchemaReadLockWhenGettingIndexesByLabelAndPropertyFromSnapshot()
+    {
+        // WHEN
+        allStoreHolder.snapshot().index( descriptor );
+
+        // THEN
+        verifyNoMoreInteractions( locks );
+        verify( storageReaderSnapshot ).indexGetForSchema( descriptor );
+    }
+
+    @Test
     public void shouldAcquireSchemaReadLockBeforeGettingConstraintsByLabel()
     {
         // WHEN
@@ -440,6 +476,39 @@ public class OperationsLockTest
         // THEN
         order.verify( locks ).acquireShared( LockTracer.NONE, ResourceTypes.LABEL, 42 );
         order.verify( storageReader ).constraintsGetForLabel( 42 );
+    }
+
+    @Test
+    public void shouldAcquireSchemaReadLockBeforeGettingConstraintsByRelationshipType()
+    {
+        // WHEN
+        allStoreHolder.constraintsGetForRelationshipType( 42 );
+
+        // THEN
+        order.verify( locks ).acquireShared( LockTracer.NONE, ResourceTypes.RELATIONSHIP_TYPE, 42 );
+        order.verify( storageReader ).constraintsGetForRelationshipType( 42 );
+    }
+
+    @Test
+    public void shouldNotAcquireSchemaReadLockBeforeGettingConstraintsByLabel()
+    {
+        // WHEN
+        allStoreHolder.snapshot().constraintsGetForLabel( 42 );
+
+        // THEN
+        verifyNoMoreInteractions( locks );
+        verify( storageReaderSnapshot ).constraintsGetForLabel( 42 );
+    }
+
+    @Test
+    public void shouldNotAcquireSchemaReadLockBeforeGettingConstraintsByRelationshipType()
+    {
+        // WHEN
+        allStoreHolder.snapshot().constraintsGetForRelationshipType( 42 );
+
+        // THEN
+        verifyNoMoreInteractions( locks );
+        verify( storageReaderSnapshot ).constraintsGetForRelationshipType( 42 );
     }
 
     @Test
@@ -466,13 +535,34 @@ public class OperationsLockTest
 
         // when
         Iterator<ConstraintDescriptor> result = allStoreHolder.constraintsGetAll( );
-        Iterators.count( result );
 
         // then
+        assertThat( Iterators.count( result ), Matchers.is( 2L ) );
         assertThat( asList( result ), empty() );
         order.verify( storageReader ).constraintsGetAll();
         order.verify( locks ).acquireShared( LockTracer.NONE, ResourceTypes.LABEL, labelId );
         order.verify( locks ).acquireShared( LockTracer.NONE, ResourceTypes.RELATIONSHIP_TYPE, relTypeId );
+    }
+
+    @Test
+    public void shouldNotAcquireSchemaReadLockLazilyBeforeGettingAllConstraintsFromSnapshot()
+    {
+        // given
+        int labelId = 1;
+        int relTypeId = 2;
+        UniquenessConstraintDescriptor uniquenessConstraint = uniqueForLabel( labelId, 2, 3, 3 );
+        RelExistenceConstraintDescriptor existenceConstraint = existsForRelType( relTypeId, 3, 4, 5 );
+        when( storageReaderSnapshot.constraintsGetAll() )
+                .thenReturn( Iterators.iterator( uniquenessConstraint, existenceConstraint ) );
+
+        // when
+        Iterator<ConstraintDescriptor> result = allStoreHolder.snapshot().constraintsGetAll( );
+
+        // then
+        assertThat( Iterators.count( result ), Matchers.is( 2L ) );
+        assertThat( asList( result ), empty() );
+        verify( storageReaderSnapshot ).constraintsGetAll();
+        verifyNoMoreInteractions( locks );
     }
 
     @Test
@@ -504,6 +594,177 @@ public class OperationsLockTest
         // then
         order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.LABEL, descriptor.getLabelId() );
         order.verify( txState ).constraintDoAdd( ConstraintDescriptorFactory.uniqueForSchema( descriptor ), 42L );
+    }
+
+    @Test
+    public void shouldReleaseAcquiredSchemaWriteLockIfConstraintCreationFails() throws Exception
+    {
+        // given
+        UniquenessConstraintDescriptor constraint = uniqueForSchema( descriptor );
+        when( storageReader.constraintExists( constraint ) ).thenReturn( true );
+        int labelId = descriptor.getLabelId();
+        int propertyId = descriptor.getPropertyId();
+        when( tokenHolders.labelTokens().getTokenById( labelId ) ).thenReturn( new NamedToken( "Label", labelId ) );
+        when( tokenHolders.propertyKeyTokens().getTokenById( propertyId ) ).thenReturn( new NamedToken( "prop", labelId ) );
+
+        // when
+        try
+        {
+            operations.uniquePropertyConstraintCreate( descriptor );
+            fail( "Expected an exception because this schema should already be constrained." );
+        }
+        catch ( AlreadyConstrainedException ignore )
+        {
+            // Good.
+        }
+
+        // then
+        order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.LABEL, labelId );
+        order.verify( storageReader ).constraintExists( constraint );
+        order.verify( locks ).releaseExclusive( ResourceTypes.LABEL, labelId );
+    }
+
+    @Test
+    public void shouldReleaseAcquiredSchemaWriteLockIfConstraintWithIndexProviderCreationFails() throws Exception
+    {
+        // given
+        String indexProvider = Config.defaults().get( default_schema_provider );
+        UniquenessConstraintDescriptor constraint = uniqueForSchema( descriptor );
+        when( storageReader.constraintExists( constraint ) ).thenReturn( true );
+        int labelId = descriptor.getLabelId();
+        int propertyId = descriptor.getPropertyId();
+        when( tokenHolders.labelTokens().getTokenById( labelId ) ).thenReturn( new NamedToken( "Label", labelId ) );
+        when( tokenHolders.propertyKeyTokens().getTokenById( propertyId ) ).thenReturn( new NamedToken( "prop", labelId ) );
+
+        // when
+        try
+        {
+            operations.uniquePropertyConstraintCreate( descriptor, indexProvider );
+            fail( "Expected an exception because this schema should already be constrained." );
+        }
+        catch ( AlreadyConstrainedException ignore )
+        {
+            // Good.
+        }
+
+        // then
+        order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.LABEL, labelId );
+        order.verify( storageReader ).constraintExists( constraint );
+        order.verify( locks ).releaseExclusive( ResourceTypes.LABEL, labelId );
+    }
+
+    @Test
+    public void shouldReleaseAcquiredSchemaWriteLockIfNodeKeyConstraintCreationFails() throws Exception
+    {
+        // given
+        NodeKeyConstraintDescriptor constraint = nodeKeyForSchema( descriptor );
+        when( storageReader.constraintExists( constraint ) ).thenReturn( true );
+        int labelId = descriptor.getLabelId();
+        int propertyId = descriptor.getPropertyId();
+        when( tokenHolders.labelTokens().getTokenById( labelId ) ).thenReturn( new NamedToken( "Label", labelId ) );
+        when( tokenHolders.propertyKeyTokens().getTokenById( propertyId ) ).thenReturn( new NamedToken( "prop", labelId ) );
+
+        // when
+        try
+        {
+            operations.nodeKeyConstraintCreate( descriptor );
+            fail( "Expected an exception because this schema should already be constrained." );
+        }
+        catch ( AlreadyConstrainedException ignore )
+        {
+            // Good.
+        }
+
+        // then
+        order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.LABEL, labelId );
+        order.verify( storageReader ).constraintExists( constraint );
+        order.verify( locks ).releaseExclusive( ResourceTypes.LABEL, labelId );
+    }
+
+    @Test
+    public void shouldReleaseAcquiredSchemaWriteLockIfNodeKeyConstraintWithIndexProviderCreationFails() throws Exception
+    {
+        // given
+        String indexProvider = Config.defaults().get( default_schema_provider );
+        NodeKeyConstraintDescriptor constraint = nodeKeyForSchema( descriptor );
+        when( storageReader.constraintExists( constraint ) ).thenReturn( true );
+        int labelId = descriptor.getLabelId();
+        int propertyId = descriptor.getPropertyId();
+        when( tokenHolders.labelTokens().getTokenById( labelId ) ).thenReturn( new NamedToken( "Label", labelId ) );
+        when( tokenHolders.propertyKeyTokens().getTokenById( propertyId ) ).thenReturn( new NamedToken( "prop", labelId ) );
+
+        // when
+        try
+        {
+            operations.nodeKeyConstraintCreate( descriptor, indexProvider );
+            fail( "Expected an exception because this schema should already be constrained." );
+        }
+        catch ( AlreadyConstrainedException ignore )
+        {
+            // Good.
+        }
+
+        // then
+        order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.LABEL, labelId );
+        order.verify( storageReader ).constraintExists( constraint );
+        order.verify( locks ).releaseExclusive( ResourceTypes.LABEL, labelId );
+    }
+
+    @Test
+    public void shouldReleaseAcquiredSchemaWriteLockIfNodePropertyExistenceConstraintCreationFails() throws Exception
+    {
+        // given
+        NodeExistenceConstraintDescriptor constraint = existsForSchema( descriptor );
+        when( storageReader.constraintExists( constraint ) ).thenReturn( true );
+        int labelId = descriptor.getLabelId();
+        int propertyId = descriptor.getPropertyId();
+        when( tokenHolders.labelTokens().getTokenById( labelId ) ).thenReturn( new NamedToken( "Label", labelId ) );
+        when( tokenHolders.propertyKeyTokens().getTokenById( propertyId ) ).thenReturn( new NamedToken( "prop", labelId ) );
+
+        // when
+        try
+        {
+            operations.nodePropertyExistenceConstraintCreate( descriptor );
+            fail( "Expected an exception because this schema should already be constrained." );
+        }
+        catch ( AlreadyConstrainedException ignore )
+        {
+            // Good.
+        }
+
+        // then
+        order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.LABEL, labelId );
+        order.verify( storageReader ).constraintExists( constraint );
+        order.verify( locks ).releaseExclusive( ResourceTypes.LABEL, labelId );
+    }
+
+    @Test
+    public void shouldReleaseAcquiredSchemaWriteLockIfRelationshipPropertyExistenceConstraintCreationFails() throws Exception
+    {
+        // given
+        RelationTypeSchemaDescriptor descriptor = SchemaDescriptorFactory.forRelType( 11, 13 );
+        RelExistenceConstraintDescriptor constraint = existsForSchema( descriptor );
+        when( storageReader.constraintExists( constraint ) ).thenReturn( true );
+        int relTypeId = descriptor.getRelTypeId();
+        int propertyId = descriptor.getPropertyId();
+        when( tokenHolders.relationshipTypeTokens().getTokenById( relTypeId ) ).thenReturn( new NamedToken( "Label", relTypeId ) );
+        when( tokenHolders.propertyKeyTokens().getTokenById( propertyId ) ).thenReturn( new NamedToken( "prop", relTypeId ) );
+
+        // when
+        try
+        {
+            operations.relationshipPropertyExistenceConstraintCreate( descriptor );
+            fail( "Expected an exception because this schema should already be constrained." );
+        }
+        catch ( AlreadyConstrainedException ignore )
+        {
+            // Good.
+        }
+
+        // then
+        order.verify( locks ).acquireExclusive( LockTracer.NONE, ResourceTypes.RELATIONSHIP_TYPE, relTypeId );
+        order.verify( storageReader ).constraintExists( constraint );
+        order.verify( locks ).releaseExclusive( ResourceTypes.RELATIONSHIP_TYPE, relTypeId );
     }
 
     @Test

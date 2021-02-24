@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -110,8 +110,8 @@ public class CypherExecutorTest
         cypherExecutor.createTransactionContext( QUERY, VirtualValues.emptyMap(), request );
 
         verify( databaseQueryService ).beginTransaction( KernelTransaction.Type.implicit, AUTH_DISABLED );
-        logProvider.assertContainsMessageContaining( "Fail to parse `max-execution-time` header with value: 'not a " +
-                                                     "number'. Should be a positive number." );
+        logProvider.rawMessageMatcher().assertContains(
+                "Fail to parse `max-execution-time` header with value: 'not a number'. Should be a positive number." );
     }
 
     @Test

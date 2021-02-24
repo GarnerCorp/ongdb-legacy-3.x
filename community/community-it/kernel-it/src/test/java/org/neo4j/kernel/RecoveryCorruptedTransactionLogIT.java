@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.neo4j.graphdb.DependencyResolver;
@@ -87,7 +88,9 @@ import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryByteCodes.TX_START;
 
 public class RecoveryCorruptedTransactionLogIT
@@ -103,7 +106,7 @@ public class RecoveryCorruptedTransactionLogIT
     private final AssertableLogProvider logProvider = new AssertableLogProvider( true );
     private final RecoveryMonitor recoveryMonitor = new RecoveryMonitor();
     private File storeDir;
-    private Monitors monitors = new Monitors();
+    private final Monitors monitors = new Monitors();
     private LogFiles logFiles;
     private TestGraphDatabaseFactory databaseFactory;
 
@@ -169,14 +172,28 @@ public class RecoveryCorruptedTransactionLogIT
         database.shutdown();
 
         removeLastCheckpointRecordFromLastLogFile();
-        addRandomBytesToLastLogFile( this::randomBytes );
+
+        assertFalse( recoveryMonitor.wasRecoveryRequired() );
+
+        Supplier<Byte> randomBytesSupplier = this::randomBytes;
+        BytesCaptureSupplier capturingSupplier = new BytesCaptureSupplier( randomBytesSupplier );
+        addRandomBytesToLastLogFile( capturingSupplier );
 
         database = startDbNoRecoveryOfCorruptedLogs();
         database.shutdown();
 
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 0." );
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 0. Last valid transaction start offset is: 5668." );
-        assertEquals( numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions() );
+        try
+        {
+            assertEquals( numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions() );
+            assertTrue( recoveryMonitor.wasRecoveryRequired() );
+            logProvider.rawMessageMatcher().assertContains( "Fail to read transaction log version 0." );
+            logProvider.rawMessageMatcher().assertContains(
+                    "Fail to read transaction log version 0. Last valid transaction start offset is: 5668." );
+        }
+        catch ( Throwable t )
+        {
+            throw new RuntimeException( "Generated random bytes: " + capturingSupplier.getCapturedBytes(), t );
+        }
     }
 
     @Test
@@ -187,11 +204,11 @@ public class RecoveryCorruptedTransactionLogIT
         GraphDatabaseService recoveredDatabase = startDbNoRecoveryOfCorruptedLogs();
         recoveredDatabase.shutdown();
 
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 0." );
-        logProvider.assertContainsMessageContaining( "Fail to read first transaction of log version 0." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to read transaction log version 0." );
+        logProvider.rawMessageMatcher().assertContains( "Fail to read first transaction of log version 0." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Recovery required from position LogPosition{logVersion=0, byteOffset=16}" );
-        logProvider.assertContainsMessageContaining( "Fail to recover all transactions. Any later transactions after" +
+        logProvider.rawMessageMatcher().assertContains( "Fail to recover all transactions. Any later transactions after" +
                 " position LogPosition{logVersion=0, byteOffset=16} are unreadable and will be truncated." );
 
         assertEquals( 0, logFiles.getHighestLogVersion() );
@@ -236,11 +253,11 @@ public class RecoveryCorruptedTransactionLogIT
         database = startDbNoRecoveryOfCorruptedLogs();
         database.shutdown();
 
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 0." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to read transaction log version 0." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Recovery required from position LogPosition{logVersion=0, byteOffset=16}" );
-        logProvider.assertContainsMessageContaining( "Fail to recover all transactions." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to recover all transactions." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Any later transaction after LogPosition{logVersion=0, byteOffset=6245} are unreadable and will be truncated." );
 
         assertEquals( 0, logFiles.getHighestLogVersion() );
@@ -277,11 +294,11 @@ public class RecoveryCorruptedTransactionLogIT
         database = startDbNoRecoveryOfCorruptedLogs();
         database.shutdown();
 
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 3." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to read transaction log version 3." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Recovery required from position LogPosition{logVersion=0, byteOffset=16}" );
-        logProvider.assertContainsMessageContaining( "Fail to recover all transactions." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to recover all transactions." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Any later transaction after LogPosition{logVersion=3, byteOffset=4632} are unreadable and will be truncated." );
 
         assertEquals( 3, logFiles.getHighestLogVersion() );
@@ -315,11 +332,11 @@ public class RecoveryCorruptedTransactionLogIT
         database = startDbNoRecoveryOfCorruptedLogs();
         database.shutdown();
 
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 3." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to read transaction log version 3." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Recovery required from position LogPosition{logVersion=3, byteOffset=593}" );
-        logProvider.assertContainsMessageContaining( "Fail to recover all transactions." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to recover all transactions." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Any later transaction after LogPosition{logVersion=3, byteOffset=4650} are unreadable and will be truncated." );
 
         assertEquals( 3, logFiles.getHighestLogVersion() );
@@ -346,11 +363,11 @@ public class RecoveryCorruptedTransactionLogIT
         database = startDbNoRecoveryOfCorruptedLogs();
         database.shutdown();
 
-        logProvider.assertContainsMessageContaining( "Fail to read transaction log version 5." );
-        logProvider.assertContainsMessageContaining( "Fail to read first transaction of log version 5." );
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains( "Fail to read transaction log version 5." );
+        logProvider.rawMessageMatcher().assertContains( "Fail to read first transaction of log version 5." );
+        logProvider.rawMessageMatcher().assertContains(
                 "Recovery required from position LogPosition{logVersion=5, byteOffset=593}" );
-        logProvider.assertContainsMessageContaining( "Fail to recover all transactions. " +
+        logProvider.rawMessageMatcher().assertContains( "Fail to recover all transactions. " +
                 "Any later transactions after position LogPosition{logVersion=5, byteOffset=593} " +
                 "are unreadable and will be truncated." );
 
@@ -609,12 +626,14 @@ public class RecoveryCorruptedTransactionLogIT
 
     private static class RecoveryMonitor implements org.neo4j.kernel.recovery.RecoveryMonitor
     {
-        private List<Long> recoveredTransactions = new ArrayList<>();
+        private final List<Long> recoveredTransactions = new ArrayList<>();
         private int numberOfRecoveredTransactions;
+        private final AtomicBoolean recoveryRequired = new AtomicBoolean();
 
         @Override
         public void recoveryRequired( LogPosition recoveryPosition )
         {
+            recoveryRequired.set( true );
         }
 
         @Override
@@ -632,6 +651,11 @@ public class RecoveryCorruptedTransactionLogIT
         int getNumberOfRecoveredTransactions()
         {
             return numberOfRecoveredTransactions;
+        }
+
+        boolean wasRecoveryRequired()
+        {
+            return recoveryRequired.get();
         }
     }
 
@@ -662,6 +686,30 @@ public class RecoveryCorruptedTransactionLogIT
         {
             version++;
             return version;
+        }
+    }
+
+    private static class BytesCaptureSupplier implements Supplier<Byte>
+    {
+        private final Supplier<Byte> generator;
+        private final List<Byte> capturedBytes = new ArrayList<>();
+
+        BytesCaptureSupplier( Supplier<Byte> generator )
+        {
+            this.generator = generator;
+        }
+
+        @Override
+        public Byte get()
+        {
+            Byte data = generator.get();
+            capturedBytes.add( data );
+            return data;
+        }
+
+        public List<Byte> getCapturedBytes()
+        {
+            return capturedBytes;
         }
     }
 }

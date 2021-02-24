@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -172,20 +172,19 @@ public class BatchingTransactionAppender extends LifecycleAdapter implements Tra
     @Override
     public void checkPoint( LogPosition logPosition, LogCheckPointEvent logCheckPointEvent ) throws IOException
     {
-        try
+        // Synchronized with logFile to get absolute control over concurrent rotations happening
+        synchronized ( logFile )
         {
-            // Synchronized with logFile to get absolute control over concurrent rotations happening
-            synchronized ( logFile )
+            try
             {
                 transactionLogWriter.checkPoint( logPosition );
             }
+            catch ( Throwable cause )
+            {
+                databaseHealth.panic( cause );
+                throw cause;
+            }
         }
-        catch ( Throwable cause )
-        {
-            databaseHealth.panic( cause );
-            throw cause;
-        }
-
         forceAfterAppend( logCheckPointEvent );
     }
 
@@ -342,6 +341,7 @@ public class BatchingTransactionAppender extends LifecycleAdapter implements Tra
         Flushable flushable;
         synchronized ( logFile )
         {
+            databaseHealth.assertHealthy( IOException.class );
             flushable = writer.prepareForFlush();
         }
         // Force the writer outside of the lock.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,12 +21,12 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import java.net.URL
 
-import org.neo4j.cypher.internal.v3_5.util.LoadExternalResourceException
-import org.neo4j.cypher.internal.ir.v3_5.{CSVFormat, HasHeaders, NoHeaders}
+import org.neo4j.cypher.internal.v3_6.util.LoadExternalResourceException
+import org.neo4j.cypher.internal.ir.v3_6.{CSVFormat, HasHeaders, NoHeaders}
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.{ArrayBackedMap, QueryContext}
-import org.neo4j.cypher.internal.v3_5.util.attribution.Id
+import org.neo4j.cypher.internal.v3_6.util.attribution.Id
 import org.neo4j.values._
 import org.neo4j.values.storable.{TextValue, Value, Values}
 import org.neo4j.values.virtual.{MapValueBuilder, VirtualValues}

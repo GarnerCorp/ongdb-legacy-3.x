@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -95,7 +95,6 @@ public class RandomRule implements TestRule
                 {
                     setSeed( globalSeed );
                 }
-                reset();
                 try
                 {
                     base.evaluate();
@@ -316,6 +315,7 @@ public class RandomRule implements TestRule
     public void setSeed( long seed )
     {
         this.seed = seed;
+        reset();
     }
 
     @Retention( RetentionPolicy.RUNTIME )

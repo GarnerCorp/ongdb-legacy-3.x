@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -91,6 +91,8 @@ public interface ReadableTransactionState
     // SCHEMA RELATED
 
     DiffSets<IndexDescriptor> indexDiffSetsByLabel( int labelId );
+
+    DiffSets<IndexDescriptor> indexDiffSetsByRelationshipType( int relationshipType );
 
     DiffSets<IndexDescriptor> indexDiffSetsBySchema( SchemaDescriptor schema );
 

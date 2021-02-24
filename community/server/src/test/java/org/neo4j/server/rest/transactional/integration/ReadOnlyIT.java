@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,15 +19,17 @@
  */
 package org.neo4j.server.rest.transactional.integration;
 
-import org.codehaus.jackson.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
 
 import org.neo4j.server.NeoServer;
 import org.neo4j.server.helpers.ServerHelper;
+import org.neo4j.test.rule.TestDirectory;
 import org.neo4j.test.server.ExclusiveServerTestBase;
 import org.neo4j.test.server.HTTP;
 
@@ -38,6 +40,8 @@ import static org.neo4j.test.server.HTTP.RawPayload.quotedJson;
 
 public class ReadOnlyIT extends ExclusiveServerTestBase
 {
+    @Rule
+    public TestDirectory dir = TestDirectory.testDirectory();
     private NeoServer readOnlyServer;
     private HTTP.Builder http;
 
@@ -45,7 +49,7 @@ public class ReadOnlyIT extends ExclusiveServerTestBase
     public void setup() throws IOException
     {
         ServerHelper.cleanTheDatabase( readOnlyServer );
-        readOnlyServer = ServerHelper.createNonPersistentReadOnlyServer();
+        readOnlyServer = ServerHelper.createReadOnlyServer( dir.storeDir() );
         http = HTTP.withBaseUri( readOnlyServer.baseUri() );
     }
 

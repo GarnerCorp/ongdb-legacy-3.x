@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -157,6 +157,7 @@ public class AwaitIndexProcedureTest
         catch ( ProcedureException e )
         {
             assertThat( e.status(), is( Status.Schema.IndexCreationFailed ) );
+            assertThat( e.getMessage(), containsString( ":Person(name)" ) );
             assertThat( e.getMessage(), containsString( "Kilroy was here" ) );
         }
     }

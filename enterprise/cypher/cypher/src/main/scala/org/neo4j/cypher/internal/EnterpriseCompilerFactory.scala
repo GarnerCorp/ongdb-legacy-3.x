@@ -1,35 +1,32 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause,as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.cypher.internal
 
 import java.time.Clock
 
 import org.neo4j.cypher.internal.compatibility.v3_4.Cypher34Planner
-import org.neo4j.cypher.internal.compatibility.v3_5.Cypher35Planner
+import org.neo4j.cypher.internal.compatibility.v3_6.Cypher35Planner
 import org.neo4j.cypher.internal.compatibility.{CypherPlanner, _}
-import org.neo4j.cypher.internal.compiler.v3_5._
+import org.neo4j.cypher.internal.compiler.v3_6._
 import org.neo4j.cypher.internal.executionplan.GeneratedQuery
-import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
+import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.compiled.codegen.spi.CodeStructure
 import org.neo4j.cypher.internal.runtime.interpreted.LastCommittedTxIdProvider
 import org.neo4j.cypher.internal.runtime.parallel._
@@ -40,7 +37,7 @@ import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.monitoring.{Monitors => KernelMonitors}
 import org.neo4j.logging.{Log, LogProvider}
 import org.neo4j.scheduler.{Group, JobScheduler}
-import org.neo4j.cypher.internal.v3_5.frontend.phases.InternalNotificationLogger
+import org.neo4j.cypher.internal.v3_6.frontend.phases.InternalNotificationLogger
 
 class EnterpriseCompilerFactory(community: CommunityCompilerFactory,
                                 graph: GraphDatabaseQueryService,
@@ -50,7 +47,7 @@ class EnterpriseCompilerFactory(community: CommunityCompilerFactory,
                                 runtimeConfig: CypherRuntimeConfiguration
                                ) extends CompilerFactory {
   /*
-  One compiler is created for every Planner:Runtime:Version combination, e.g., Cost-Morsel-3.4 & Cost-Morsel-3.5.
+  One compiler is created for every Planner:Runtime:Version combination, e.g., Cost-Morsel-3.4 & Cost-Morsel-3.6.
   Each compiler contains a runtime instance, and each morsel runtime instance requires a dispatcher instance.
   This ensures only one (shared) dispatcher/tracer instance is created, even when there are multiple morsel runtime instances.
    */
@@ -73,7 +70,7 @@ class EnterpriseCompilerFactory(community: CommunityCompilerFactory,
           cypherUpdateStrategy,
           LastCommittedTxIdProvider(graph))
 
-      case CypherVersion.v3_5 =>
+      case CypherVersion.v3_6 =>
         Cypher35Planner(
           plannerConfig,
           MasterCompiler.CLOCK,

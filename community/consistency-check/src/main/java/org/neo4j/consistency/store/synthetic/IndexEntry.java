@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,13 @@
  */
 package org.neo4j.consistency.store.synthetic;
 
+import org.apache.commons.lang3.exception.CloneFailedException;
+
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
+import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
+
+import static java.lang.String.format;
 
 /**
  * Synthetic record type that stands in for a real record to fit in conveniently
@@ -27,9 +33,14 @@ import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
  */
 public class IndexEntry extends AbstractBaseRecord
 {
-    public IndexEntry( long nodeId )
+    private final StoreIndexDescriptor indexDescriptor;
+    private final TokenNameLookup tokenNameLookup;
+
+    public IndexEntry( StoreIndexDescriptor indexDescriptor, TokenNameLookup tokenNameLookup, long nodeId )
     {
         super( nodeId );
+        this.indexDescriptor = indexDescriptor;
+        this.tokenNameLookup = tokenNameLookup;
         setInUse( true );
     }
 
@@ -40,8 +51,14 @@ public class IndexEntry extends AbstractBaseRecord
     }
 
     @Override
+    public final AbstractBaseRecord clone()
+    {
+        throw new CloneFailedException( "Synthetic records cannot be cloned." );
+    }
+
+    @Override
     public String toString()
     {
-        return "IndexEntry[nodeId=" + getId() + "]";
+        return format( "IndexEntry[nodeId=%d, index=%s]", getId(), indexDescriptor.toString( tokenNameLookup ) );
     }
 }

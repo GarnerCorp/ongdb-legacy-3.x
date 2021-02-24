@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -66,7 +66,7 @@ import org.neo4j.kernel.api.exceptions.schema.AlreadyConstrainedException;
 import org.neo4j.kernel.api.exceptions.schema.AlreadyIndexedException;
 import org.neo4j.kernel.api.exceptions.schema.DropConstraintFailureException;
 import org.neo4j.kernel.api.exceptions.schema.DropIndexFailureException;
-import org.neo4j.kernel.api.exceptions.schema.RepeatedPropertyInCompositeSchemaException;
+import org.neo4j.kernel.api.exceptions.schema.RepeatedSchemaComponentException;
 import org.neo4j.kernel.api.exceptions.schema.SchemaRuleNotFoundException;
 import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
 import org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory;
@@ -203,7 +203,8 @@ public class SchemaImpl implements Schema
                 return;
             case FAILED:
                 String cause = getIndexFailure( index );
-                String message = IndexPopulationFailure.appendCauseOfFailure( "Index entered a FAILED state. Please see database logs.", cause );
+                String message = IndexPopulationFailure
+                        .appendCauseOfFailure( String.format( "Index %s entered a %s state. Please see database logs.", index, state ), cause );
                 throw new IllegalStateException( message );
             default:
                 try
@@ -314,7 +315,7 @@ public class SchemaImpl implements Schema
             SchemaRead schemaRead = transaction.schemaRead();
             IndexReference descriptor = getIndexReference( schemaRead, transaction.tokenRead(), (IndexDefinitionImpl) index );
             PopulationProgress progress = schemaRead.indexGetPopulationProgress( descriptor );
-            return new IndexPopulationProgress( progress.getCompleted(), progress.getTotal() );
+            return progress.toIndexPopulationProgress();
         }
         catch ( SchemaRuleNotFoundException | IndexNotFoundKernelException e )
         {
@@ -622,7 +623,7 @@ public class SchemaImpl implements Schema
                     return new UniquenessConstraintDefinition( this, indexDefinition );
                 }
                 catch ( AlreadyConstrainedException | CreateConstraintFailureException | AlreadyIndexedException |
-                        RepeatedPropertyInCompositeSchemaException e )
+                        RepeatedSchemaComponentException e )
                 {
                     throw new ConstraintViolationException(
                             e.getUserMessage( new SilentTokenNameLookup( transaction.tokenRead() ) ), e );
@@ -664,7 +665,7 @@ public class SchemaImpl implements Schema
                     return new NodeKeyConstraintDefinition( this, indexDefinition );
                 }
                 catch ( AlreadyConstrainedException | CreateConstraintFailureException | AlreadyIndexedException |
-                        RepeatedPropertyInCompositeSchemaException e )
+                        RepeatedSchemaComponentException e )
                 {
                     throw new ConstraintViolationException(
                             e.getUserMessage( new SilentTokenNameLookup( transaction.tokenRead() ) ), e );
@@ -700,7 +701,7 @@ public class SchemaImpl implements Schema
                     return new NodePropertyExistenceConstraintDefinition( this, label, propertyKeys );
                 }
                 catch ( AlreadyConstrainedException | CreateConstraintFailureException |
-                        RepeatedPropertyInCompositeSchemaException e )
+                        RepeatedSchemaComponentException e )
                 {
                     throw new ConstraintViolationException(
                             e.getUserMessage( new SilentTokenNameLookup( transaction.tokenRead() ) ), e );
@@ -736,7 +737,7 @@ public class SchemaImpl implements Schema
                     return new RelationshipPropertyExistenceConstraintDefinition( this, type, propertyKey );
                 }
                 catch ( AlreadyConstrainedException | CreateConstraintFailureException |
-                        RepeatedPropertyInCompositeSchemaException e )
+                        RepeatedSchemaComponentException e )
                 {
                     throw new ConstraintViolationException(
                             e.getUserMessage( new SilentTokenNameLookup( transaction.tokenRead() ) ), e );

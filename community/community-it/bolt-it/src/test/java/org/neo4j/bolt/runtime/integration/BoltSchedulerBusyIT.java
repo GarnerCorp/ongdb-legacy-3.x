@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -125,7 +125,7 @@ public class BoltSchedulerBusyIT extends AbstractBoltTransportsTest
             assertThat( connection3, util.eventuallyReceives(
                     msgFailure( Status.Request.NoThreadsAvailable, "There are no available threads to serve this request at the moment" ) ) );
 
-            userLogProvider.assertContainsMessageContaining(
+            userLogProvider.rawMessageMatcher().assertContains(
                     "since there are no available threads to serve it at the moment. You can retry at a later time" );
             internalLogProvider.assertAtLeastOnce( AssertableLogProvider
                     .inLog( startsWith( BoltConnection.class.getPackage().getName() ) )
@@ -160,9 +160,10 @@ public class BoltSchedulerBusyIT extends AbstractBoltTransportsTest
         server.shutdownDatabase();
 
         // Expect no scheduling error logs
-        userLogProvider.assertNoLogCallContaining(
+        userLogProvider.rawMessageMatcher().assertNotContains(
                 "since there are no available threads to serve it at the moment. You can retry at a later time" );
-        internalLogProvider.assertNoLogCallContaining( "since there are no available threads to serve it at the moment. You can retry at a later time" );
+        internalLogProvider.rawMessageMatcher().assertNotContains(
+                "since there are no available threads to serve it at the moment. You can retry at a later time" );
     }
 
     private TransportConnection enterStreaming() throws Throwable

@@ -18,4 +18,3 @@ licensing@neo4j.com
 
 More information is also available at:
 https://neo4j.com/licensing/
-

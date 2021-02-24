@@ -26,8 +26,10 @@ Apache Software License, Version 2.0
   Apache Commons Text
   Caffeine cache
   ConcurrentLinkedHashMap
+  error-prone annotations
   FindBugs-jsr305
   Guava: Google Core Libraries for Java
+  J2ObjC Annotations
   javax.inject
   jPowerShell
   jProcesses
@@ -35,9 +37,12 @@ Apache Software License, Version 2.0
   Lucene Common Analyzers
   Lucene Core
   Lucene QueryParsers
+  Neo4j - Cypher Expressions 3.4
+  Neo4j - Cypher Util 3.4
   Netty
   Netty/All-in-One
   opencsv
+  openCypher Frontend
   parboiled-core
   parboiled-scala
   WMI4Java
@@ -51,6 +56,10 @@ BSD License
   asm-tree
   asm-util
   Scala Compiler
+  Zstandard
+
+BSD License 2-clause
+  zstd-jni
 
 Bouncy Castle License
   Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs
@@ -63,6 +72,10 @@ Eclipse Distribution License - v 1.0
 Eclipse Public License - v 1.0
   Eclipse Collections API
   Eclipse Collections Main Library
+
+MIT License
+  Animal Sniffer Annotations
+  Checker Qual
 
 Dependencies with multiple licenses
 -----------------------------------

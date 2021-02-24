@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.command;
 
-import org.eclipse.collections.api.map.primitive.LongObjectMap;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -30,10 +28,9 @@ import org.neo4j.helpers.collection.NestingIterator;
 import org.neo4j.internal.kernel.api.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
+import org.neo4j.kernel.impl.api.index.EntityCommandGrouper;
 import org.neo4j.kernel.impl.api.index.IndexingUpdateService;
 import org.neo4j.kernel.impl.store.UnderlyingStorageException;
-import org.neo4j.kernel.impl.transaction.command.Command.NodeCommand;
-import org.neo4j.kernel.impl.transaction.command.Command.PropertyCommand;
 import org.neo4j.kernel.impl.transaction.state.IndexUpdates;
 import org.neo4j.util.concurrent.Work;
 
@@ -87,9 +84,8 @@ public class IndexUpdatesWork implements Work<IndexingUpdateService,IndexUpdates
             }
 
             @Override
-            public void feed( LongObjectMap<List<PropertyCommand>> propCommandsByNodeId,
-                    LongObjectMap<List<PropertyCommand>> propCommandsByRelationshipId, LongObjectMap<NodeCommand> nodeCommands,
-                    LongObjectMap<Command.RelationshipCommand> relationshipCommandPrimitiveLongObjectMap )
+            public void feed( EntityCommandGrouper<Command.NodeCommand>.Cursor nodeCommands,
+                    EntityCommandGrouper<Command.RelationshipCommand>.Cursor relationshipCommands )
             {
                 throw new UnsupportedOperationException();
             }

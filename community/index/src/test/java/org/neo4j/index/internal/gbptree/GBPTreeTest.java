@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,10 @@
  */
 package org.neo4j.index.internal.gbptree;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.commons.lang3.tuple.Pair;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,6 +32,7 @@ import org.junit.rules.RuleChain;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
@@ -39,6 +42,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,20 +59,29 @@ import java.util.function.Consumer;
 import org.neo4j.cursor.RawCursor;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
+import org.neo4j.helpers.Exceptions;
 import org.neo4j.index.internal.gbptree.GBPTree.Monitor;
+import org.neo4j.io.fs.OpenMode;
+import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.pagecache.DelegatingPageCache;
 import org.neo4j.io.pagecache.DelegatingPagedFile;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCursor;
+import org.neo4j.io.pagecache.PageSwapper;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.impl.FileIsNotMappedException;
+import org.neo4j.io.pagecache.tracing.PinEvent;
+import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
+import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
+import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracerSupplier;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.rule.PageCacheRule;
 import org.neo4j.test.rule.RandomRule;
 import org.neo4j.test.rule.TestDirectory;
 import org.neo4j.test.rule.fs.DefaultFileSystemRule;
 
+import static java.lang.Long.MAX_VALUE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.junit.Assert.assertArrayEquals;
@@ -982,7 +995,6 @@ public class GBPTreeTest
             // WHEN cleanup not finished
             Future<?> cleanup = executor.submit( throwing( cleanupWork::start ) );
             monitor.barrier.awaitUninterruptibly();
-            index.writer().close();
 
             // THEN
             Future<?> checkpoint = executor.submit( throwing( () -> index.checkpoint( UNLIMITED ) ) );
@@ -1042,7 +1054,7 @@ public class GBPTreeTest
     }
 
     @Test( timeout = 5_000L )
-    public void cleanJobShouldNotLockOutWriter() throws Exception
+    public void cleanJobShouldLockOutWriter() throws Exception
     {
         // GIVEN
         makeDirty();
@@ -1058,31 +1070,11 @@ public class GBPTreeTest
 
             // THEN
             Future<?> writer = executor.submit( throwing( () -> index.writer().close() ) );
-            writer.get();
+            shouldWait( writer );
 
             monitor.barrier.release();
             cleanup.get();
-        }
-    }
-
-    @Test
-    public void writerShouldNotLockOutCleanJob() throws Exception
-    {
-        // GIVEN
-        makeDirty();
-
-        RecoveryCleanupWorkCollector cleanupWork = new ControlledRecoveryCleanupWorkCollector();
-        try ( GBPTree<MutableLong,MutableLong> index = index().with( cleanupWork ).build() )
-        {
-            // WHEN
-            try ( Writer<MutableLong,MutableLong> writer = index.writer() )
-            {
-                // THEN
-                Future<?> cleanup = executor.submit( throwing( cleanupWork::start ) );
-                // Move writer to let cleaner pass
-                writer.put( new MutableLong( 1 ), new MutableLong( 1 ) );
-                cleanup.get();
-            }
+            writer.get();
         }
     }
 
@@ -1183,7 +1175,18 @@ public class GBPTreeTest
     }
 
     @Test
+    public void writerMustRecognizeFailedCleaning() throws Exception
+    {
+        mustRecognizeFailedCleaning( GBPTree::writer );
+    }
+
+    @Test
     public void checkpointMustRecognizeFailedCleaning() throws Exception
+    {
+        mustRecognizeFailedCleaning( index -> index.checkpoint( IOLimiter.UNLIMITED ) );
+    }
+
+    private void mustRecognizeFailedCleaning( ThrowingConsumer<GBPTree<MutableLong,MutableLong>,IOException> operation ) throws Exception
     {
         // given
         makeDirty();
@@ -1206,12 +1209,10 @@ public class GBPTreeTest
                 .with( collector )
                 .build() )
         {
-            index.writer().close(); // Changes since last checkpoint
-
             Future<?> cleanup = executor.submit( throwing( collector::start ) );
             shouldWait( cleanup );
 
-            Future<?> checkpoint = executor.submit( throwing( () -> index.checkpoint( UNLIMITED ) ) );
+            Future<?> checkpoint = executor.submit( throwing( () -> operation.accept( index ) ) );
             shouldWait( checkpoint );
 
             cleanupMonitor.barrier.release();
@@ -1301,7 +1302,7 @@ public class GBPTreeTest
         try ( GBPTree<MutableLong, MutableLong> index = index().build() )
         {
             MutableLong from = new MutableLong( Long.MIN_VALUE );
-            MutableLong to = new MutableLong( Long.MAX_VALUE );
+            MutableLong to = new MutableLong( MAX_VALUE );
             try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = index.seek( from, to ) )
             {
                 assertFalse( seek.next() );
@@ -1327,7 +1328,7 @@ public class GBPTreeTest
         try ( GBPTree<MutableLong, MutableLong> index = index().build() )
         {
             MutableLong from = new MutableLong( Long.MIN_VALUE );
-            MutableLong to = new MutableLong( Long.MAX_VALUE );
+            MutableLong to = new MutableLong( MAX_VALUE );
             try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = index.seek( from, to ) )
             {
                 assertTrue( seek.next() );
@@ -1570,7 +1571,7 @@ public class GBPTreeTest
     }
 
     @Test
-    public void shouldThrowIllegalStateExceptionOnCallingNextAfterClose() throws Exception
+    public void shouldReturnFalseOnCallingNextAfterClose() throws Exception
     {
         // given
         try ( GBPTree<MutableLong,MutableLong> tree = index().build() )
@@ -1586,25 +1587,352 @@ public class GBPTreeTest
             }
 
             RawCursor<Hit<MutableLong,MutableLong>,IOException> seek =
-                    tree.seek( new MutableLong( 0 ), new MutableLong( Long.MAX_VALUE ) );
+                    tree.seek( new MutableLong( 0 ), new MutableLong( MAX_VALUE ) );
             assertTrue( seek.next() );
             assertTrue( seek.next() );
             seek.close();
 
             for ( int i = 0; i < 2; i++ )
             {
-                try
-                {
-                    // when
-                    seek.next();
-                    fail( "Should have failed" );
-                }
-                catch ( IllegalStateException e )
-                {
-                    // then good
-                }
+                assertFalse( seek.next() );
             }
         }
+    }
+
+    @Test
+    public void shouldReturnFalseOnCallingNextAfterExhausting() throws Exception
+    {
+        int amount = 10;
+        // given
+        try ( GBPTree<MutableLong,MutableLong> tree = index().build() )
+        {
+            try ( Writer<MutableLong,MutableLong> writer = tree.writer() )
+            {
+                MutableLong value = new MutableLong();
+                for ( int i = 0; i < amount; i++ )
+                {
+                    value.setValue( i );
+                    writer.put( value, value );
+                }
+            }
+
+            RawCursor<Hit<MutableLong,MutableLong>,IOException> seek =
+                    tree.seek( new MutableLong( 0 ), new MutableLong( Long.MAX_VALUE ) );
+            //noinspection StatementWithEmptyBody
+            while ( seek.next() )
+            {
+            }
+
+            try ( Writer<MutableLong,MutableLong> writer = tree.writer() )
+            {
+                MutableLong value = new MutableLong();
+                value.setValue( amount + 1 );
+                writer.put( value, value );
+            }
+
+            for ( int i = 0; i < 2; i++ )
+            {
+                assertFalse( seek.next() );
+            }
+        }
+    }
+
+    @Test
+    public void shouldReturnFalseOnCallingNextAfterExhaustingAndClose() throws Exception
+    {
+        int amount = 10;
+        // given
+        try ( GBPTree<MutableLong,MutableLong> tree = index().build() )
+        {
+            try ( Writer<MutableLong,MutableLong> writer = tree.writer() )
+            {
+                MutableLong value = new MutableLong();
+                for ( int i = 0; i < amount; i++ )
+                {
+                    value.setValue( i );
+                    writer.put( value, value );
+                }
+            }
+
+            RawCursor<Hit<MutableLong,MutableLong>,IOException> seek =
+                    tree.seek( new MutableLong( 0 ), new MutableLong( Long.MAX_VALUE ));
+            //noinspection StatementWithEmptyBody
+            while ( seek.next() )
+            {
+            }
+            seek.close();
+
+            try ( Writer<MutableLong,MutableLong> writer = tree.writer() )
+            {
+                MutableLong value = new MutableLong();
+                value.setValue( amount + 1 );
+                writer.put( value, value );
+            }
+
+            for ( int i = 0; i < 2; i++ )
+            {
+                assertFalse( seek.next() );
+            }
+        }
+    }
+
+    /* Inconsistency tests */
+
+    @Test( timeout = 60_000L )
+    public void mustThrowIfStuckInInfiniteRootCatchup() throws IOException
+    {
+        // Create a tree with root and two children.
+        // Corrupt one of the children and make it look like a freelist node.
+        // This will cause seekCursor to start from root in an attempt, believing it went wrong because of concurrent updates.
+        // When seekCursor comes back to the same corrupt child again and again it should eventually escape from that loop
+        // with an exception.
+
+        List<Long> trace = new ArrayList<>();
+        MutableBoolean onOffSwitch = new MutableBoolean( true );
+        PageCursorTracer pageCursorTracer = trackingPageCursorTracer( trace, onOffSwitch );
+        PageCache pageCache = pageCacheWithTrace( pageCursorTracer );
+
+        // Build a tree with root and two children.
+        try ( GBPTree<MutableLong,MutableLong> tree = index( pageCache ).build() )
+        {
+            // Insert data until we have a split in root
+            treeWithRootSplit( trace, tree );
+            long corruptChild = trace.get( 1 );
+
+            // We are not interested in further trace tracking
+            onOffSwitch.setFalse();
+
+            // Corrupt the child
+            corruptTheChild( pageCache, corruptChild );
+
+            // when seek end up in this corrupt child we should eventually fail with a tree inconsistency exception
+            try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = tree.seek( new MutableLong( 0 ), new MutableLong( 0 ) ) )
+            {
+                seek.next();
+                fail( "Expected to throw" );
+            }
+            catch ( TreeInconsistencyException e )
+            {
+                // then good
+                assertThat( e.getMessage(), CoreMatchers.containsString(
+                        "Index traversal aborted due to being stuck in infinite loop. This is most likely caused by an inconsistency in the index. " +
+                                "Loop occurred when restarting search from root from page " + corruptChild + "." ) );
+            }
+        }
+    }
+
+    @Test( timeout = 5_000L )
+    public void mustThrowIfStuckInInfiniteRootCatchupMultipleConcurrentSeekers() throws IOException, InterruptedException
+    {
+        List<Long> trace = new ArrayList<>();
+        MutableBoolean onOffSwitch = new MutableBoolean( true );
+        PageCursorTracer pageCursorTracer = trackingPageCursorTracer( trace, onOffSwitch );
+        PageCache pageCache = pageCacheWithTrace( pageCursorTracer );
+
+        // Build a tree with root and two children.
+        try ( GBPTree<MutableLong,MutableLong> tree = index( pageCache ).build() )
+        {
+            // Insert data until we have a split in root
+            treeWithRootSplit( trace, tree );
+            long leftChild = trace.get( 1 );
+            long rightChild = trace.get( 2 );
+
+            // Stop trace tracking because we will soon start pinning pages from different threads
+            onOffSwitch.setFalse();
+
+            // Corrupt the child
+            corruptTheChild( pageCache, leftChild );
+            corruptTheChild( pageCache, rightChild );
+
+            // When seek end up in this corrupt child we should eventually fail with a tree inconsistency exception
+            // even if we have multiple seeker that traverse different part of the tree and both get stuck in start from root loop.
+            ExecutorService executor = Executors.newFixedThreadPool( 2 );
+            CountDownLatch go = new CountDownLatch( 2 );
+            Future<Object> execute1 = executor.submit( () ->
+            {
+                go.countDown();
+                go.await();
+                try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = tree.seek( new MutableLong( 0 ), new MutableLong( 0 ) ) )
+                {
+                    seek.next();
+                }
+                return null;
+            } );
+
+            Future<Object> execute2 = executor.submit( () ->
+            {
+                go.countDown();
+                go.await();
+                try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = tree.seek( new MutableLong( MAX_VALUE ), new MutableLong( MAX_VALUE ) ) )
+                {
+                    seek.next();
+                }
+                return null;
+            } );
+
+            assertFutureFailsWithTreeInconsistencyException( execute1 );
+            assertFutureFailsWithTreeInconsistencyException( execute2 );
+        }
+    }
+
+    /* ReadOnly */
+
+    @Test
+    public void mustNotMakeAnyChangesInReadOnlyMode() throws IOException
+    {
+        // given
+        PageCache pageCache = createPageCache( DEFAULT_PAGE_SIZE );
+        try ( GBPTree<MutableLong,MutableLong> tree = index( pageCache ).build() )
+        {
+            for ( int i = 0; i < 10; i++ )
+            {
+                for ( int j = 0; j < 100; j++ )
+                {
+                    insert( tree, random.nextLong(), random.nextLong() );
+                }
+                tree.checkpoint( UNLIMITED );
+            }
+        }
+        byte[] before = fileContent( indexFile );
+
+        try ( GBPTree<MutableLong,MutableLong> tree = index( pageCache ).withReadOnly( true ).build() )
+        {
+            try
+            {
+                tree.writer();
+                fail( "Should have failed" );
+            }
+            catch ( UnsupportedOperationException e )
+            {
+                assertThat( e.getMessage(), containsString( "GBPTree was opened in read only mode and can not finish operation: " ) );
+            }
+
+            MutableBoolean ioLimitChecked = new MutableBoolean();
+            tree.checkpoint( ( previousStamp, recentlyCompletedIOs, flushable ) -> {
+                ioLimitChecked.setTrue();
+                return 0;
+            } );
+            assertFalse( "Expected checkpoint to be a no-op in read only mode.", ioLimitChecked.getValue() );
+        }
+        byte[] after = fileContent( indexFile );
+        assertArrayEquals( "Expected file content to be identical before and after opening GBPTree in read only mode.", before, after );
+    }
+
+    @Test
+    public void mustFailGracefullyIfFileNotExistInReadOnlyMode() throws IOException
+    {
+        // given
+        PageCache pageCache = createPageCache( DEFAULT_PAGE_SIZE );
+        try ( GBPTree<MutableLong,MutableLong> ignore = index( pageCache ).withReadOnly( true ).build() )
+        {
+            fail( "Expected constructor to fail when trying to initialize with no index file in readOnly mode." );
+        }
+        catch ( TreeFileNotFoundException e )
+        {
+            assertThat( e.getMessage(), containsString( "Can not create new tree file in read only mode" ) );
+            assertThat( e.getMessage(), containsString( indexFile.getAbsolutePath() ) );
+        }
+    }
+
+    private byte[] fileContent( File indexFile ) throws IOException
+    {
+        try ( StoreChannel storeChannel = fs.open( indexFile, OpenMode.READ ) )
+        {
+            int fileSize = (int) storeChannel.size();
+            ByteBuffer expectedContent = ByteBuffer.allocate( fileSize );
+            storeChannel.readAll( expectedContent );
+            expectedContent.flip();
+            byte[] bytes = new byte[fileSize];
+            expectedContent.get( bytes );
+            return bytes;
+        }
+    }
+
+    private DefaultPageCursorTracer trackingPageCursorTracer( List<Long> trace, MutableBoolean onOffSwitch )
+    {
+        return new DefaultPageCursorTracer()
+        {
+            @Override
+            public PinEvent beginPin( boolean writeLock, long filePageId, PageSwapper swapper )
+            {
+                if ( onOffSwitch.isTrue() )
+                {
+                    trace.add( filePageId );
+                }
+                return super.beginPin( writeLock, filePageId, swapper );
+            }
+        };
+    }
+
+    private void assertFutureFailsWithTreeInconsistencyException( Future<Object> execute1 ) throws InterruptedException
+    {
+        try
+        {
+            execute1.get();
+            fail( "Expected to fail" );
+        }
+        catch ( ExecutionException e )
+        {
+            Throwable cause = e.getCause();
+            if ( !(cause instanceof TreeInconsistencyException) )
+            {
+                fail( "Expected cause to be " + TreeInconsistencyException.class + " but was " + Exceptions.stringify( cause ) );
+            }
+        }
+    }
+
+    private void corruptTheChild( PageCache pageCache, long corruptChild ) throws IOException
+    {
+        try ( PagedFile pagedFile = pageCache.map( indexFile, DEFAULT_PAGE_SIZE );
+              PageCursor cursor = pagedFile.io( 0, PF_SHARED_WRITE_LOCK ) )
+        {
+            assertTrue( cursor.next( corruptChild ) );
+            assertTrue( TreeNode.isLeaf( cursor ) );
+
+            // Make child look like freelist node
+            cursor.putByte( TreeNode.BYTE_POS_NODE_TYPE, TreeNode.NODE_TYPE_FREE_LIST_NODE );
+        }
+    }
+
+    /**
+     * When split is done, trace contain:
+     * trace.get( 0 ) - root
+     * trace.get( 1 ) - leftChild
+     * trace.get( 2 ) - rightChild
+     */
+    private void treeWithRootSplit( List<Long> trace, GBPTree<MutableLong,MutableLong> tree ) throws IOException
+    {
+        long count = 0;
+        do
+        {
+            try ( Writer<MutableLong,MutableLong> writer = tree.writer() )
+            {
+                writer.put( new MutableLong( count ), new MutableLong( count ) );
+                count++;
+            }
+            trace.clear();
+            try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = tree.seek( new MutableLong( 0 ), new MutableLong( 0 ) ) )
+            {
+                seek.next();
+            }
+        }
+        while ( trace.size() <= 1 );
+
+        trace.clear();
+        try ( RawCursor<Hit<MutableLong,MutableLong>,IOException> seek = tree.seek( new MutableLong( 0 ), new MutableLong( MAX_VALUE ) ) )
+        {
+            //noinspection StatementWithEmptyBody
+            while ( seek.next() )
+            {
+            }
+        }
+    }
+
+    private PageCache pageCacheWithTrace( PageCursorTracer pageCursorTracer  )
+    {
+        // A page cache tracer that we can use to see when tree has seen enough updates and to figure out on which page the child sits.Trace( trace );
+        PageCursorTracerSupplier pageCursorTracerSupplier = () -> pageCursorTracer;
+        return createPageCache( DEFAULT_PAGE_SIZE, pageCursorTracerSupplier );
     }
 
     private static class ControlledRecoveryCleanupWorkCollector extends RecoveryCleanupWorkCollector
@@ -1748,6 +2076,11 @@ public class GBPTreeTest
     private PageCache createPageCache( int pageSize )
     {
         return pageCacheRule.getPageCache( fs.get(), config().withPageSize( pageSize ) );
+    }
+
+    private PageCache createPageCache( int pageSize, PageCursorTracerSupplier pageCursorTracerSupplier )
+    {
+        return pageCacheRule.getPageCache( fs.get(), config().withPageSize( pageSize ).withCursorTracerSupplier( pageCursorTracerSupplier ) );
     }
 
     private static class CleanJobControlledMonitor extends Monitor.Adaptor

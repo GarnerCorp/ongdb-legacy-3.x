@@ -1,24 +1,21 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.kernel.impl.store.format;
 
@@ -39,11 +36,13 @@ import org.neo4j.kernel.impl.store.format.highlimit.v300.HighLimitV3_0_0;
 import org.neo4j.kernel.impl.store.format.highlimit.v306.HighLimitV3_0_6;
 import org.neo4j.kernel.impl.store.format.highlimit.v310.HighLimitV3_1_0;
 import org.neo4j.kernel.impl.store.format.highlimit.v320.HighLimitV3_2_0;
+import org.neo4j.kernel.impl.store.format.highlimit.v340.HighLimitV3_4_0;
 import org.neo4j.kernel.impl.store.format.standard.Standard;
 import org.neo4j.kernel.impl.store.format.standard.StandardV2_3;
 import org.neo4j.kernel.impl.store.format.standard.StandardV3_0;
 import org.neo4j.kernel.impl.store.format.standard.StandardV3_2;
 import org.neo4j.kernel.impl.store.format.standard.StandardV3_4;
+import org.neo4j.kernel.impl.store.format.standard.StandardV3_6;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.rule.PageCacheRule;
@@ -97,8 +96,11 @@ public class RecordFormatSelectorTest
         assertSame( StandardV3_0.RECORD_FORMATS, selectForVersion( StandardV3_0.STORE_VERSION ) );
         assertSame( StandardV3_2.RECORD_FORMATS, selectForVersion( StandardV3_2.STORE_VERSION ) );
         assertSame( StandardV3_4.RECORD_FORMATS, selectForVersion( StandardV3_4.STORE_VERSION ) );
+        assertSame( StandardV3_6.RECORD_FORMATS, selectForVersion( StandardV3_6.STORE_VERSION ) );
         assertSame( HighLimitV3_0_0.RECORD_FORMATS, selectForVersion( HighLimitV3_0_0.STORE_VERSION ) );
         assertSame( HighLimitV3_1_0.RECORD_FORMATS, selectForVersion( HighLimitV3_1_0.STORE_VERSION ) );
+        assertSame( HighLimitV3_2_0.RECORD_FORMATS, selectForVersion( HighLimitV3_2_0.STORE_VERSION ) );
+        assertSame( HighLimitV3_4_0.RECORD_FORMATS, selectForVersion( HighLimitV3_4_0.STORE_VERSION ) );
         assertSame( HighLimit.RECORD_FORMATS, selectForVersion( HighLimit.STORE_VERSION ) );
     }
 
@@ -362,11 +364,13 @@ public class RecordFormatSelectorTest
         assertEquals( StandardV3_0.RECORD_FORMATS, findSuccessor( StandardV2_3.RECORD_FORMATS ).get() );
         assertEquals( StandardV3_2.RECORD_FORMATS, findSuccessor( StandardV3_0.RECORD_FORMATS ).get() );
         assertEquals( StandardV3_4.RECORD_FORMATS, findSuccessor( StandardV3_2.RECORD_FORMATS ).get() );
+        assertEquals( StandardV3_6.RECORD_FORMATS, findSuccessor( StandardV3_4.RECORD_FORMATS ).get() );
 
         assertEquals( HighLimitV3_0_6.RECORD_FORMATS, findSuccessor( HighLimitV3_0_0.RECORD_FORMATS ).get() );
         assertEquals( HighLimitV3_1_0.RECORD_FORMATS, findSuccessor( HighLimitV3_0_6.RECORD_FORMATS ).get() );
         assertEquals( HighLimitV3_2_0.RECORD_FORMATS, findSuccessor( HighLimitV3_1_0.RECORD_FORMATS ).get() );
-        assertEquals( HighLimit.RECORD_FORMATS, findSuccessor( HighLimitV3_2_0.RECORD_FORMATS ).get() );
+        assertEquals( HighLimitV3_4_0.RECORD_FORMATS, findSuccessor( HighLimitV3_2_0.RECORD_FORMATS ).get() );
+        assertEquals( HighLimit.RECORD_FORMATS, findSuccessor( HighLimitV3_4_0.RECORD_FORMATS ).get() );
     }
 
     private PageCache getPageCache()

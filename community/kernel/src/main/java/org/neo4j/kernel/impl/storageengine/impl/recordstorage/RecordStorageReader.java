@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -53,6 +53,7 @@ import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.StorageRelationshipGroupCursor;
 import org.neo4j.storageengine.api.StorageRelationshipTraversalCursor;
+import org.neo4j.storageengine.api.StorageSchemaReader;
 import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexReader;
@@ -138,6 +139,12 @@ public class RecordStorageReader implements StorageReader
     public Iterator<CapableIndexDescriptor> indexesGetForLabel( int labelId )
     {
         return schemaCache.indexDescriptorsForLabel( labelId );
+    }
+
+    @Override
+    public Iterator<CapableIndexDescriptor> indexesGetForRelationshipType( int relationshipType )
+    {
+        return schemaCache.indexDescriptorsForRelationshipType( relationshipType );
     }
 
     @Override
@@ -492,6 +499,12 @@ public class RecordStorageReader implements StorageReader
     public RecordRelationshipScanCursor allocateRelationshipScanCursor()
     {
         return new RecordRelationshipScanCursor( relationshipStore );
+    }
+
+    @Override
+    public StorageSchemaReader schemaSnapshot()
+    {
+        return new StorageSchemaReaderSnapshot( schemaCache.snapshot(), this );
     }
 
     @Override

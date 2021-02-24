@@ -37,8 +37,11 @@ Apache Software License, Version 2.0
   Lucene Common Analyzers
   Lucene Core
   Lucene QueryParsers
+  Neo4j - Cypher Expressions 3.4
+  Neo4j - Cypher Util 3.4
   Netty/All-in-One
   opencsv
+  openCypher Frontend
   parboiled-core
   parboiled-scala
   WMI4Java
@@ -48,6 +51,10 @@ BSD License
   asm-analysis
   asm-tree
   asm-util
+  Zstandard
+
+BSD License 2-clause
+  zstd-jni
 
 Bouncy Castle License
   Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs

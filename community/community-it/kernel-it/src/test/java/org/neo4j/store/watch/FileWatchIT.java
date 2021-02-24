@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -108,7 +108,7 @@ public class FileWatchIT
         deleteFile( testDirectory.storeDir(), fileName );
         deletionListener.awaitDeletionNotification();
 
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains(
                 "'" + fileName + "' which belongs to the store was deleted while database was running." );
     }
 
@@ -123,7 +123,7 @@ public class FileWatchIT
                     .setFileSystem( new NonWatchableFileSystemAbstraction() )
                     .newEmbeddedDatabase( testDirectory.storeDir( "failed-start-db" ) );
 
-            logProvider.assertContainsMessageContaining( "Can not create file watcher for current file system. " +
+            logProvider.rawMessageMatcher().assertContains( "Can not create file watcher for current file system. " +
                     "File monitoring capabilities for store files will be disabled." );
         }
         finally
@@ -155,7 +155,7 @@ public class FileWatchIT
         deleteStoreDirectory( storeDir, monitoredDirectory );
         deletionListener.awaitDeletionNotification();
 
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains(
                 "'" + monitoredDirectory + "' which belongs to the store was deleted while database was running." );
     }
 
@@ -255,7 +255,7 @@ public class FileWatchIT
 
         eventListener.awaitDeletionNotification();
 
-        logProvider.assertContainsMessageContaining(
+        logProvider.rawMessageMatcher().assertContains(
                 "'" + storeDirectoryName + "' which belongs to the store was deleted while database was running." );
     }
 
@@ -272,7 +272,7 @@ public class FileWatchIT
                     .setConfig( GraphDatabaseSettings.filewatcher_enabled, Settings.FALSE )
                     .newGraphDatabase();
 
-            logProvider.assertContainsMessageContaining( "File watcher disabled by configuration." );
+            logProvider.rawMessageMatcher().assertContains( "File watcher disabled by configuration." );
         }
         finally
         {

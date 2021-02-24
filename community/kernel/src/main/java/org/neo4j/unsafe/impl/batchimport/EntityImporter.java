@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -48,6 +48,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter
     private final BatchingIdGetter propertyIds;
     protected final Monitor monitor;
     private long propertyCount;
+    protected int entityPropertyCount; // just for the current entity
     private boolean hasPropertyId;
     private long propertyId;
     private final DynamicRecordAllocator dynamicStringRecordAllocator;
@@ -84,7 +85,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter
     {
         assert !hasPropertyId;
         encodeProperty( nextPropertyBlock(), propertyKeyId, value );
-        propertyCount++;
+        entityPropertyCount++;
         return true;
     }
 
@@ -102,6 +103,8 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter
     {
         propertyBlocksCursor = 0;
         hasPropertyId = false;
+        propertyCount += entityPropertyCount;
+        entityPropertyCount = 0;
     }
 
     private PropertyBlock nextPropertyBlock()

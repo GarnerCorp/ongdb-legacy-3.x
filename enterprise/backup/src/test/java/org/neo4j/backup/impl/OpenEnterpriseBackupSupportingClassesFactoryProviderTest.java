@@ -6,8 +6,8 @@
  *
  * The included source code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
- * (http://www.fsf.org/licensing/licenses/agpl-3.0.html)
- *
+ * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
+ * Commons Clause,  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -27,7 +27,7 @@ import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.neo4j.backup.impl.OpenEnterpriseBackupSupportingClassesFactoryProvider.getProvidersByPriority;
 
-// See: https://github.com/neo4j/neo4j/blob/3.4/enterprise/backup/src/test/java/org/neo4j/backup/impl/BackupSupportingClassesFactoryProviderTest.java
+// See: https://github.com/graphfoundation/ongdb/blob/3.4/enterprise/backup/src/test/java/org/neo4j/backup/impl/BackupSupportingClassesFactoryProviderTest.java
 public class OpenEnterpriseBackupSupportingClassesFactoryProviderTest
 {
     public static Collection<BackupSupportingClassesFactoryProvider> allAvailableSupportingClassesFactories()

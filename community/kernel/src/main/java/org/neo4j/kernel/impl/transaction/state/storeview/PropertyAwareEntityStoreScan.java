@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -158,7 +158,7 @@ public abstract class PropertyAwareEntityStoreScan<CURSOR extends StorageEntityS
     {
         if ( totalCount > 0 )
         {
-            return new PopulationProgress( count, totalCount );
+            return PopulationProgress.single( count, totalCount );
         }
 
         // nothing to do 100% completed

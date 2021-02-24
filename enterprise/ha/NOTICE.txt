@@ -35,9 +35,10 @@ Apache Software License, Version 2.0
   Apache Shiro :: Event
   Apache Shiro :: Lang
   Caffeine cache
-  Data Mapper for Jackson
   hazelcast-all
-  Jackson
+  Jackson-annotations
+  Jackson-core
+  jackson-databind
   Jetty :: Asynchronous HTTP Client
   Jetty :: Http Utility
   Jetty :: IO Utility
@@ -60,6 +61,10 @@ BSD - Scala License
 
 BSD License
   Scala Compiler
+  Zstandard
+
+BSD License 2-clause
+  zstd-jni
 
 Bouncy Castle License
   Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs

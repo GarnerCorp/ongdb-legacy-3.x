@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -38,8 +38,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.neo4j.function.ThrowingConsumer;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
+import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 import org.neo4j.test.rule.PageCacheAndDependenciesRule;
@@ -117,11 +120,6 @@ public abstract class IndexProviderCompatibilityTestSuite
         return ValueType.values();
     }
 
-    public void consistencyCheck( IndexAccessor accessor )
-    {
-        // no-op by default
-    }
-
     public void consistencyCheck( IndexPopulator populator )
     {
         // no-op by default
@@ -139,6 +137,7 @@ public abstract class IndexProviderCompatibilityTestSuite
         protected FileSystemAbstraction fs;
         protected IndexProvider indexProvider;
         protected StoreIndexDescriptor descriptor;
+        protected TokenNameLookup tokenNameLookup;
         final IndexProviderCompatibilityTestSuite testSuite;
         final List<NodeAndValue> valueSet1;
         final List<NodeAndValue> valueSet2;
@@ -277,6 +276,7 @@ public abstract class IndexProviderCompatibilityTestSuite
             pageCacheAndDependenciesRule = new PageCacheAndDependenciesRule().with( new DefaultFileSystemRule() ).with( testSuite.getClass() );
             random = new RandomRule();
             ruleChain = RuleChain.outerRule( pageCacheAndDependenciesRule ).around( random );
+            tokenNameLookup = SchemaTestUtil.simpleNameLookup;
         }
 
         void withPopulator( IndexPopulator populator, ThrowingConsumer<IndexPopulator,Exception> runWithPopulator ) throws Exception
@@ -292,6 +292,7 @@ public abstract class IndexProviderCompatibilityTestSuite
                 runWithPopulator.accept( populator );
                 if ( closeSuccessfully )
                 {
+                    populator.scanCompleted( PhaseTracker.nullInstance );
                     testSuite.consistencyCheck( populator );
                 }
             }

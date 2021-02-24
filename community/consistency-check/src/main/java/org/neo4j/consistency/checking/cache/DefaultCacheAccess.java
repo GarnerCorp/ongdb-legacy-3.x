@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,10 +21,12 @@ package org.neo4j.consistency.checking.cache;
 
 import java.util.Collection;
 
+import org.neo4j.consistency.checking.ByteArrayBitsManipulator;
 import org.neo4j.consistency.checking.full.IdAssigningThreadLocal;
 import org.neo4j.consistency.statistics.Counts;
 import org.neo4j.consistency.statistics.Counts.Type;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
+import org.neo4j.unsafe.impl.batchimport.cache.ByteArray;
 
 /**
  * {@link CacheAccess} that uses {@link PackedMultiFieldCache} for cache.
@@ -50,9 +52,14 @@ public class DefaultCacheAccess implements CacheAccess
 
     public DefaultCacheAccess( Counts counts, int threads )
     {
+        this( PackedMultiFieldCache.defaultArray(), counts, threads );
+    }
+
+    public DefaultCacheAccess( ByteArray array, Counts counts, int threads )
+    {
         this.counts = counts;
         this.propertiesProcessed = new Collection[threads];
-        this.cache = new PackedMultiFieldCache( 1, 63 );
+        this.cache = new PackedMultiFieldCache( array, ByteArrayBitsManipulator.MAX_SLOT_BITS, 1 );
     }
 
     @Override

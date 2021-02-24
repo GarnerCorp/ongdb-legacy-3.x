@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,6 +23,7 @@ import java.time.Clock;
 
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
+import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -41,6 +42,7 @@ public interface Context
     Key<GraphDatabaseAPI> DATABASE_API = Key.key( "DatabaseAPI", GraphDatabaseAPI.class );
     Key<KernelTransaction> KERNEL_TRANSACTION = Key.key( "KernelTransaction", KernelTransaction.class );
     Key<SecurityContext> SECURITY_CONTEXT = Key.key( "SecurityContext", SecurityContext.class );
+    Key<ProcedureCallContext> PROCEDURE_CALL_CONTEXT = Key.key( "ProcedureCallContext", ProcedureCallContext.class );
     Key<Thread> THREAD = Key.key( "Thread", Thread.class );
     Key<Clock> SYSTEM_CLOCK = Key.key( "SystemClock", Clock.class );
     Key<Clock> STATEMENT_CLOCK = Key.key( "StatementClock", Clock.class );

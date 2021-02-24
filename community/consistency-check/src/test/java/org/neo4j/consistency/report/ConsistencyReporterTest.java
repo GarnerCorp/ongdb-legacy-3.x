@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -55,6 +55,7 @@ import org.neo4j.consistency.store.synthetic.LabelScanDocument;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.internal.kernel.api.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.labelscan.NodeLabelRange;
+import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
@@ -84,6 +85,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.neo4j.consistency.report.ConsistencyReporter.NO_MONITOR;
+import static org.neo4j.internal.kernel.api.schema.SchemaUtil.idTokenNameLookup;
 import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
 import static org.neo4j.kernel.impl.store.counts.keys.CountsKeyFactory.nodeKey;
 
@@ -176,6 +178,12 @@ public class ConsistencyReporterTest
                 }
 
                 @Override
+                public void error( String message )
+                {
+                    assertTrue( loggedError.compareAndSet( null, message ) );
+                }
+
+                @Override
                 public void warning( RecordType recordType, AbstractBaseRecord record, String message, Object[] args )
                 {
                 }
@@ -183,6 +191,11 @@ public class ConsistencyReporterTest
                 @Override
                 public void warning( RecordType recordType, AbstractBaseRecord oldRecord, AbstractBaseRecord newRecord,
                         String message, Object[] args )
+                {
+                }
+
+                @Override
+                public void warning( String message )
                 {
                 }
             };
@@ -378,7 +391,7 @@ public class ConsistencyReporterTest
             }
             if ( type == IndexEntry.class )
             {
-                return new IndexEntry( 0 );
+                return new IndexEntry( IndexDescriptorFactory.forSchema( SchemaDescriptorFactory.forLabel( 1, 1 ) ).withId( 1L ), idTokenNameLookup, 0 );
             }
             if ( type == CountsEntry.class )
             {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -48,7 +48,7 @@ import org.neo4j.kernel.api.txstate.auxiliary.AuxiliaryTransactionStateManager;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.api.index.IndexingProvidersService;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.constraints.StandardConstraintSemantics;
@@ -617,7 +617,7 @@ public class KernelTransactionsTest
                 AutoIndexing.UNSUPPORTED,
                 mock( ExplicitIndexStore.class ), EmptyVersionContextSupplier.EMPTY, ON_HEAP,
                 mock( ConstraintSemantics.class ), mock( SchemaState.class ),
-                mock( IndexingProvidersService.class), mockedTokenHolders(), DEFAULT_DATABASE_NAME, new Dependencies() );
+                mock( IndexingService.class), mockedTokenHolders(), DEFAULT_DATABASE_NAME, new Dependencies() );
     }
 
     private static TestKernelTransactions createTestTransactions( StorageEngine storageEngine,
@@ -683,7 +683,7 @@ public class KernelTransactionsTest
                     transactionCommitProcess, auxTxStateManager, hooks, transactionMonitor, databaseAvailabilityGuard, tracers, storageEngine, procedures,
                     transactionIdStore, clock, new AtomicReference<>( CpuClock.NOT_AVAILABLE ), new AtomicReference<>( HeapAllocation.NOT_AVAILABLE ),
                     accessCapability, autoIndexing, mock( ExplicitIndexStore.class ),
-                    versionContextSupplier, ON_HEAP, new StandardConstraintSemantics(), mock( SchemaState.class ), mock( IndexingProvidersService.class ),
+                    versionContextSupplier, ON_HEAP, new StandardConstraintSemantics(), mock( SchemaState.class ), mock( IndexingService.class ),
                     tokenHolders, DEFAULT_DATABASE_NAME, dataSourceDependencies );
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,16 +22,16 @@ package org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.compatibility.v2_3.helpers._
 import org.neo4j.cypher.internal.compatibility.v3_1.helpers._
 import org.neo4j.cypher.internal.compatibility.v3_4.Cypher34Planner
-import org.neo4j.cypher.internal.compatibility.v3_5.Cypher35Planner
+import org.neo4j.cypher.internal.compatibility.v3_6.Cypher35Planner
 import org.neo4j.cypher.internal.compatibility._
-import org.neo4j.cypher.internal.compiler.v3_5.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.v3_6.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.runtime.interpreted.LastCommittedTxIdProvider
 import org.neo4j.cypher.{CypherPlannerOption, CypherRuntimeOption, CypherUpdateStrategy, CypherVersion}
 import org.neo4j.helpers.Clock
 import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.monitoring.{Monitors => KernelMonitors}
 import org.neo4j.logging.{Log, LogProvider}
-import org.neo4j.cypher.internal.v3_5.util.InvalidArgumentException
+import org.neo4j.cypher.internal.v3_6.util.InvalidArgumentException
 
 /**
   * Factory which creates cypher compilers.
@@ -75,17 +75,17 @@ class CommunityCompilerFactory(graph: GraphDatabaseQueryService,
           Cypher34Planner(plannerConfig, MasterCompiler.CLOCK, kernelMonitors, log,
             cypherPlanner, cypherUpdateStrategy, LastCommittedTxIdProvider(graph)),
           CommunityRuntimeFactory.getRuntime(cypherRuntime, plannerConfig.useErrorsOverWarnings),
-          CommunityRuntimeContextCreator(plannerConfig),
+          CommunityRuntimeContextCreator(log, plannerConfig),
           kernelMonitors
         )
 
         // 3.5
-      case (CypherVersion.v3_5, _) =>
+      case (CypherVersion.v3_6, _) =>
         CypherCurrentCompiler(
           Cypher35Planner(plannerConfig, MasterCompiler.CLOCK, kernelMonitors, log,
                           cypherPlanner, cypherUpdateStrategy, LastCommittedTxIdProvider(graph)),
           CommunityRuntimeFactory.getRuntime(cypherRuntime, plannerConfig.useErrorsOverWarnings),
-          CommunityRuntimeContextCreator(plannerConfig),
+          CommunityRuntimeContextCreator(log, plannerConfig),
           kernelMonitors
         )
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.codegen;
 
-import org.neo4j.cypher.internal.v3_5.util.ArithmeticException;
-import org.neo4j.cypher.internal.v3_5.util.CypherTypeException;
+import org.neo4j.cypher.internal.v3_6.util.ArithmeticException;
+import org.neo4j.cypher.internal.v3_6.util.CypherTypeException;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;

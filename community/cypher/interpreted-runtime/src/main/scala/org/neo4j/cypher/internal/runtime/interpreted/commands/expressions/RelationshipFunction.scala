@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,17 +20,20 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.values.AnyValue
 
 case class RelationshipFunction(path: Expression) extends NullInNullOutExpression(path) {
-  override def compute(value: AnyValue, m: ExecutionContext, state: QueryState) =
+  override def compute(value: AnyValue, m: ExecutionContext, state: QueryState): AnyValue =
     CypherFunctions.relationships(value)
 
-  def rewrite(f: (Expression) => Expression) = f(RelationshipFunction(path.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(RelationshipFunction(path.rewrite(f)))
 
-  def arguments = Seq(path)
+  override def arguments: Seq[Expression] = Seq(path)
 
-  def symbolTableDependencies = path.symbolTableDependencies
+  override def children: Seq[AstNode[_]] = Seq(path)
+
+  override def symbolTableDependencies: Set[String] = path.symbolTableDependencies
 }

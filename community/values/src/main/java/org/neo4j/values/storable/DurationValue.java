@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -59,10 +59,11 @@ import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static org.neo4j.values.storable.NumberType.NO_NUMBER;
 import static org.neo4j.values.storable.NumberValue.safeCastFloatingPoint;
-import static org.neo4j.values.utils.TemporalUtil.AVG_DAYS_PER_MONTH;
+import static org.neo4j.values.utils.TemporalUtil.AVG_NANOS_PER_MONTH;
 import static org.neo4j.values.utils.TemporalUtil.AVG_SECONDS_PER_MONTH;
 import static org.neo4j.values.utils.TemporalUtil.NANOS_PER_SECOND;
 import static org.neo4j.values.utils.TemporalUtil.SECONDS_PER_DAY;
+import static org.neo4j.values.utils.ValueMath.HASH_CONSTANT;
 
 /**
  * We use our own implementation because neither {@link java.time.Duration} nor {@link java.time.Period} fits our needs.
@@ -704,9 +705,9 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
     protected int computeHash()
     {
         int result = (int) (months ^ (months >>> 32));
-        result = 31 * result + (int) (days ^ (days >>> 32));
-        result = 31 * result + (int) (seconds ^ (seconds >>> 32));
-        result = 31 * result + nanos;
+        result = HASH_CONSTANT * result + (int) (days ^ (days >>> 32));
+        result = HASH_CONSTANT * result + (int) (seconds ^ (seconds >>> 32));
+        result = HASH_CONSTANT * result + nanos;
         return result;
     }
 
@@ -950,14 +951,21 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
      */
     public static DurationValue approximate( double months, double days, double seconds, double nanos )
     {
-        long m = safeDoubleToLong( months );
-        days += AVG_DAYS_PER_MONTH * (months - m);
-        long d = safeDoubleToLong( days );
-        seconds += SECONDS_PER_DAY * (days - d);
-        long s = safeDoubleToLong( seconds );
-        nanos += NANOS_PER_SECOND * (seconds - s);
-        long n = safeDoubleToLong( nanos );
-        return duration( m, d, s, n );
+        long monthsAsLong = safeDoubleToLong(months);
+
+        double monthDiffInNanos = AVG_NANOS_PER_MONTH * months - AVG_NANOS_PER_MONTH * monthsAsLong;
+        days += monthDiffInNanos / (NANOS_PER_SECOND * SECONDS_PER_DAY);
+        long daysAsLong = safeDoubleToLong(days);
+
+        double daysDiffInNanos = NANOS_PER_SECOND * SECONDS_PER_DAY * days - NANOS_PER_SECOND * SECONDS_PER_DAY * daysAsLong;
+        seconds += daysDiffInNanos / NANOS_PER_SECOND;
+        long secondsAsLong = safeDoubleToLong(seconds);
+
+        double secondsDiffInNanos = NANOS_PER_SECOND * seconds - NANOS_PER_SECOND * secondsAsLong;
+        nanos += secondsDiffInNanos;
+        long nanosAsLong = safeDoubleToLong(nanos);
+
+        return duration( monthsAsLong, daysAsLong, secondsAsLong, nanosAsLong );
     }
 
     /**

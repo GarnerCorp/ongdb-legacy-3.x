@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,13 +26,13 @@ import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
 import org.neo4j.cypher.internal.runtime.interpreted.ImplicitDummyPos
 import org.neo4j.cypher.internal.runtime.{NodeValueHit, QueryContext}
-import org.neo4j.cypher.internal.v3_5.logical.plans.CachedNodeProperty
+import org.neo4j.cypher.internal.v3_6.logical.plans.CachedNodeProperty
 import org.neo4j.internal.kernel.api.{IndexQuery, NodeCursor, NodeValueIndexCursor}
 import org.neo4j.values.storable.Values.stringValue
 import org.neo4j.values.storable.{Value, Values}
 import org.neo4j.values.virtual.{NodeValue, VirtualNodeValue, VirtualValues}
-import org.neo4j.cypher.internal.v3_5.expressions.{PropertyKeyName, PropertyKeyToken}
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_6.expressions.{PropertyKeyName, PropertyKeyToken}
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
 
 trait IndexMockingHelp extends CypherFunSuite with ImplicitDummyPos {
 

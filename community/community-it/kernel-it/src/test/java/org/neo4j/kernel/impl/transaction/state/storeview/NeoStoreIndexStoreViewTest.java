@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -328,7 +328,7 @@ public class NeoStoreIndexStoreViewTest
 
     EntityUpdates add( long nodeId, int propertyKeyId, Object value, long[] labels )
     {
-        return EntityUpdates.forEntity( nodeId ).withTokens( labels ).added( propertyKeyId, Values.of( value ) ).build();
+        return EntityUpdates.forEntity( nodeId, true ).withTokens( labels ).added( propertyKeyId, Values.of( value ) ).build();
     }
 
     private void createAlistairAndStefanNodes()

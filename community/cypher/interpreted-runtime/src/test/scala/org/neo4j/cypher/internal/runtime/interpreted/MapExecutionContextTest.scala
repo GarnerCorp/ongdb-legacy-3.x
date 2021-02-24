@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted
 
-import org.neo4j.cypher.internal.v3_5.logical.plans.CachedNodeProperty
+import org.neo4j.cypher.internal.v3_6.logical.plans.CachedNodeProperty
 import org.neo4j.values.storable.BooleanValue
-import org.neo4j.cypher.internal.v3_5.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.v3_5.util.InputPosition
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_6.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.v3_6.util.InputPosition
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
 
 class MapExecutionContextTest extends CypherFunSuite {
   test("create clone") {
@@ -150,7 +150,7 @@ class MapExecutionContextTest extends CypherFunSuite {
 
     // when (other map is equal or larger)
     val rhsCtx1 = ExecutionContext.empty.copyWith(key1, BooleanValue.TRUE, key2, BooleanValue.TRUE)
-    lhsCtx.mergeWith(rhsCtx1)
+    lhsCtx.mergeWith(rhsCtx1, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -160,7 +160,7 @@ class MapExecutionContextTest extends CypherFunSuite {
 
     // when (other map is smaller, the missing keys should not be removed)
     val rhsCtx2 = ExecutionContext.empty.copyWith(key2, BooleanValue.FALSE)
-    lhsCtx.mergeWith(rhsCtx2)
+    lhsCtx.mergeWith(rhsCtx2, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -183,7 +183,7 @@ class MapExecutionContextTest extends CypherFunSuite {
     rhsCtx.setCachedProperty(cachedPropertyKey, BooleanValue.TRUE)
 
     // when (other map is equal or larger)
-    lhsCtx.mergeWith(rhsCtx)
+    lhsCtx.mergeWith(rhsCtx, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -193,7 +193,7 @@ class MapExecutionContextTest extends CypherFunSuite {
     lhsCtx.getCachedProperty(cachedPropertyKey) should equal(BooleanValue.TRUE)
 
     // when (other map is smaller, the missing keys should not be removed)
-    lhsCtx.mergeWith(ExecutionContext.empty.copyWith(key2, BooleanValue.FALSE))
+    lhsCtx.mergeWith(ExecutionContext.empty.copyWith(key2, BooleanValue.FALSE), null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -216,7 +216,7 @@ class MapExecutionContextTest extends CypherFunSuite {
     rhsCtx1.set(key1, BooleanValue.TRUE, key2, BooleanValue.TRUE)
 
     // when (other map is equal or larger)
-    lhsCtx.mergeWith(rhsCtx1)
+    lhsCtx.mergeWith(rhsCtx1, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -227,7 +227,7 @@ class MapExecutionContextTest extends CypherFunSuite {
 
     // when (other map is smaller, the missing keys should not be removed)
     val rhsCtx2 = ExecutionContext.empty.copyWith(key2, BooleanValue.FALSE)
-    lhsCtx.mergeWith(rhsCtx2)
+    lhsCtx.mergeWith(rhsCtx2, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -252,7 +252,7 @@ class MapExecutionContextTest extends CypherFunSuite {
     rhsCtx1.setCachedProperty(cachedPropertyKey, BooleanValue.FALSE)
 
     // when (other map is equal or larger)
-    lhsCtx.mergeWith(rhsCtx1)
+    lhsCtx.mergeWith(rhsCtx1, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)
@@ -263,7 +263,7 @@ class MapExecutionContextTest extends CypherFunSuite {
 
     // when (other map is smaller, the missing keys should not be removed)
     val rhsCtx2 = ExecutionContext.empty.copyWith(key2, BooleanValue.FALSE)
-    lhsCtx.mergeWith(rhsCtx2)
+    lhsCtx.mergeWith(rhsCtx2, null)
 
     // then
     lhsCtx.contains(key1) should equal(true)

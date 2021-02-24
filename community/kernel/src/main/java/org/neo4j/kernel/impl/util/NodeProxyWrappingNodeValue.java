@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.kernel.impl.core.NodeProxy;
+import org.neo4j.kernel.impl.store.InvalidRecordException;
 import org.neo4j.values.AnyValueWriter;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.Values;
@@ -62,7 +64,10 @@ public class NodeProxyWrappingNodeValue extends NodeValue
         {
             l = Values.stringArray();
             p = VirtualValues.EMPTY_MAP;
-
+        }
+        catch ( InvalidRecordException e )
+        {
+            throw new ReadAndDeleteTransactionConflictException( NodeProxy.isDeletedInCurrentTransaction( node ), e );
         }
 
         if ( id() < 0 )
@@ -89,7 +94,7 @@ public class NodeProxyWrappingNodeValue extends NodeValue
                     {
                         ls.add( label.name() );
                     }
-                    l = labels = Values.stringArray( ls.toArray( new String[ls.size()] ) );
+                    l = labels = Values.stringArray( ls.toArray( new String[0] ) );
 
                 }
             }

@@ -1,70 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <parent>
-    <groupId>org.neo4j</groupId>
-    <artifactId>parent</artifactId>
-    <version>3.5.3</version>
-    <relativePath>..</relativePath>
-  </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>org.graphfoundation.ongdb</groupId>
+        <artifactId>parent</artifactId>
+        <version>3.6.2-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+    </parent>
 
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>org.graphfoundation.ongdb.build</groupId>
-  <artifactId>enterprise-build</artifactId>
-  <version>3.5.3</version>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.graphfoundation.ongdb.build</groupId>
+    <artifactId>enterprise-build</artifactId>
+    <version>3.6.2-SNAPSHOT</version>
 
-  <name>Neo4j - Enterprise Build</name>
-  <packaging>pom</packaging>
-  <description>Project that builds the Neo4j Enterprise distribution.</description>
-  <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
+    <name>ONgDB - Enterprise Build</name>
+    <packaging>pom</packaging>
+    <description>Project that builds the Neo4j Enterprise distribution.</description>
+    <url>https://ongdb.graphfoundation.org/${project.artifactId}/${project.version}</url>
 
-  <scm>
-    <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
-    <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
-    <url>https://github.com/graphfoundation/ongdb</url>
-  </scm>
+    <scm>
+        <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
+        <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
+        <url>https://github.com/graphfoundation/ongdb</url>
+    </scm>
 
-  <properties>
-    <license-text.header>headers/AGPL-3-header.txt</license-text.header>
-  </properties>
+    <properties>
+        <license-text.header>headers/AGPL-3-header.txt</license-text.header>
+    </properties>
 
-  <modules>
-    <module>query-logging</module>
-    <module>com</module>
-    <module>cluster</module>
-    <module>backup</module>
-    <module>kernel</module>
-    <module>causal-clustering</module>
-    <module>metrics</module>
-    <module>neo4j-enterprise</module>
-    <module>server-enterprise</module>
-    <module>neo4j-harness-enterprise</module>
-    <module>management</module>
-    <module>security</module>
-    <module>auth-plugin-api</module>
-    <module>deferred-locks</module>
-    <module>ha</module>
-    <module>procedure-compiler-enterprise-tests</module>
-  </modules>
+    <modules>
+        <module>query-logging</module>
+        <module>com</module>
+        <module>cluster</module>
+        <module>backup</module>
+        <module>kernel</module>
+        <module>causal-clustering</module>
+        <module>metrics</module>
+        <module>neo4j-enterprise</module>
+        <module>server-enterprise</module>
+        <module>neo4j-harness-enterprise</module>
+        <module>management</module>
+        <module>security</module>
+        <module>auth-plugin-api</module>
+        <module>deferred-locks</module>
+        <module>ha</module>
+        <module>procedure-compiler-enterprise-tests</module>
+    </modules>
 
-  <profiles>
-    <profile>
-      <id>include-cypher</id>
-      <activation>
-        <property>
-          <name>!skipCypher</name>
-        </property>
-      </activation>
-      <modules>
-        <module>cypher</module>
-      </modules>
-    </profile>
-  </profiles>
+    <profiles>
+        <profile>
+            <id>include-cypher</id>
+            <activation>
+                <property>
+                    <name>!skipCypher</name>
+                </property>
+            </activation>
+            <modules>
+                <module>cypher</module>
+            </modules>
+        </profile>
+    </profiles>
 
-  <licenses>
-    <license>
-      <name>GNU Affero General Public License, Version 3 with the Commons Clause</name>
-      <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
-      <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License, Version 3 with the Commons Clause</name>
+            <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
+            <comments>The software ("Software") developed and owned by Neo4j Sweden AB (referred to in this notice as "Neo4j") is
         licensed under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3 with the Commons Clause to all
         third parties and that license is included below.
 
@@ -76,6 +77,6 @@
         LICENSE Version 3 and you may use the Software solely pursuant to the
         terms of the relevant Commercial Agreement.
       </comments>
-    </license>
-  </licenses>
+        </license>
+    </licenses>
 </project>

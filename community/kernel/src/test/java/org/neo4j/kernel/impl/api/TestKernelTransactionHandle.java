@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -61,6 +61,12 @@ public class TestKernelTransactionHandle implements KernelTransactionHandle
     public long startTime()
     {
         return tx.startTime();
+    }
+
+    @Override
+    public long startTimeNanos()
+    {
+        return tx.startTimeNanos();
     }
 
     @Override
@@ -134,6 +140,12 @@ public class TestKernelTransactionHandle implements KernelTransactionHandle
     public TransactionExecutionStatistic transactionStatistic()
     {
         return TransactionExecutionStatistic.NOT_AVAILABLE;
+    }
+
+    @Override
+    public boolean isSchemaTransaction()
+    {
+        return tx.isSchemaTransaction();
     }
 
     @Override

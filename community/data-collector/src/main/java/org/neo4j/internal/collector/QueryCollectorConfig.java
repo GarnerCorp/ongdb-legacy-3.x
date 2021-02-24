@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -29,7 +29,7 @@ import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
  */
 class QueryCollectorConfig
 {
-    private static final IntOption DURATION_SECONDS = new IntOption( "durationSeconds", 3600 );
+    private static final IntOption DURATION_SECONDS = new IntOption( "durationSeconds", -1 );
 
     static QueryCollectorConfig of( Map<String, Object> userMap ) throws InvalidArgumentsException
     {

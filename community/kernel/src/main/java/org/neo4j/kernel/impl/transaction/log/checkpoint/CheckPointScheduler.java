@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -62,7 +62,7 @@ public class CheckPointScheduler extends LifecycleAdapter
                 {
                     return;
                 }
-                checkPointer.checkPointIfNeeded( new SimpleTriggerInfo( "scheduler" ) );
+                checkPointer.checkPointIfNeeded( new SimpleTriggerInfo( "Scheduled checkpoint" ) );
 
                 // There were previous unsuccessful attempts, but this attempt was a success
                 // so let's clear those previous errors.

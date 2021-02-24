@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -40,6 +40,7 @@ import java.util.function.Function;
 
 import org.neo4j.internal.kernel.api.IndexOrder;
 import org.neo4j.internal.kernel.api.IndexQuery;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -49,8 +50,8 @@ import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.IndexReader;
 import org.neo4j.storageengine.api.schema.SimpleNodeValueClient;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
@@ -79,7 +80,9 @@ import static org.neo4j.kernel.api.index.IndexEntryUpdate.change;
 import static org.neo4j.kernel.api.index.IndexEntryUpdate.remove;
 import static org.neo4j.kernel.api.index.IndexProvider.Monitor.EMPTY;
 import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
+import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 import static org.neo4j.kernel.configuration.Config.defaults;
+import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.storageengine.api.schema.IndexDescriptorFactory.forSchema;
 import static org.neo4j.test.Race.throwing;
 
@@ -96,27 +99,27 @@ public class IndexPopulationStressTest
     {
         Collection<Object[]> parameters = new ArrayList<>();
         // GenericNativeIndexProvider
-        parameters.add( of( "generic", true, GenericNativeIndexProvider.parallelPopulation, RandomValues::nextValue, test ->
-                new GenericNativeIndexProvider( test.directory(), test.rules.pageCache(), test.rules.fileSystem(), EMPTY, immediate(),false, defaults() ) ) );
+        parameters.add( of( "generic", true, RandomValues::nextValue, test ->
+                new GenericNativeIndexProvider( test.directory(), test.rules.pageCache(), test.rules.fileSystem(), EMPTY, immediate(), false, defaults() ) ) );
         // NumberIndexProvider
-        parameters.add( of( "number", true, false, RandomValues::nextNumberValue, test ->
+        parameters.add( of( "number", true, RandomValues::nextNumberValue, test ->
                 new NumberIndexProvider( test.rules.pageCache(), test.rules.fileSystem(), test.directory(), EMPTY, immediate(), false ) ) );
         // StringIndexProvider
-        parameters.add( of( "string", true, false, RandomValues::nextAlphaNumericTextValue, test ->
+        parameters.add( of( "string", true, RandomValues::nextAlphaNumericTextValue, test ->
                 new StringIndexProvider( test.rules.pageCache(), test.rules.fileSystem(), test.directory(), EMPTY, immediate(), false ) ) );
         // SpatialIndexProvider
-        parameters.add( of( "spatial", false, false, RandomValues::nextPointValue, test ->
+        parameters.add( of( "spatial", false, RandomValues::nextPointValue, test ->
                 new SpatialIndexProvider( test.rules.pageCache(), test.rules.fileSystem(), test.directory(), EMPTY, immediate(), false, defaults() ) ) );
         // TemporalIndexProvider
-        parameters.add( of( "temporal", true, false, RandomValues::nextTemporalValue, test ->
+        parameters.add( of( "temporal", true, RandomValues::nextTemporalValue, test ->
                 new TemporalIndexProvider( test.rules.pageCache(), test.rules.fileSystem(), test.directory(), EMPTY, immediate(), false ) ) );
         return parameters;
     }
 
-    private static Object[] of( String name, boolean hasValues, boolean canHandlePopulationConcurrentlyWithAdd,
-            Function<RandomValues,Value> valueGenerator, Function<IndexPopulationStressTest,IndexProvider> providerCreator )
+    private static Object[] of( String name, boolean hasValues, Function<RandomValues,Value> valueGenerator,
+            Function<IndexPopulationStressTest,IndexProvider> providerCreator )
     {
-        return toArray( name, hasValues, canHandlePopulationConcurrentlyWithAdd, valueGenerator, providerCreator );
+        return toArray( name, hasValues, valueGenerator, providerCreator );
     }
 
     @Rule
@@ -133,14 +136,13 @@ public class IndexPopulationStressTest
     @Parameterized.Parameter( 1 )
     public boolean hasValues;
     @Parameterized.Parameter( 2 )
-    public boolean canHandlePopulationConcurrentlyWithAdd;
-    @Parameterized.Parameter( 3 )
     public Function<RandomValues,Value> valueGenerator;
-    @Parameterized.Parameter( 4 )
+    @Parameterized.Parameter( 3 )
     public Function<IndexPopulationStressTest,IndexProvider> providerCreator;
 
     private IndexPopulator populator;
     private IndexProvider indexProvider;
+    private TokenNameLookup tokenNameLookup;
     private boolean prevAccessCheck;
 
     private IndexDirectoryStructure.Factory directory()
@@ -154,7 +156,8 @@ public class IndexPopulationStressTest
     {
         indexProvider = providerCreator.apply( this );
         rules.fileSystem().mkdirs( indexProvider.directoryStructure().rootDirectory() );
-        populator = indexProvider.getPopulator( descriptor, samplingConfig );
+        tokenNameLookup = simpleNameLookup;
+        populator = indexProvider.getPopulator( descriptor, samplingConfig, heapBufferFactory( 1024 ), tokenNameLookup );
         when( nodePropertyAccessor.getNodePropertyValue( anyLong(), anyInt() ) ).thenThrow( UnsupportedOperationException.class );
         prevAccessCheck = UnsafeUtil.exchangeNativeAccessCheckEnabled( false );
     }
@@ -192,8 +195,8 @@ public class IndexPopulationStressTest
 
         // then assert that a tree built by a single thread ends up exactly the same
         buildReferencePopulatorSingleThreaded( generators, updates );
-        try ( IndexAccessor accessor = indexProvider.getOnlineAccessor( descriptor, samplingConfig );
-              IndexAccessor referenceAccessor = indexProvider.getOnlineAccessor( descriptor2, samplingConfig );
+        try ( IndexAccessor accessor = indexProvider.getOnlineAccessor( descriptor, samplingConfig, tokenNameLookup );
+              IndexAccessor referenceAccessor = indexProvider.getOnlineAccessor( descriptor2, samplingConfig, tokenNameLookup );
               IndexReader reader = accessor.newReader();
               IndexReader referenceReader = referenceAccessor.newReader() )
         {
@@ -226,10 +229,7 @@ public class IndexPopulationStressTest
             {
                 // Do updates now and then
                 Thread.sleep( 10 );
-                if ( !canHandlePopulationConcurrentlyWithAdd )
-                {
-                    updateLock.writeLock().lock();
-                }
+                updateLock.writeLock().lock();
                 try ( IndexUpdater updater = populator.newPopulatingUpdater( nodePropertyAccessor ) )
                 {
                     for ( int i = 0; i < THREADS; i++ )
@@ -269,10 +269,7 @@ public class IndexPopulationStressTest
                 }
                 finally
                 {
-                    if ( !canHandlePopulationConcurrentlyWithAdd )
-                    {
-                        updateLock.writeLock().unlock();
-                    }
+                    updateLock.writeLock().unlock();
                 }
             }
         } );
@@ -313,7 +310,7 @@ public class IndexPopulationStressTest
     private void buildReferencePopulatorSingleThreaded( Generator[] generators, Collection<IndexEntryUpdate<?>> updates )
             throws IndexEntryConflictException
     {
-        IndexPopulator referencePopulator = indexProvider.getPopulator( descriptor2, samplingConfig );
+        IndexPopulator referencePopulator = indexProvider.getPopulator( descriptor2, samplingConfig, heapBufferFactory( 1024 ), tokenNameLookup );
         referencePopulator.create();
         boolean referenceSuccess = false;
         try

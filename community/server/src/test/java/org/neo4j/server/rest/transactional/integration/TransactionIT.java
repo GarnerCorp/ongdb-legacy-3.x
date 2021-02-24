@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,7 @@
  */
 package org.neo4j.server.rest.transactional.integration;
 
-import org.codehaus.jackson.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -532,7 +532,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase
         assertEquals( 200, response.status() );
         JsonNode everything = jsonNode( response.rawContent() );
         JsonNode result = everything.get( "results" ).get( 0 );
-        long id = result.get( "data" ).get( 0 ).get( "row" ).get( 0 ).getLongValue();
+        long id = result.get( "data" ).get( 0 ).get( "row" ).get( 0 ).asLong();
 
         // WHEN
         http.POST( "db/data/cypher", rawPayload( "{\"query\":\"match (n) where id(n) = " + id + " delete n\"}" ) );
@@ -733,7 +733,7 @@ public class TransactionIT extends AbstractRestFunctionalTestBase
         Set<String> labels = new HashSet<>();
         for ( JsonNode node : nodes.get( 0 ).get( "labels" ) )
         {
-            labels.add( node.getTextValue() );
+            labels.add( node.asText() );
         }
         assertEquals( "labels", asSet( "Foo", "Bar" ), labels );
     }

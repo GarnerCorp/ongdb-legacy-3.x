@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,7 +27,7 @@ import java.util.zip.{GZIPInputStream, InflaterInputStream}
 
 import org.neo4j.csv.reader._
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExternalCSVResource
-import org.neo4j.cypher.internal.v3_5.util.{LoadExternalResourceException, TaskCloser}
+import org.neo4j.cypher.internal.v3_6.util.{LoadExternalResourceException, TaskCloser}
 import org.neo4j.cypher.CypherExecutionException
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import sun.net.www.protocol.http.HttpURLConnection

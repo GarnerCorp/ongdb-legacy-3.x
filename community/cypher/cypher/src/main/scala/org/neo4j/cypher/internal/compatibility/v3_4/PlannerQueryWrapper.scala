@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.internal.compatibility.v3_4
 
-import org.neo4j.cypher.internal.ir.v3_5.{PlannerQuery, QueryGraph, QueryHorizon, InterestingOrder}
-import org.neo4j.cypher.internal.ir.{v3_4 => irV3_4, v3_5 => irv3_5}
+import org.neo4j.cypher.internal.ir.v3_6.{PlannerQuery, QueryGraph, QueryHorizon, InterestingOrder}
+import org.neo4j.cypher.internal.ir.{v3_4 => irV3_4, v3_6 => irv3_6}
 
-class PlannerQueryWrapper(pq: irV3_4.PlannerQuery) extends irv3_5.PlannerQuery {
+class PlannerQueryWrapper(pq: irV3_4.PlannerQuery) extends irv3_6.PlannerQuery {
   override val queryGraph = null
   override val interestingOrder = null
   override val horizon = null

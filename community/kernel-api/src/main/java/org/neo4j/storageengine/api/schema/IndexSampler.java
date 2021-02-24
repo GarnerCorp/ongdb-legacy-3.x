@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,12 +19,14 @@
  */
 package org.neo4j.storageengine.api.schema;
 
+import java.io.Closeable;
+
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 
 /**
  * Component able to sample schema index.
  */
-public interface IndexSampler
+public interface IndexSampler extends Closeable
 {
     IndexSampler EMPTY = IndexSample::new;
 
@@ -35,4 +37,9 @@ public interface IndexSampler
      * @throws IndexNotFoundKernelException if the index is dropped while sampling
      */
     IndexSample sampleIndex() throws IndexNotFoundKernelException;
+
+    @Override
+    default void close()
+    {   // no-op
+    }
 }

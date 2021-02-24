@@ -1,32 +1,28 @@
 /*
- * Copyright (c) 2002-2018 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
- * code can be redistributed and/or modified under the terms of the
- * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
- * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * This file is part of ONgDB.
+ *
+ * ONgDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.kernel.enterprise.builtinprocs;
-
-import org.mockito.Answers;
 
 import java.util.Map;
 import java.util.Optional;
 
+import org.mockito.Answers;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.ExplicitIndexRead;
@@ -49,18 +45,24 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.Statement;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.kernel.builtinprocs.StubStatement;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class StubKernelTransaction implements KernelTransaction
+public class StubKernelTransaction implements KernelTransaction
 {
+
+    StubKernelTransaction()
+    {
+    }
+
     @Override
     public Statement acquireStatement()
     {
-        return null;
+        return new StubStatement();
     }
 
     @Override
@@ -77,6 +79,12 @@ class StubKernelTransaction implements KernelTransaction
     @Override
     public void failure()
     {
+    }
+
+    @Override
+    public Map<String, Object> getMetaData()
+    {
+        return null;
     }
 
     @Override
@@ -172,16 +180,16 @@ class StubKernelTransaction implements KernelTransaction
     @Override
     public SecurityContext securityContext()
     {
-        SecurityContext securityContext = mock( SecurityContext.class, Answers.RETURNS_DEEP_STUBS );
-        when( securityContext.subject().username() ).thenReturn( "testUser" );
+        SecurityContext securityContext = mock(SecurityContext.class, Answers.RETURNS_DEEP_STUBS);
+        when(securityContext.subject().username()).thenReturn( "testUser" );
         return securityContext;
     }
 
     @Override
     public AuthSubject subjectOrAnonymous()
     {
-        AuthSubject subject = mock( AuthSubject.class );
-        when( subject.username() ).thenReturn( "testUser" );
+        AuthSubject subject = mock(AuthSubject.class);
+        when(subject.username()).thenReturn( "testUser" );
         return subject;
     }
 
@@ -218,6 +226,12 @@ class StubKernelTransaction implements KernelTransaction
     public long startTime()
     {
         return 1984;
+    }
+
+    @Override
+    public long startTimeNanos()
+    {
+        return 1984000;
     }
 
     @Override
@@ -274,7 +288,7 @@ class StubKernelTransaction implements KernelTransaction
     }
 
     @Override
-    public void setMetaData( Map<String,Object> metaData )
+    public void setMetaData( Map<String, Object> metaData )
     {
     }
 
@@ -289,4 +303,11 @@ class StubKernelTransaction implements KernelTransaction
     {
         throw new UnsupportedOperationException( "not implemented" );
     }
+
+    @Override
+    public boolean isSchemaTransaction()
+    {
+        return false;
+    }
+
 }

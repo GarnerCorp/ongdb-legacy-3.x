@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -29,7 +29,7 @@ import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.{NodeReference, NodeValue, VirtualValues}
-import org.neo4j.cypher.internal.v3_5.util.{NonEmptyList, ShortestPathCommonEndNodesForbiddenException, SyntaxException}
+import org.neo4j.cypher.internal.v3_6.util.{NonEmptyList, ShortestPathCommonEndNodesForbiddenException, SyntaxException}
 
 import scala.collection.JavaConverters._
 import scala.collection.Map
@@ -37,7 +37,8 @@ import scala.collection.Map
 case class ShortestPathExpression(shortestPathPattern: ShortestPath,
                                   perStepPredicates: Seq[Predicate] = Seq.empty,
                                   fullPathPredicates: Seq[Predicate] = Seq.empty,
-                                  withFallBack: Boolean = false, disallowSameNode: Boolean = true) extends Expression {
+                                  withFallBack: Boolean = false,
+                                  disallowSameNode: Boolean = true) extends Expression {
 
   val pathPattern: Seq[Pattern] = Seq(shortestPathPattern)
   val pathVariables = Set(shortestPathPattern.pathName, shortestPathPattern.relIterator.getOrElse(""))
@@ -104,13 +105,13 @@ case class ShortestPathExpression(shortestPathPattern: ShortestPath,
   private def anyStartpointsContainNull(m: Map[String, Any]): Boolean =
     m(shortestPathPattern.left.name) == Values.NO_VALUE || m(shortestPathPattern.right.name) == Values.NO_VALUE
 
-  override def children = Seq(shortestPathPattern)
+  override def children: Seq[AstNode[_]] = Seq(shortestPathPattern) ++ perStepPredicates ++ fullPathPredicates
 
-  def arguments = Seq.empty
+  override def arguments: Seq[Expression] = Seq.empty
 
-  def rewrite(f: (Expression) => Expression): Expression = f(ShortestPathExpression(shortestPathPattern.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(ShortestPathExpression(shortestPathPattern.rewrite(f)))
 
-  def symbolTableDependencies = shortestPathPattern.symbolTableDependencies + shortestPathPattern.left
+  override def symbolTableDependencies: Set[String] = shortestPathPattern.symbolTableDependencies + shortestPathPattern.left
     .name + shortestPathPattern.right.name
 
   private def propertyExistsExpander(name: String) = new KernelPredicate[PropertyContainer] {

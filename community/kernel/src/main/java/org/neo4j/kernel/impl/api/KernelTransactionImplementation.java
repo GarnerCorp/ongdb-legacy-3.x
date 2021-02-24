@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -73,7 +72,7 @@ import org.neo4j.kernel.api.txstate.auxiliary.AuxiliaryTransactionStateCloseExce
 import org.neo4j.kernel.api.txstate.auxiliary.AuxiliaryTransactionStateHolder;
 import org.neo4j.kernel.api.txstate.auxiliary.AuxiliaryTransactionStateManager;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.api.index.IndexingProvidersService;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.api.state.TxState;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
@@ -106,6 +105,7 @@ import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.lock.LockTracer;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
+import org.neo4j.time.SystemNanoClock;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
@@ -156,7 +156,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     // whereas others, such as timestamp or txId when transaction starts, even locks, needs to be set in #initialize().
     private TxState txState;
     private AuxiliaryTransactionStateHolder auxTxStateHolder;
-    private TransactionWriteState writeState;
+    private volatile TransactionWriteState writeState;
     private TransactionHooks.TransactionHooksState hooksState;
     private final KernelStatement currentStatement;
     private final List<CloseListener> closeListeners = new ArrayList<>( 2 );
@@ -170,6 +170,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private boolean success;
     private volatile Status terminationReason;
     private long startTimeMillis;
+    private long startTimeNanos;
     private long timeoutMillis;
     private long lastTransactionIdWhenStarted;
     private volatile long lastTransactionTimestampWhenStarted;
@@ -194,12 +195,12 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     public KernelTransactionImplementation( Config config, StatementOperationParts statementOperations, SchemaWriteGuard schemaWriteGuard,
             TransactionHooks hooks, ConstraintIndexCreator constraintIndexCreator, Procedures procedures,
             TransactionHeaderInformationFactory headerInformationFactory, TransactionCommitProcess commitProcess, TransactionMonitor transactionMonitor,
-            AuxiliaryTransactionStateManager auxTxStateManager, Pool<KernelTransactionImplementation> pool, Clock clock,
+            AuxiliaryTransactionStateManager auxTxStateManager, Pool<KernelTransactionImplementation> pool, SystemNanoClock clock,
             AtomicReference<CpuClock> cpuClockRef, AtomicReference<HeapAllocation> heapAllocationRef, TransactionTracer transactionTracer,
             LockTracer lockTracer, PageCursorTracerSupplier cursorTracerSupplier, StorageEngine storageEngine, AccessCapability accessCapability,
             AutoIndexing autoIndexing, ExplicitIndexStore explicitIndexStore, VersionContextSupplier versionContextSupplier,
             CollectionsFactorySupplier collectionsFactorySupplier, ConstraintSemantics constraintSemantics, SchemaState schemaState,
-            IndexingProvidersService indexProviders, TokenHolders tokenHolders, Dependencies dataSourceDependencies )
+            IndexingService indexingService, TokenHolders tokenHolders, Dependencies dataSourceDependencies )
     {
         this.schemaWriteGuard = schemaWriteGuard;
         this.hooks = hooks;
@@ -229,14 +230,14 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.operations =
                 new Operations(
                         allStoreHolder,
-                        new IndexTxStateUpdater( storageReader, allStoreHolder, indexProviders ), storageReader,
+                        new IndexTxStateUpdater( allStoreHolder, indexingService ), storageReader,
                         this,
                         new KernelToken( storageReader, this, tokenHolders ),
                         cursors,
                         autoIndexing,
                         constraintIndexCreator,
                         constraintSemantics,
-                        indexProviders,
+                        indexingService,
                         config );
         this.collectionsFactory = collectionsFactorySupplier.create();
     }
@@ -258,6 +259,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.success = false;
         this.writeState = TransactionWriteState.NONE;
         this.startTimeMillis = clocks.systemClock().millis();
+        this.startTimeNanos = clocks.systemClock().nanos();
         this.timeoutMillis = transactionTimeout;
         this.lastTransactionIdWhenStarted = lastCommittedTx;
         this.lastTransactionTimestampWhenStarted = lastTimeStamp;
@@ -282,6 +284,12 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     public long startTime()
     {
         return startTimeMillis;
+    }
+
+    @Override
+    public long startTimeNanos()
+    {
+        return startTimeNanos;
     }
 
     @Override
@@ -352,6 +360,12 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         }
     }
 
+    @Override
+    public boolean isSchemaTransaction()
+    {
+        return writeState == TransactionWriteState.SCHEMA;
+    }
+
     private boolean markForTerminationIfPossible( Status reason )
     {
         if ( canBeTerminated() )
@@ -397,6 +411,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.userMetaData = data;
     }
 
+    @Override
     public Map<String, Object> getMetaData()
     {
         return userMetaData;
@@ -650,7 +665,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     if ( hooksState != null && hooksState.failed() )
                     {
                         Throwable cause = hooksState.failure();
-                        throw new TransactionFailureException( Status.Transaction.TransactionHookFailed, cause, "" );
+                        throw new TransactionFailureException( Status.Transaction.TransactionHookFailed, cause, cause.getMessage() );
                     }
                 }
                 finally
@@ -706,7 +721,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     success = true;
                     TransactionToApply batch = new TransactionToApply( transactionRepresentation,
                             versionContextSupplier.getVersionContext() );
-                    txId = transactionId = commitProcess.commit( batch, commitEvent, INTERNAL );
+                    txId = commitProcess.commit( batch, commitEvent, INTERNAL );
                     commitTime = timeCommitted;
                 }
             }
@@ -726,6 +741,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             }
             else
             {
+                transactionId = txId;
                 afterCommit( txId );
             }
         }

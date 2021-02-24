@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,7 +23,7 @@ import java.io.{FileOutputStream, OutputStreamWriter, PrintWriter}
 import java.nio.file.{Files, Path}
 import java.util.zip.{GZIPOutputStream, ZipEntry, ZipOutputStream}
 
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.{CypherFunSuite, CypherTestSupport}
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.{CypherFunSuite, CypherTestSupport}
 import org.neo4j.io.fs.FileUtils
 
 import scala.io.Codec

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -389,20 +389,25 @@ public abstract class MapValue extends VirtualValue
            {
                private int mapIndex;
                private Iterator<String> internal;
+               private HashSet<String> seen = new HashSet<>();
 
                @Override
                protected String fetchNextOrNull()
                {
-                   while ( mapIndex < maps.length )
+                   while ( mapIndex < maps.length || internal != null && internal.hasNext() )
                    {
                        if ( internal == null || !internal.hasNext() )
                        {
                            internal = maps[mapIndex++].keySet().iterator();
                        }
 
-                       if ( internal.hasNext() )
+                       while ( internal.hasNext() )
                        {
-                           return internal.next();
+                           String key = internal.next();
+                           if ( seen.add( key ) )
+                           {
+                               return key;
+                           }
                        }
                    }
                    return null;

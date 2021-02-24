@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.platform.engine.TestExecutionResult.Status.FAILED;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectMethod;
 import static org.neo4j.test.extension.DirectoryExtensionLifecycleVerificationTest.ConfigurationParameterCondition.TEST_TOGGLE;
@@ -124,6 +125,7 @@ class TestDirectoryExtensionTest
         File lockedFile = CONTEXT.getValue( LOCKED_TEST_FILE_KEY );
 
         assertNotNull( lockedFile );
+        assumeTrue( lockedFile.exists() ); // Running as root will succeed in removing the file
         assertTrue( lockedFile.setReadable( true, true ) );
         FileUtils.deleteRecursively( lockedFile );
         failedTestListener.assertTestObserver();

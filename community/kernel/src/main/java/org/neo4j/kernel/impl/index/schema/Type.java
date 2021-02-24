@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -100,7 +100,7 @@ abstract class Type
     void minimalSplitter( GenericKey left, GenericKey right, GenericKey into )
     {
         // if not a specific implementation then default is to just copy from 'right'
-        into.copyFrom( right );
+        into.copyFromInternal( right );
     }
 
     /**

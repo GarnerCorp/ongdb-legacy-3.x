@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal
 
 import java.time.Clock
 
-import org.neo4j.cypher.internal.planner.v3_5.spi.{GraphStatistics, GraphStatisticsSnapshot, InstrumentedGraphStatistics}
+import org.neo4j.cypher.internal.planner.v3_6.spi.{GraphStatistics, GraphStatisticsSnapshot, InstrumentedGraphStatistics}
 
 case class PlanFingerprint(creationTimeMillis: Long, lastCheckTimeMillis: Long, txId: Long, snapshot: GraphStatisticsSnapshot) {
   if (snapshot.statsValues.isEmpty) {
@@ -33,13 +33,8 @@ object PlanFingerprint {
   def apply(creationTimeMillis: Long, txId: Long, snapshot: GraphStatisticsSnapshot): PlanFingerprint =
     PlanFingerprint(creationTimeMillis, creationTimeMillis, txId, snapshot)
 
-  def take(clock: Clock, txIdProvider: () => Long, graphStatistics: GraphStatistics): Option[PlanFingerprint] =
-    graphStatistics match {
-      case igs: InstrumentedGraphStatistics =>
-        Some(PlanFingerprint(clock.millis(), txIdProvider(), igs.snapshot.freeze))
-      case _ =>
-        None
-    }
+  def take(clock: Clock, txIdProvider: () => Long, graphStatistics: InstrumentedGraphStatistics): PlanFingerprint =
+    PlanFingerprint(clock.millis(), txIdProvider(), graphStatistics.snapshot.freeze)
 }
 
-class PlanFingerprintReference(var fingerprint: Option[PlanFingerprint])
+class PlanFingerprintReference(var fingerprint: PlanFingerprint)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,13 +24,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.IntSupplier;
 
+import org.neo4j.configuration.ConfigValue;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -42,9 +45,11 @@ import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.NamedToken;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.SchemaRead;
+import org.neo4j.internal.kernel.api.SchemaReadCore;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
+import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.internal.kernel.api.schema.SchemaDescriptor;
@@ -57,6 +62,7 @@ import org.neo4j.kernel.api.proc.BasicContext;
 import org.neo4j.kernel.api.proc.Key;
 import org.neo4j.kernel.api.schema.constraints.ConstraintDescriptor;
 import org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory;
+import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.factory.Edition;
 import org.neo4j.kernel.impl.proc.Procedures;
@@ -90,6 +96,7 @@ import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
 public class BuiltInProceduresTest
 {
     private static final Key<DependencyResolver> DEPENDENCY_RESOLVER = key( "DependencyResolver", DependencyResolver.class );
+    private static final Key<ProcedureCallContext> CALL_CONTEXT = key( "ProcedureCallContext", ProcedureCallContext.class );
     private static final Key<GraphDatabaseAPI> GRAPHDATABASEAPI = key( "GraphDatabaseAPI", GraphDatabaseAPI.class );
     private static final Key<Log> LOG = key( "Log", Log.class );
 
@@ -103,6 +110,7 @@ public class BuiltInProceduresTest
     private final Read read = mock( Read.class );
     private final TokenRead tokens = mock( TokenRead.class );
     private final SchemaRead schemaRead = mock( SchemaRead.class );
+    private final SchemaReadCore schemaReadCore = mock( SchemaReadCore.class );
     private final Statement statement = mock( Statement.class );
     private final KernelTransaction tx = mock( KernelTransaction.class );
     private final DependencyResolver resolver = mock( DependencyResolver.class );
@@ -134,19 +142,20 @@ public class BuiltInProceduresTest
         when( tx.tokenRead() ).thenReturn( tokens );
         when( tx.dataRead() ).thenReturn( read );
         when( tx.schemaRead() ).thenReturn( schemaRead );
+        when( schemaRead.snapshot() ).thenReturn( schemaReadCore );
 
         when( tokens.propertyKeyGetAllTokens() ).thenAnswer( asTokens( propKeys ) );
         when( tokens.labelsGetAllTokens() ).thenAnswer( asTokens( labels ) );
         when( tokens.relationshipTypesGetAllTokens() ).thenAnswer( asTokens( relTypes ) );
-        when( schemaRead.indexesGetAll() ).thenAnswer(
+        when( schemaReadCore.indexesGetAll() ).thenAnswer(
                 i -> Iterators.concat( indexes.iterator(), uniqueIndexes.iterator() ) );
-        when( schemaRead.index( any( SchemaDescriptor.class ) ) ).thenAnswer( (Answer<IndexReference>) invocationOnMock -> {
+        when( schemaReadCore.index( any( SchemaDescriptor.class ) ) ).thenAnswer( (Answer<IndexReference>) invocationOnMock -> {
             SchemaDescriptor schema = invocationOnMock.getArgument( 0 );
             int label = schema.keyId();
             int prop = schema.getPropertyId();
             return getIndexReference( label, prop );
         } );
-        when( schemaRead.constraintsGetAll() ).thenAnswer( i -> constraints.iterator() );
+        when( schemaReadCore.constraintsGetAll() ).thenAnswer( i -> constraints.iterator() );
 
         when( tokens.propertyKeyName( anyInt() ) ).thenAnswer( invocation -> propKeys.get( invocation.getArgument( 0 ) ) );
         when( tokens.nodeLabelName( anyInt() ) ).thenAnswer( invocation -> labels.get( invocation.getArgument( 0 ) ) );
@@ -154,12 +163,13 @@ public class BuiltInProceduresTest
 
         when( indexingService.getIndexId( any( SchemaDescriptor.class ) ) ).thenReturn( 42L );
 
-        when( schemaRead.constraintsGetForRelationshipType( anyInt() ) ).thenReturn( emptyIterator() );
-        when( schemaRead.indexesGetForLabel( anyInt() ) ).thenReturn( emptyIterator() );
-        when( schemaRead.constraintsGetForLabel( anyInt() ) ).thenReturn( emptyIterator() );
+        when( schemaReadCore.constraintsGetForRelationshipType( anyInt() ) ).thenReturn( emptyIterator() );
+        when( schemaReadCore.indexesGetForLabel( anyInt() ) ).thenReturn( emptyIterator() );
+        when( schemaReadCore.indexesGetForRelationshipType( anyInt() ) ).thenReturn( emptyIterator() );
+        when( schemaReadCore.constraintsGetForLabel( anyInt() ) ).thenReturn( emptyIterator() );
         when( read.countsForNode( anyInt() ) ).thenReturn( 1L );
         when( read.countsForRelationship( anyInt(), anyInt(), anyInt() ) ).thenReturn( 1L );
-        when( schemaRead.indexGetState( any( IndexReference.class ) ) ).thenReturn( InternalIndexState.ONLINE );
+        when( schemaReadCore.indexGetState( any( IndexReference.class ) ) ).thenReturn( InternalIndexState.ONLINE );
     }
 
     @Test
@@ -170,7 +180,8 @@ public class BuiltInProceduresTest
 
         // When/Then
         assertThat( call( "db.indexes" ), contains( record(
-                "INDEX ON :User(name)", "Unnamed index", singletonList( "User" ), singletonList( "name" ), "ONLINE", "node_label_property", 100D,
+                "INDEX ON :User(name)", "Unnamed index", singletonList( "User" ), singletonList( "name" ), Collections.emptyMap(), "ONLINE",
+                "node_label_property", 100D,
                 getIndexProviderDescriptorMap( EMPTY.getProviderDescriptor() ), 42L, "" ) ) );
     }
 
@@ -182,8 +193,23 @@ public class BuiltInProceduresTest
 
         // When/Then
         assertThat( call( "db.indexes" ), contains( record(
-                "INDEX ON :User(name)", "Unnamed index", singletonList( "User" ), singletonList( "name" ), "ONLINE", "node_unique_property", 100D,
+                "INDEX ON :User(name)", "Unnamed index", singletonList( "User" ), singletonList( "name" ), Collections.emptyMap(), "ONLINE",
+                "node_unique_property", 100D,
                 getIndexProviderDescriptorMap( EMPTY.getProviderDescriptor() ), 42L, "" ) ) );
+    }
+
+    @Test
+    public void listingIndexesShouldGiveMessageForConcurrentlyDeletedIndexes() throws Throwable
+    {
+        // Given
+        givenIndex( "User", "name" );
+        when( schemaReadCore.indexGetState( any( IndexReference.class) ) ).thenThrow( new IndexNotFoundKernelException( "Not found." ) );
+
+        // When/Then
+        assertThat( call( "db.indexes" ), contains( record(
+                "INDEX ON :User(name)", "Unnamed index", singletonList( "User" ), singletonList( "name" ), Collections.EMPTY_MAP, "NOT FOUND",
+                "node_label_property", 0D,
+                getIndexProviderDescriptorMap( EMPTY.getProviderDescriptor() ), 42L, "Index not found. It might have been concurrently dropped." ) ) );
     }
 
     @Test
@@ -271,7 +297,7 @@ public class BuiltInProceduresTest
                 record( "db.constraints", "db.constraints() :: (description :: STRING?)",
                         "List all constraints in the database.", "READ" ),
                 record( "db.indexes", "db.indexes() :: (description :: STRING?, indexName :: STRING?, " +
-                                "tokenNames :: LIST? OF STRING?, properties :: LIST? OF STRING?, state :: STRING?, " +
+                                "tokenNames :: LIST? OF STRING?, properties :: LIST? OF STRING?, sortProperties :: MAP?, state :: STRING?, " +
                                 "type :: STRING?, progress :: FLOAT?, provider :: MAP?, id :: INTEGER?, failureMessage :: STRING?)",
                         "List all indexes in the database.", "READ" ),
                 record( "db.labels", "db.labels() :: (label :: STRING?)", "List all labels in the database.", "READ" ),
@@ -480,6 +506,41 @@ public class BuiltInProceduresTest
         verify( statement ).close();
     }
 
+    @Test
+    public void listClientConfigShouldFilterConfig() throws ProcedureException, IndexNotFoundKernelException
+    {
+        // Given
+        Config mockConfig = mock( Config.class );
+        HashMap<String, ConfigValue> settings = new HashMap<>();
+
+        settings.put("browser.allow_outgoing_connections", new ConfigValue( "browser.allow_outgoing_connections", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+        settings.put("browser.credential_timeout", new ConfigValue( "browser.credential_timeout", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+        settings.put("browser.retain_connection_credentials", new ConfigValue( "browser.retain_connection_credentials", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+        settings.put("dbms.security.auth_enabled", new ConfigValue( "dbms.security.auth_enabled", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+        settings.put("browser.remote_content_hostname_whitelist", new ConfigValue( "browser.remote_content_hostname_whitelist", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+        settings.put("browser.post_connect_cmd", new ConfigValue( "browser.post_connect_cmd", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+        settings.put("something.else", new ConfigValue( "something.else", Optional.of( "description" ),
+                Optional.empty(), Optional.of("value"), "value description", false, false, false, Optional.empty(), false ));
+
+        when( mockConfig.getConfigValues() ).thenReturn( settings );
+        when( resolver.resolveDependency( Config.class ) ).thenReturn( mockConfig );
+
+        // When / Then
+        assertThat( call( "dbms.clientConfig" ), containsInAnyOrder(
+                record( "browser.allow_outgoing_connections", "description", "value", false ),
+                record( "browser.credential_timeout", "description", "value", false ),
+                record( "browser.retain_connection_credentials", "description", "value", false ),
+                record( "dbms.security.auth_enabled", "description", "value", false ),
+                record( "browser.remote_content_hostname_whitelist", "description", "value", false ),
+                record( "browser.post_connect_cmd", "description", "value", false ) ) );
+    }
+
     private static Map<String,String> getIndexProviderDescriptorMap( IndexProviderDescriptor providerDescriptor )
     {
         return MapUtil.stringMap( "key", providerDescriptor.getKey(), "version", providerDescriptor.getVersion() );
@@ -604,7 +665,7 @@ public class BuiltInProceduresTest
         when( graphDatabaseAPI.getDependencyResolver() ).thenReturn( resolver );
         when( resolver.resolveDependency( Procedures.class ) ).thenReturn( procs );
         when( resolver.resolveDependency( IndexingService.class ) ).thenReturn( indexingService );
-        when( schemaRead.indexGetPopulationProgress( any( IndexReference.class) ) ).thenReturn( PopulationProgress.DONE );
+        when( schemaReadCore.indexGetPopulationProgress( any( IndexReference.class) ) ).thenReturn( PopulationProgress.DONE );
         return Iterators.asList( procs.callProcedure(
                 ctx, ProcedureSignature.procedureName( name.split( "\\." ) ), args, resourceTracker ) );
     }

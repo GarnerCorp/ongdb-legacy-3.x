@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -50,4 +50,35 @@ interface IdProvider
      * @throws IOException on {@link PageCursor} error.
      */
     void releaseId( long stableGeneration, long unstableGeneration, long id ) throws IOException;
+
+    void visitFreelist( IdProviderVisitor visitor ) throws IOException;
+
+    long lastId();
+
+    interface IdProviderVisitor
+    {
+        void beginFreelistPage( long pageId );
+
+        void endFreelistPage( long pageId );
+
+        void freelistEntry( long pageId, long generation, int pos );
+
+        class Adaptor implements IdProviderVisitor
+        {
+            @Override
+            public void beginFreelistPage( long pageId )
+            {
+            }
+
+            @Override
+            public void endFreelistPage( long pageId )
+            {
+            }
+
+            @Override
+            public void freelistEntry( long pageId, long generation, int pos )
+            {
+            }
+        }
+    }
 }

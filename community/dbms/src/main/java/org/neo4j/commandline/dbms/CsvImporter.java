@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -104,7 +104,6 @@ class CsvImporter implements Importer
     {
         FileSystemAbstraction fs = outsideWorld.fileSystem();
         File storeDir = databaseConfig.get( GraphDatabaseSettings.database_path );
-        File logsDir = databaseConfig.get( GraphDatabaseSettings.logs_directory );
         File reportFile = new File( reportFileName );
 
         OutputStream badOutput = new BufferedOutputStream( fs.openAsOutputStream( reportFile, false ) );
@@ -123,9 +122,10 @@ class CsvImporter implements Importer
                 relationshipData( inputEncoding, relationshipsFiles ), defaultFormatRelationshipFileHeader( defaultTimeZone ),
                 idType,
                 new WrappedCsvInputConfigurationForNeo4jAdmin( csvConfiguration( args, false ) ),
-                badCollector );
+                badCollector,
+                new CsvInput.PrintingMonitor( outsideWorld.outStream() ) );
 
-        ImportTool.doImport( outsideWorld.errorStream(), outsideWorld.errorStream(), outsideWorld.inStream(), DatabaseLayout.of( storeDir ), logsDir,
+        ImportTool.doImport( outsideWorld.errorStream(), outsideWorld.errorStream(), outsideWorld.inStream(), DatabaseLayout.of( storeDir ),
                 reportFile, fs, nodesFiles, relationshipsFiles, false, input, this.databaseConfig, badOutput, configuration, false );
     }
 

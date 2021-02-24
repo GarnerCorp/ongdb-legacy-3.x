@@ -1,27 +1,25 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.kernel;
 
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -81,8 +79,8 @@ public class PageCacheWarmupEnterpriseEditionIT extends PageCacheWarmupTestSuppo
     private static void verifyEventuallyWarmsUp( long pagesInMemory, File metricsDirectory ) throws Exception
     {
         assertEventually( "Metrics report should include page cache page faults",
-                () -> readLongValue( metricsCsv( metricsDirectory, PC_PAGE_FAULTS ) ),
-                greaterThanOrEqualTo( pagesInMemory ), 20, SECONDS );
+                          () -> readLongValue( metricsCsv( metricsDirectory, PC_PAGE_FAULTS ) ),
+                          greaterThanOrEqualTo( pagesInMemory ), 20, SECONDS );
     }
 
     @Test
@@ -132,11 +130,11 @@ public class PageCacheWarmupEnterpriseEditionIT extends PageCacheWarmupTestSuppo
             fs.copyRecursively( backupDir, storeDir.databaseDirectory() );
         };
         db.restartDatabase( useBackupDir,
-                OnlineBackupSettings.online_backup_enabled.name(), Settings.FALSE,
-                MetricsSettings.neoPageCacheEnabled.name(), Settings.TRUE,
-                MetricsSettings.csvEnabled.name(), Settings.TRUE,
-                MetricsSettings.csvInterval.name(), "100ms",
-                MetricsSettings.csvPath.name(), metricsDirectory.getAbsolutePath() );
+                            OnlineBackupSettings.online_backup_enabled.name(), Settings.FALSE,
+                            MetricsSettings.neoPageCacheEnabled.name(), Settings.TRUE,
+                            MetricsSettings.csvEnabled.name(), Settings.TRUE,
+                            MetricsSettings.csvInterval.name(), "100ms",
+                            MetricsSettings.csvPath.name(), metricsDirectory.getAbsolutePath() );
 
         verifyEventuallyWarmsUp( pagesInMemory, metricsDirectory );
     }
@@ -218,8 +216,8 @@ public class PageCacheWarmupEnterpriseEditionIT extends PageCacheWarmupTestSuppo
     {
         File metricsDirectory = testDirectory.directory( "metrics" );
         db.withSetting( MetricsSettings.metricsEnabled, Settings.FALSE )
-                .withSetting( OnlineBackupSettings.online_backup_enabled, Settings.FALSE )
-                .withSetting( GraphDatabaseSettings.pagecache_warmup_profiling_interval, "100ms" );
+          .withSetting( OnlineBackupSettings.online_backup_enabled, Settings.FALSE )
+          .withSetting( GraphDatabaseSettings.pagecache_warmup_profiling_interval, "100ms" );
         db.ensureStarted();
 
         createTestData( db );
@@ -233,7 +231,16 @@ public class PageCacheWarmupEnterpriseEditionIT extends PageCacheWarmupTestSuppo
 
         verifyEventuallyWarmsUp( pagesInMemory, metricsDirectory );
 
-        logProvider.assertContainsMessageContaining( "Page cache warmup started." );
-        logProvider.assertContainsMessageContaining( "Page cache warmup completed. %d pages loaded. Duration: %s." );
+        logProvider.rawMessageMatcher().assertContains(
+                Matchers.allOf(
+                        Matchers.containsString( "Page cache warmup started." )
+                )
+        );
+
+        logProvider.rawMessageMatcher().assertContains(
+                Matchers.allOf(
+                        Matchers.containsString( "Page cache warmup completed. %d pages loaded. Duration: %s." )
+                )
+        );
     }
 }

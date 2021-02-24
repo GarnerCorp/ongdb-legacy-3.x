@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,26 +21,27 @@ package org.neo4j.cypher.internal.compatibility
 
 import java.time.Clock
 
-import org.neo4j.cypher.internal.compiler.v3_5.CypherPlannerConfiguration
-import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
-import org.neo4j.cypher.internal.v3_5.frontend.phases.InternalNotificationLogger
+import org.neo4j.cypher.internal.compiler.v3_6.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
+import org.neo4j.logging.Log
 
 /**
   * The regular community runtime context.
   */
 case class CommunityRuntimeContext(tokenContext: TokenContext,
                                    readOnly: Boolean,
+                                   log: Log,
                                    config: CypherPlannerConfiguration) extends RuntimeContext {
 
   override def compileExpressions: Boolean = false
 }
 
-case class CommunityRuntimeContextCreator(config: CypherPlannerConfiguration) extends RuntimeContextCreator[RuntimeContext] {
+case class CommunityRuntimeContextCreator(log: Log, config: CypherPlannerConfiguration) extends RuntimeContextCreator[RuntimeContext] {
   override def create(tokenContext: TokenContext,
                       clock: Clock,
                       debugOptions: Set[String],
                       readOnly: Boolean,
                       ignore: Boolean
                      ): RuntimeContext =
-    CommunityRuntimeContext(tokenContext, readOnly, config)
+    CommunityRuntimeContext(tokenContext, readOnly, log, config)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -103,7 +103,8 @@ public class PrimitiveLongList implements PrimitiveLongCollection
 
     private void ensureCapacity()
     {
-        int newCapacity = elements.length << 1;
+        int currentCapacity = elements.length;
+        int newCapacity = currentCapacity == 0 ? DEFAULT_SIZE : currentCapacity << 1;
         if ( newCapacity < 0 )
         {
             throw new IllegalStateException( "Fail to increase list capacity." );

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,9 +20,10 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
-import org.neo4j.cypher.internal.v3_5.util.InternalException
-import org.neo4j.cypher.internal.v3_5.util.attribution.Id
-import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
+import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
+import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection
+import org.neo4j.cypher.internal.v3_6.util.InternalException
+import org.neo4j.cypher.internal.v3_6.util.attribution.Id
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual._
 
@@ -31,6 +32,7 @@ import scala.collection.mutable
 trait VarLengthPredicate {
   def filterNode(row: ExecutionContext, state:QueryState)(node: NodeValue): Boolean
   def filterRelationship(row: ExecutionContext, state:QueryState)(rel: RelationshipValue): Boolean
+  def predicateExpressions: Seq[Predicate]
 }
 
 object VarLengthPredicate {
@@ -40,6 +42,8 @@ object VarLengthPredicate {
     override def filterNode(row: ExecutionContext, state:QueryState)(node: NodeValue): Boolean = true
 
     override def filterRelationship(row: ExecutionContext, state:QueryState)(rel: RelationshipValue): Boolean = true
+
+    override def predicateExpressions: Seq[Predicate] = Seq.empty
   }
 }
 case class VarLengthExpandPipe(source: Pipe,
@@ -54,6 +58,9 @@ case class VarLengthExpandPipe(source: Pipe,
                                nodeInScope: Boolean,
                                filteringStep: VarLengthPredicate= VarLengthPredicate.NONE)
                               (val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
+
+  filteringStep.predicateExpressions.foreach(_.registerOwningPipe(this))
+
   private def varLengthExpand(node: NodeValue, state: QueryState, maxDepth: Option[Int],
                               row: ExecutionContext): Iterator[(NodeValue, Seq[RelationshipValue])] = {
     val stack = new mutable.Stack[(NodeValue, Seq[RelationshipValue])]
@@ -62,7 +69,7 @@ case class VarLengthExpandPipe(source: Pipe,
     new Iterator[(NodeValue, Seq[RelationshipValue])] {
       def next(): (NodeValue, Seq[RelationshipValue]) = {
         val (node, rels) = stack.pop()
-        if (rels.length < maxDepth.getOrElse(Int.MaxValue) && filteringStep.filterNode(row,state)(node)) {
+        if (rels.length < maxDepth.getOrElse(Int.MaxValue) && filteringStep.filterNode(row, state)(node)) {
           val relationships: Iterator[RelationshipValue] = state.query.getRelationshipsForIds(node.id(), dir,
                                                                                       types.types(state.query))
 
@@ -88,10 +95,14 @@ case class VarLengthExpandPipe(source: Pipe,
 
   protected def internalCreateResults(input: Iterator[ExecutionContext], state: QueryState): Iterator[ExecutionContext] = {
     def expand(row: ExecutionContext, n: NodeValue) = {
-      val paths = varLengthExpand(n, state, max, row)
-      paths.collect {
-        case (node, rels) if rels.length >= min && isToNodeValid(row, state, node) =>
-          executionContextFactory.copyWith(row, relName, VirtualValues.list(rels: _*), toName, node)
+      if (filteringStep.filterNode(row, state)(n)) {
+        val paths = varLengthExpand(n, state, max, row)
+        paths.collect {
+          case (node, rels) if rels.length >= min && isToNodeValid(row, state, node) =>
+            executionContextFactory.copyWith(row, relName, VirtualValues.list(rels: _*), toName, node)
+        }
+      } else {
+        Iterator.empty
       }
     }
 

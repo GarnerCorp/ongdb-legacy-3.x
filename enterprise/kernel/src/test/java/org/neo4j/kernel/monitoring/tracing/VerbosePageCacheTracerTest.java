@@ -1,24 +1,21 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.kernel.monitoring.tracing;
 
@@ -50,7 +47,7 @@ public class VerbosePageCacheTracerTest
     {
         VerbosePageCacheTracer tracer = createTracer();
         tracer.mappedFile( new File( "mapFile" ) );
-        logProvider.assertContainsMessageContaining( "Map file: 'mapFile'." );
+        logProvider.formattedMessageMatcher().assertContains( "Map file: 'mapFile'." );
     }
 
     @Test
@@ -58,7 +55,7 @@ public class VerbosePageCacheTracerTest
     {
         VerbosePageCacheTracer tracer = createTracer();
         tracer.unmappedFile( new File( "unmapFile" ) );
-        logProvider.assertContainsMessageContaining( "Unmap file: 'unmapFile'." );
+        logProvider.formattedMessageMatcher().assertContains( "Unmap file: 'unmapFile'." );
     }
 
     @Test
@@ -73,8 +70,8 @@ public class VerbosePageCacheTracerTest
             flushEvent.addPagesFlushed( 7 );
             flushEvent.done();
         }
-        logProvider.assertContainsMessageContaining( "Start whole page cache flush." );
-        logProvider.assertLogStringContains( "Page cache flush completed. Flushed 2B in 7 pages. Flush took: 0ns. " +
+        logProvider.formattedMessageMatcher().assertContains( "Start whole page cache flush." );
+        logProvider.formattedMessageMatcher().assertContains( "Page cache flush completed. Flushed 2B in 7 pages. Flush took: 0ns. " +
                 "Average speed: 2bytes/ns." );
     }
 
@@ -103,8 +100,8 @@ public class VerbosePageCacheTracerTest
             flushEvent.addPagesFlushed( 7 );
             flushEvent.done();
         }
-        logProvider.assertContainsMessageContaining( "Start whole page cache flush." );
-        logProvider.assertLogStringContains( "Page cache flush completed. Flushed 2B in 7 pages. Flush took: 2ms. " +
+        logProvider.formattedMessageMatcher().assertContains( "Start whole page cache flush." );
+        logProvider.formattedMessageMatcher().assertContains( "Page cache flush completed. Flushed 2B in 7 pages. Flush took: 2ms. " +
                 "Average speed: 0bytes/ns." );
     }
 
@@ -126,8 +123,9 @@ public class VerbosePageCacheTracerTest
             flushEvent2.addBytesWritten( ByteUnit.ONE_MEBI_BYTE );
             flushEvent2.done();
         }
-        logProvider.assertContainsMessageContaining( "Flushing file: 'fileToFlush'." );
-        logProvider.assertLogStringContains( "'fileToFlush' flush completed. Flushed 2.000MiB in 110 pages. Flush took: 1s. Average speed: 2.000MiB/s." );
+        logProvider.formattedMessageMatcher().assertContains( "Flushing file: 'fileToFlush'." );
+        logProvider.formattedMessageMatcher().assertContains( "'fileToFlush' flush completed. " +
+            "Flushed 2.000MiB in 110 pages. Flush took: 1s. Average speed: 2.000MiB/s." );
     }
 
     private VerbosePageCacheTracer createTracer()

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,6 +30,7 @@ import org.neo4j.internal.kernel.api.IndexQuery;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexReader;
@@ -42,6 +43,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.neo4j.helpers.collection.Iterators.asSet;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
+import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 
 @Ignore( "Not a test. This is a compatibility suite that provides test cases for verifying" +
         " IndexProvider implementations. Each index provider that is to be tested by this suite" +
@@ -68,12 +70,12 @@ public class CompositeIndexPopulatorCompatibility extends IndexProviderCompatibi
         {
             // when
             IndexSamplingConfig indexSamplingConfig = new IndexSamplingConfig( Config.defaults() );
-            withPopulator( indexProvider.getPopulator( descriptor, indexSamplingConfig ), p -> p.add( Arrays.asList(
+            withPopulator( indexProvider.getPopulator( descriptor, indexSamplingConfig, heapBufferFactory( 1024 ), tokenNameLookup ), p -> p.add( Arrays.asList(
                     add( 1, descriptor.schema(), "v1", "v2" ),
                     add( 2, descriptor.schema(), "v1", "v2" ) ) ) );
 
             // then
-            try ( IndexAccessor accessor = indexProvider.getOnlineAccessor( descriptor, indexSamplingConfig ) )
+            try ( IndexAccessor accessor = indexProvider.getOnlineAccessor( descriptor, indexSamplingConfig, tokenNameLookup ) )
             {
                 try ( IndexReader reader = new QueryResultComparingIndexReader( accessor.newReader() ) )
                 {
@@ -103,7 +105,7 @@ public class CompositeIndexPopulatorCompatibility extends IndexProviderCompatibi
         {
             // when
             IndexSamplingConfig indexSamplingConfig = new IndexSamplingConfig( Config.defaults() );
-            withPopulator( indexProvider.getPopulator( descriptor, indexSamplingConfig ), p ->
+            withPopulator( indexProvider.getPopulator( descriptor, indexSamplingConfig, heapBufferFactory( 1024 ), tokenNameLookup ), p ->
             {
                 try
                 {
@@ -113,6 +115,7 @@ public class CompositeIndexPopulatorCompatibility extends IndexProviderCompatibi
                     TestNodePropertyAccessor propertyAccessor =
                             new TestNodePropertyAccessor( nodeId1, descriptor.schema(), value1, value2 );
                     propertyAccessor.addNode( nodeId2, descriptor.schema(), value1, value2 );
+                    p.scanCompleted( PhaseTracker.nullInstance );
                     p.verifyDeferredConstraints( propertyAccessor );
 
                     fail( "expected exception" );
@@ -124,7 +127,7 @@ public class CompositeIndexPopulatorCompatibility extends IndexProviderCompatibi
                     assertEquals( ValueTuple.of( value1, value2 ), conflict.getPropertyValues() );
                     assertEquals( nodeId2, conflict.getAddedNodeId() );
                 }
-            } );
+            }, false );
         }
 
         @Test
@@ -132,7 +135,7 @@ public class CompositeIndexPopulatorCompatibility extends IndexProviderCompatibi
         {
             // given
             IndexSamplingConfig indexSamplingConfig = new IndexSamplingConfig( Config.defaults() );
-            withPopulator( indexProvider.getPopulator( descriptor, indexSamplingConfig ), p ->
+            withPopulator( indexProvider.getPopulator( descriptor, indexSamplingConfig, heapBufferFactory( 1024 ), tokenNameLookup ), p ->
             {
                 // when
                 p.add( Arrays.asList(

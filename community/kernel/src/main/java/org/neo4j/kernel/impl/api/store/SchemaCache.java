@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -55,14 +55,25 @@ import static java.util.Collections.emptyIterator;
  */
 public class SchemaCache
 {
-    private final Lock cacheUpdateLock = new StampedLock().asWriteLock();
+    private final Lock cacheUpdateLock;
     private final IndexProviderMap indexProviderMap;
     private volatile SchemaCacheState schemaCacheState;
 
     public SchemaCache( ConstraintSemantics constraintSemantics, Iterable<SchemaRule> initialRules, IndexProviderMap indexProviderMap )
     {
+        this.cacheUpdateLock = new StampedLock().asWriteLock();
         this.indexProviderMap = indexProviderMap;
         this.schemaCacheState = new SchemaCacheState( constraintSemantics, initialRules, indexProviderMap );
+    }
+
+    /**
+     * Snapshot constructor. This is only used by the {@link #snapshot()} method.
+     */
+    private SchemaCache( SchemaCacheState schemaCacheState )
+    {
+        this.cacheUpdateLock = new InaccessibleLock( "Schema cache snapshots are read-only." );
+        this.indexProviderMap = null;
+        this.schemaCacheState = schemaCacheState;
     }
 
     public Iterable<CapableIndexDescriptor> indexDescriptors()
@@ -169,6 +180,11 @@ public class SchemaCache
         return schemaCacheState.indexDescriptorsForLabel( labelId );
     }
 
+    public Iterator<CapableIndexDescriptor> indexDescriptorsForRelationshipType( int relationshipType )
+    {
+        return schemaCacheState.indexDescriptorsForRelationshipType( relationshipType );
+    }
+
     public Iterator<CapableIndexDescriptor> indexesByProperty( int propertyId )
     {
         return schemaCacheState.indexesByProperty( propertyId );
@@ -177,6 +193,11 @@ public class SchemaCache
     public CapableIndexDescriptor indexDescriptorForName( String name )
     {
         return schemaCacheState.indexDescriptorByName( name );
+    }
+
+    public SchemaCache snapshot()
+    {
+        return new SchemaCache( schemaCacheState );
     }
 
     private static class SchemaCacheState
@@ -189,6 +210,7 @@ public class SchemaCache
 
         private final Map<SchemaDescriptor,CapableIndexDescriptor> indexDescriptors;
         private final MutableIntObjectMap<Set<CapableIndexDescriptor>> indexDescriptorsByLabel;
+        private final MutableIntObjectMap<Set<CapableIndexDescriptor>> indexDescriptorsByRelationshipType;
         private final Map<String,CapableIndexDescriptor> indexDescriptorsByName;
 
         private final Map<Class<?>,Object> dependantState;
@@ -204,6 +226,7 @@ public class SchemaCache
 
             this.indexDescriptors = new HashMap<>();
             this.indexDescriptorsByLabel = new IntObjectHashMap<>();
+            this.indexDescriptorsByRelationshipType = new IntObjectHashMap<>();
             this.indexDescriptorsByName = new HashMap<>();
             this.dependantState = new ConcurrentHashMap<>();
             this.indexByProperty = new IntObjectHashMap<>();
@@ -220,6 +243,8 @@ public class SchemaCache
             this.indexDescriptors = new HashMap<>( schemaCacheState.indexDescriptors );
             this.indexDescriptorsByLabel = new IntObjectHashMap<>( schemaCacheState.indexDescriptorsByLabel.size() );
             schemaCacheState.indexDescriptorsByLabel.forEachKeyValue( ( k, v ) -> indexDescriptorsByLabel.put( k, new HashSet<>( v ) ) );
+            this.indexDescriptorsByRelationshipType = new IntObjectHashMap<>( schemaCacheState.indexDescriptorsByRelationshipType.size() );
+            schemaCacheState.indexDescriptorsByRelationshipType.forEachKeyValue( ( k, v ) -> indexDescriptorsByRelationshipType.put( k, new HashSet<>( v ) ) );
             this.indexDescriptorsByName = new HashMap<>( schemaCacheState.indexDescriptorsByName );
             this.dependantState = new ConcurrentHashMap<>();
             this.indexByProperty = new IntObjectHashMap<>( schemaCacheState.indexByProperty.size() );
@@ -287,6 +312,12 @@ public class SchemaCache
             return forLabel == null ? emptyIterator() : forLabel.iterator();
         }
 
+        Iterator<CapableIndexDescriptor> indexDescriptorsForRelationshipType( int relationshipType )
+        {
+            Set<CapableIndexDescriptor> forLabel = indexDescriptorsByRelationshipType.get( relationshipType );
+            return forLabel == null ? emptyIterator() : forLabel.iterator();
+        }
+
         <P, T> T getOrCreateDependantState( Class<T> type, Function<P,T> factory, P parameter )
         {
             return type.cast( dependantState.computeIfAbsent( type, key -> factory.apply( parameter ) ) );
@@ -338,10 +369,17 @@ public class SchemaCache
                 for ( int entityTokenId : schema.getEntityTokenIds() )
                 {
                     Set<CapableIndexDescriptor> forLabel = indexDescriptorsByLabel.get( entityTokenId );
-                    forLabel.remove( index );
-                    if ( forLabel.isEmpty() )
+                    /* Previously, a bug made it possible to create fulltext indexes with repeated labels or relationship types
+                       which would cause us to try and remove the same entity token twice which could cause a NPE if the 'forLabel'
+                       set would be empty after the first removal such that the set would be completely removed from 'indexDescriptorsByLabel'.
+                       Fixed as of 3.5.10 */
+                    if ( forLabel != null )
                     {
-                        indexDescriptorsByLabel.remove( entityTokenId );
+                        forLabel.remove( index );
+                        if ( forLabel.isEmpty() )
+                        {
+                            indexDescriptorsByLabel.remove( entityTokenId );
+                        }
                     }
                 }
 

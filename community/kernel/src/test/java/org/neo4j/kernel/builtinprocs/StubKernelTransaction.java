@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -217,6 +217,12 @@ public class StubKernelTransaction implements KernelTransaction
     }
 
     @Override
+    public long startTimeNanos()
+    {
+        throw new UnsupportedOperationException( "not implemented" );
+    }
+
+    @Override
     public long timeout()
     {
         throw new UnsupportedOperationException( "not implemented" );
@@ -283,8 +289,20 @@ public class StubKernelTransaction implements KernelTransaction
     }
 
     @Override
+    public Map<String,Object> getMetaData()
+    {
+        throw new UnsupportedOperationException( "not implemented" );
+    }
+
+    @Override
     public void assertOpen()
     {
         throw new UnsupportedOperationException( "not implemented" );
+    }
+
+    @Override
+    public boolean isSchemaTransaction()
+    {
+        return false;
     }
 }

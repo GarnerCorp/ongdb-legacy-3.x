@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -75,18 +75,5 @@ public class BoltStateMachineV3 extends BoltStateMachineV1
         interrupted.setReadyState( ready );
 
         return new States( connected, failed );
-    }
-
-    @Override
-    protected void after()
-    {
-        if ( connectionState.isTerminated() )
-        {
-            close();
-        }
-        else
-        {
-            super.after();
-        }
     }
 }

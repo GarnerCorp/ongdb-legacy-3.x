@@ -2,9 +2,9 @@
 # Copyright (c) 2002-2018 "Neo4j,"
 # Neo4j Sweden AB [http://neo4j.com]
 #
-# This file is part of Neo4j.
+# This file is part of ONgDB.
 #
-# Neo4j is free software: you can redistribute it and/or modify
+# ONgDB is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -45,9 +45,9 @@ setup_environment() {
 }
 
 setup_heap() {
-  JAVA_MEMORY_OPTS=()
   if [[ -n "${HEAP_SIZE:-}" ]]; then
-    JAVA_MEMORY_OPTS+=("-Xmx${HEAP_SIZE}")
+    JAVA_MEMORY_OPTS_XMS="-Xms${HEAP_SIZE}"
+    JAVA_MEMORY_OPTS_XMX="-Xmx${HEAP_SIZE}"
   fi
 }
 
@@ -74,7 +74,8 @@ detect_os() {
 }
 
 setup_memory_opts() {
-  if [[ -n "${dbms_memory_heap_initial_size:-}" ]]; then
+  # In some cases the heap size may have already been set before we get here, from e.g. HEAP_SIZE env.variable, if so then skip
+  if [[ -n "${dbms_memory_heap_initial_size:-}" && -z "${JAVA_MEMORY_OPTS_XMS-}" ]]; then
     local mem="${dbms_memory_heap_initial_size}"
     if ! [[ ${mem} =~ .*[gGmMkK] ]]; then
       mem="${mem}m"
@@ -87,9 +88,10 @@ WARNING: dbms.memory.heap.initial_size will require a unit suffix in a
                                           ^
 EOF
     fi
-    JAVA_MEMORY_OPTS+=("-Xms${mem}")
+    JAVA_MEMORY_OPTS_XMS="-Xms${mem}"
   fi
-  if [[ -n "${dbms_memory_heap_max_size:-}" ]]; then
+  # In some cases the heap size may have already been set before we get here, from e.g. HEAP_SIZE env.variable, if so then skip
+  if [[ -n "${dbms_memory_heap_max_size:-}" && -z "${JAVA_MEMORY_OPTS_XMX-}" ]]; then
     local mem="${dbms_memory_heap_max_size}"
     if ! [[ ${mem} =~ .*[gGmMkK] ]]; then
       mem="${mem}m"
@@ -102,7 +104,7 @@ WARNING: dbms.memory.heap.max_size will require a unit suffix in a
                                       ^
 EOF
     fi
-    JAVA_MEMORY_OPTS+=("-Xmx${mem}")
+    JAVA_MEMORY_OPTS_XMX="-Xmx${mem}"
   fi
 }
 
@@ -110,8 +112,7 @@ check_java() {
   _find_java_cmd
   setup_memory_opts
 
-  version_command=("${JAVA_CMD}" "-version")
-  [[ -n "${JAVA_MEMORY_OPTS:-}" ]] && version_command+=("${JAVA_MEMORY_OPTS[@]}")
+  version_command=("${JAVA_CMD}" "-version" ${JAVA_MEMORY_OPTS_XMS-} ${JAVA_MEMORY_OPTS_XMX-})
 
   JAVA_VERSION=$("${version_command[@]}" 2>&1 | awk -F '"' '/version/ {print $2}')
   if [[ $JAVA_VERSION = "1."* ]]; then
@@ -122,6 +123,10 @@ check_java() {
     fi
     if ! ("${version_command[@]}" 2>&1 | egrep -q "(Java HotSpot\\(TM\\)|OpenJDK|IBM) (64-Bit Server|Server|Client|J9) VM"); then
       unsupported_runtime_warning
+    fi
+  elif [[ $JAVA_VERSION = "11"* ]]; then
+    if ! ("${version_command[@]}" 2>&1 | egrep -q "(Java HotSpot\\(TM\\)|OpenJDK|IBM) (64-Bit Server|Server|Client|J9) VM"); then
+       unsupported_runtime_warning
     fi
   else
       unsupported_runtime_warning
@@ -155,7 +160,7 @@ call_main_class() {
 
   export NEO4J_HOME NEO4J_CONF
 
-  exec "${JAVA_CMD}" ${JAVA_OPTS:--XX:+UseParallelGC} ${JAVA_MEMORY_OPTS[@]:-} \
+  exec "${JAVA_CMD}" ${JAVA_OPTS:--XX:+UseParallelGC} ${JAVA_MEMORY_OPTS_XMS-} ${JAVA_MEMORY_OPTS_XMX-} \
     -classpath "${CLASSPATH}" \
     ${EXTRA_JVM_ARGUMENTS:-} \
     $class_name "$@"
@@ -247,7 +252,7 @@ EOF
   for file in "neo4j-wrapper.conf" "neo4j.conf"; do
     path="${NEO4J_CONF}/${file}"
     if [ -e "${path}" ]; then
-      while read line; do
+      while read line || [[ -n "$line" ]]; do
         parse_line "${line}"
       done <"${path}"
     fi

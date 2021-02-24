@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.storageengine.impl.recordstorage;
 
+import org.apache.commons.lang3.exception.CloneFailedException;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
@@ -269,6 +270,12 @@ class RecordRelationshipGroupCursor extends RelationshipGroupRecord implements S
     {
         long loops = getFirstLoop();
         return loops == NO_ID ? NO_ID : encodeRelationshipReference( loops );
+    }
+
+    @Override
+    public RelationshipGroupRecord clone()
+    {
+        throw new CloneFailedException( "Record cursors are not cloneable." );
     }
 
     @Override

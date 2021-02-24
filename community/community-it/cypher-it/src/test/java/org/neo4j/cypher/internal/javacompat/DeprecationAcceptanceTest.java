@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -36,6 +36,7 @@ import org.neo4j.procedure.Procedure;
 
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class DeprecationAcceptanceTest extends NotificationTestSupport
@@ -69,7 +70,7 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     @Test
     public void deprecatedToInt()
     {
-        Stream.of( "CYPHER 3.1", "CYPHER 3.5" )
+        Stream.of( "CYPHER 3.1", "CYPHER 3.6" )
                 .forEach( version -> assertNotifications( version + " EXPLAIN RETURN toInt('1') AS one",
                                                           containsItem( deprecatedFeatureWarning ) ) );
     }
@@ -77,7 +78,7 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     @Test
     public void deprecatedUpper()
     {
-        Stream.of( "CYPHER 3.1", "CYPHER 3.5" )
+        Stream.of( "CYPHER 3.1", "CYPHER 3.6" )
                 .forEach( version -> assertNotifications( version + " EXPLAIN RETURN upper('foo') AS one",
                                                           containsItem( deprecatedFeatureWarning ) ) );
     }
@@ -85,7 +86,7 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     @Test
     public void deprecatedLower()
     {
-        Stream.of( "CYPHER 3.1", "CYPHER 3.5" )
+        Stream.of( "CYPHER 3.1", "CYPHER 3.6" )
                 .forEach( version -> assertNotifications( version + " EXPLAIN RETURN lower('BAR') AS one",
                                                           containsItem( deprecatedFeatureWarning ) ) );
     }
@@ -93,7 +94,7 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     @Test
     public void deprecatedRels()
     {
-        Stream.of( "CYPHER 3.1", "CYPHER 3.5" )
+        Stream.of( "CYPHER 3.1", "CYPHER 3.6" )
                 .forEach( version -> assertNotifications( version + " EXPLAIN MATCH p = ()-->() RETURN rels(p) AS r",
                                                           containsItem( deprecatedFeatureWarning ) ) );
     }
@@ -113,10 +114,48 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     }
 
     @Test
+    public void deprecatedParameterSyntax()
+    {
+        assertNotifications( "EXPLAIN RETURN {param} AS parameter",
+                containsItem( deprecatedParameterSyntax ) );
+    }
+
+    @Test
+    public void deprecatedParameterSyntaxForPropertyMap()
+    {
+        assertNotifications( "EXPLAIN CREATE (:Label {props})", containsItem( deprecatedParameterSyntax ) );
+    }
+
+    @Test
+    public void deprecatedFilterShouldNotHitCacheForNewVersion()
+    {
+        assertNotifications( "EXPLAIN WITH [1,2,3] AS list RETURN filter(x IN list WHERE x % 2 = 1) AS odds",
+                containsItem( deprecatedFeatureWarning ) );
+
+        try ( Result result = db().execute( "EXPLAIN WITH [1,2,3] AS list RETURN [x IN list WHERE x % 2 = 1] AS odds" ) )
+        {
+            assertFalse( result.getNotifications().iterator().hasNext() );
+        }
+
+    }
+
+    @Test
+    public void deprecatedExtractShouldNotHitCacheForNewVersion()
+    {
+        assertNotifications( "EXPLAIN WITH [1,2,3] AS list RETURN extract(x IN list | x * 10) AS tens",
+                containsItem( deprecatedFeatureWarning ) );
+
+        try ( Result result = db().execute( "EXPLAIN WITH [1,2,3] AS list RETURN [x IN list | x * 10] AS tens" ) )
+        {
+            assertFalse( result.getNotifications().iterator().hasNext() );
+        }
+    }
+
+    @Test
     public void deprecatedProcedureCalls() throws Exception
     {
         db().getDependencyResolver().provideDependency( Procedures.class ).get().registerProcedure( TestProcedures.class );
-        Stream.of( "CYPHER 3.1", "CYPHER 3.5" ).forEach( version ->
+        Stream.of( "CYPHER 3.1", "CYPHER 3.6" ).forEach( version ->
                                                          {
                                                              assertNotifications( version + "explain CALL oldProc()",
                                                                                   containsItem( deprecatedProcedureWarning ) );
@@ -131,7 +170,7 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     public void deprecatedProcedureResultField() throws Exception
     {
         db().getDependencyResolver().provideDependency( Procedures.class ).get().registerProcedure( TestProcedures.class );
-        Stream.of( "CYPHER 3.5" ).forEach(
+        Stream.of( "CYPHER 3.6" ).forEach(
                 version -> assertNotifications(
                         version + "explain CALL changedProc() YIELD oldField RETURN oldField",
                         containsItem( deprecatedProcedureReturnFieldWarning )
@@ -233,7 +272,7 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
     public void shouldNotifyWhenUsingCreateUniqueWhenCypherVersionIs3_5()
     {
         // when
-        Result result = db().execute( "CYPHER 3.5 MATCH (b) WITH b LIMIT 1 CREATE UNIQUE (b)-[:REL]->()" );
+        Result result = db().execute( "CYPHER 3.6 MATCH (b) WITH b LIMIT 1 CREATE UNIQUE (b)-[:REL]->()" );
         InputPosition position = new InputPosition( 36, 1, 37 );
 
         // then
@@ -255,22 +294,22 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
 
         for ( String query : deprecatedQueries )
         {
-            assertNotifications( "CYPHER 3.5 " + query, containsItem( deprecatedSeparatorWarning ) );
+            assertNotifications( "CYPHER 3.6 " + query, containsItem( deprecatedSeparatorWarning ) );
         }
 
         for ( String query : nonDeprecatedQueries )
         {
-            assertNotifications( "CYPHER 3.5 " + query, containsNoItem( deprecatedSeparatorWarning ) );
+            assertNotifications( "CYPHER 3.6 " + query, containsNoItem( deprecatedSeparatorWarning ) );
         }
     }
 
     @Test
     public void deprecatedBindingVariableLengthRelationship()
     {
-        assertNotifications( "CYPHER 3.5 explain MATCH ()-[rs*]-() RETURN rs", containsItem( deprecatedBindingWarning
+        assertNotifications( "CYPHER 3.6 explain MATCH ()-[rs*]-() RETURN rs", containsItem( deprecatedBindingWarning
         ) );
 
-        assertNotifications( "CYPHER 3.5 explain MATCH p = ()-[*]-() RETURN relationships(p) AS rs", containsNoItem(
+        assertNotifications( "CYPHER 3.6 explain MATCH p = ()-[*]-() RETURN relationships(p) AS rs", containsNoItem(
                 deprecatedBindingWarning ) );
     }
 
@@ -335,6 +374,9 @@ public class DeprecationAcceptanceTest extends NotificationTestSupport
             deprecation( "The semantics of using colon in the separation of alternative relationship " +
                          "types in conjunction with the use of variable binding, inlined property " +
                          "predicates, or variable length will change in a future version." );
+
+    private Matcher<Notification> deprecatedParameterSyntax =
+            deprecation( "The parameter syntax `{param}` is deprecated, please use `$param` instead" );
 
     private Matcher<Notification> deprecation( String message )
     {

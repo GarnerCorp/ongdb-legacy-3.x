@@ -1,10 +1,13 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j.
+ * This file is part of ONgDB.
  *
- * Neo4j is free software: you can redistribute it and/or modify
+ * ONgDB is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -19,11 +22,12 @@
  */
 package org.neo4j.cypher.internal.runtime.slotted
 
+import org.neo4j.cypher.internal.runtime.EntityById
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.v3_5.logical.plans.CachedNodeProperty
-import org.neo4j.cypher.internal.v3_5.util.InternalException
+import org.neo4j.cypher.internal.v3_6.logical.plans.CachedNodeProperty
+import org.neo4j.cypher.internal.v3_6.util.InternalException
 import org.neo4j.cypher.result.QueryResult
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Value
@@ -108,7 +112,7 @@ case class ArrayResultExecutionContext(resultArray: Array[AnyValue],
     resultArray
   }
 
-  // See: https://github.com/neo4j/neo4j/blob/3.5.1/community/cypher/interpreted-runtime/src/main/scala/org/neo4j/cypher/internal/runtime/interpreted/ExecutionContext.scala
+  // See: https://github.com/graphfoundation/ongdb/blob/3.5.1/community/cypher/interpreted-runtime/src/main/scala/org/neo4j/cypher/internal/runtime/interpreted/ExecutionContext.scala
   // We are just overriding it right now.
   override def copyCachedFrom(input: ExecutionContext): Unit = fail()
 
@@ -139,7 +143,7 @@ case class ArrayResultExecutionContext(resultArray: Array[AnyValue],
 
   override def set(key1: String, value1: AnyValue, key2: String, value2: AnyValue, key3: String, value3: AnyValue): Unit = fail()
 
-  override def mergeWith(other: ExecutionContext): Unit = fail()
+  override def mergeWith(other: ExecutionContext, entityById: EntityById): Unit = fail()
 
   override def createClone(): ExecutionContext = fail()
 

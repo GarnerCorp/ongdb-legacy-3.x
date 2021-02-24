@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted
 
-import org.neo4j.cypher.internal.ir.v3_5.VarPatternLength
-import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
+import org.neo4j.cypher.internal.ir.v3_6.VarPatternLength
+import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.ProcedureCallMode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.KeyTokenResolver
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.PatternConverters._
@@ -28,14 +28,14 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.{Expressio
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{AggregationExpression, Literal, ShortestPathExpression}
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.{Predicate, True}
 import org.neo4j.cypher.internal.runtime.interpreted.pipes._
-import org.neo4j.cypher.internal.v3_5.logical.plans
-import org.neo4j.cypher.internal.v3_5.logical.plans.{ColumnOrder, Limit => LimitPlan, LoadCSV => LoadCSVPlan, Skip => SkipPlan, _}
+import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.v3_6.expressions.{Equals => ASTEquals, Expression => ASTExpression, _}
+import org.neo4j.cypher.internal.v3_6.logical.plans
+import org.neo4j.cypher.internal.v3_6.logical.plans.{ColumnOrder, Limit => LimitPlan, LoadCSV => LoadCSVPlan, Skip => SkipPlan, _}
+import org.neo4j.cypher.internal.v3_6.util.attribution.Id
+import org.neo4j.cypher.internal.v3_6.util.{Eagerly, InternalException}
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.{NodeValue, RelationshipValue}
-import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.v3_5.expressions.{Equals => ASTEquals, Expression => ASTExpression, _}
-import org.neo4j.cypher.internal.v3_5.util.attribution.Id
-import org.neo4j.cypher.internal.v3_5.util.{Eagerly, InternalException}
 
 /**
  * Responsible for turning a logical plan with argument pipes into a new pipe.
@@ -111,7 +111,7 @@ case class InterpretedPipeBuilder(recurse: LogicalPlan => Pipe,
         ProjectEndpointsPipe(source, rel,
           start, startInScope,
           end, endInScope,
-          types.map(_.toArray).map(LazyTypes.apply), directed, length.isSimple)()
+          types.map(_.toArray).map(LazyTypes.apply), directed, length.isSimple)(id = id)
 
       case EmptyResult(_) =>
         EmptyResultPipe(source)(id = id)
@@ -131,7 +131,7 @@ case class InterpretedPipeBuilder(recurse: LogicalPlan => Pipe,
         ExpandIntoPipe(source, fromName, relName, toName, dir, LazyTypes(types.toArray))(id = id)
 
       case LockNodes(_, nodesToLock) =>
-        LockNodesPipe(source, nodesToLock)()
+        LockNodesPipe(source, nodesToLock)(id = id)
 
       case OptionalExpand(_, fromName, dir, types, toName, relName, ExpandAll, predicates) =>
         val predicate: Predicate = predicates.map(buildPredicate(id, _)).reduceOption(_ andWith _).getOrElse(True())
@@ -294,6 +294,10 @@ case class InterpretedPipeBuilder(recurse: LogicalPlan => Pipe,
         SetPipe(source,
           SetNodePropertyFromMapOperation(name, buildExpression(expression), removeOtherProps, needsExclusiveLock))(id = id)
 
+      case SetPropertiesFromMap(_, entityExpr, expression, removeOtherProps) =>
+        SetPipe(source,
+          SetPropertyFromMapOperation(buildExpression(entityExpr), buildExpression(expression), removeOtherProps))(id = id)
+
       case SetRelationshipProperty(_, name, propertyKey, expression) =>
         val needsExclusiveLock = ASTExpression.hasPropertyReadDependency(name, expression, propertyKey)
         SetPipe(source,
@@ -345,29 +349,34 @@ case class InterpretedPipeBuilder(recurse: LogicalPlan => Pipe,
 
   private def varLengthPredicate(id: Id, predicates: Seq[(LogicalVariable, ASTExpression)]): VarLengthPredicate  = {
     //Creates commands out of the predicates
-    def asCommand(predicates: Seq[(LogicalVariable, ASTExpression)]) = {
+    def asCommand(predicates: Seq[(LogicalVariable, ASTExpression)]): ((ExecutionContext, QueryState, AnyValue) => Boolean, Seq[Predicate]) = {
       val (keys: Seq[LogicalVariable], exprs) = predicates.unzip
 
       val commands = exprs.map(buildPredicate(id, _))
-      (context: ExecutionContext, state: QueryState, entity: AnyValue) => {
-        keys.zip(commands).forall { case (variable: LogicalVariable, expr: Predicate) =>
+      val keysAndCommands = keys.zip(commands)
+
+      // Return both the command lambda and the underlying list of command predicates
+      ((context: ExecutionContext, state: QueryState, entity: AnyValue) => {
+        keysAndCommands.forall { case (variable: LogicalVariable, expr: Predicate) =>
           context(variable.name) = entity
           val result = expr.isTrue(context, state)
           context.remove(variable.name)
           result
         }
-      }
+      }, commands)
     }
 
     //partition predicates on whether they deal with nodes or rels
     val (nodePreds, relPreds) = predicates.partition(e => semanticTable.seen(e._1) && semanticTable.isNode(e._1))
-    val nodeCommand = asCommand(nodePreds)
-    val relCommand = asCommand(relPreds)
+    val (nodeCommand, nodeCommandPreds) = asCommand(nodePreds)
+    val (relCommand, relCommandPreds) = asCommand(relPreds)
 
     new VarLengthPredicate {
       override def filterNode(row: ExecutionContext, state: QueryState)(node: NodeValue): Boolean = nodeCommand(row, state, node)
 
       override def filterRelationship(row: ExecutionContext, state: QueryState)(rel: RelationshipValue): Boolean = relCommand(row, state, rel)
+
+      override def predicateExpressions: Seq[Predicate] = nodeCommandPreds ++ relCommandPreds
     }
   }
 

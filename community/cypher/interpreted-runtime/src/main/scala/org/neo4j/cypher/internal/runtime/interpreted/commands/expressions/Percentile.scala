@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,21 +19,26 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.{PercentileContFunction, PercentileDiscFunction}
-import org.neo4j.cypher.internal.v3_5.util.symbols._
+import org.neo4j.cypher.internal.v3_6.util.symbols._
 
 case class PercentileCont(anInner: Expression, percentile: Expression) extends AggregationWithInnerExpression(anInner) {
-  def createAggregationFunction = new PercentileContFunction(anInner, percentile)
+  override def createAggregationFunction = new PercentileContFunction(anInner, percentile)
 
-  def expectedInnerType = CTNumber
+  def expectedInnerType: CypherType = CTNumber
 
-  def rewrite(f: (Expression) => Expression) = f(PercentileCont(anInner.rewrite(f), percentile.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(PercentileCont(anInner.rewrite(f), percentile.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(anInner, percentile)
 }
 
 case class PercentileDisc(anInner: Expression, percentile: Expression) extends AggregationWithInnerExpression(anInner) {
-  def createAggregationFunction = new PercentileDiscFunction(anInner, percentile)
+  override def createAggregationFunction = new PercentileDiscFunction(anInner, percentile)
 
-  def expectedInnerType = CTNumber
+  def expectedInnerType: CypherType  = CTNumber
 
-  def rewrite(f: (Expression) => Expression) = f(PercentileDisc(anInner.rewrite(f), percentile.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(PercentileDisc(anInner.rewrite(f), percentile.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(anInner, percentile)
 }

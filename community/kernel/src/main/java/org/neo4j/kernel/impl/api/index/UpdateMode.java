@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -47,6 +47,8 @@ public enum UpdateMode
             return binarySearch( before, label ) >= 0;
         }
     };
+
+    public static final UpdateMode[] MODES = UpdateMode.values();
 
     public abstract boolean forLabel( long[] before, long[] after, long label );
 }

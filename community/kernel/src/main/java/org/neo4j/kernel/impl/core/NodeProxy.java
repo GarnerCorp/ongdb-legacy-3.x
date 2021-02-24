@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -80,6 +80,20 @@ public class NodeProxy implements Node, RelationshipFactory<Relationship>
     {
         this.nodeId = nodeId;
         this.spi = spi;
+    }
+
+    public static boolean isDeletedInCurrentTransaction( Node node )
+    {
+        if ( node instanceof NodeProxy )
+        {
+            NodeProxy proxy = (NodeProxy) node;
+            KernelTransaction ktx = proxy.spi.kernelTransaction();
+            try ( Statement ignore = ktx.acquireStatement() )
+            {
+                return ktx.dataRead().nodeDeletedInTransaction( proxy.nodeId );
+            }
+        }
+        return false;
     }
 
     @Override

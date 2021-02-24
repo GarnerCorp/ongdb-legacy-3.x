@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -35,6 +35,7 @@ import org.neo4j.internal.kernel.api.Procedures;
 import org.neo4j.internal.kernel.api.SchemaWrite;
 import org.neo4j.internal.kernel.api.Transaction;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
+import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
 import org.neo4j.kernel.api.security.AnonymousContext;
 import org.neo4j.kernel.impl.api.integrationtest.KernelIntegrationTest;
@@ -61,7 +62,8 @@ public class SchemaProcedureIT extends KernelIntegrationTest
         // When
         Procedures procs = procs();
         RawIterator<Object[],ProcedureException> stream =
-               procs.procedureCallRead( procs.procedureGet( procedureName( "db", "schema" ) ).id(), new Object[0] );
+               procs.procedureCallRead( procs.procedureGet( procedureName( "db", "schema" ) ).id(), new Object[0],
+                       ProcedureCallContext.EMPTY );
 
         // Then
         assertThat( asList( stream ), contains( equalTo( new Object[]{new ArrayList<>(), new ArrayList<>()} ) ) );
@@ -90,7 +92,7 @@ public class SchemaProcedureIT extends KernelIntegrationTest
         // When
         RawIterator<Object[],ProcedureException> stream =
                 procs().procedureCallRead( procs().procedureGet( procedureName( "db", "schema" ) ).id(),
-                        new Object[0] );
+                        new Object[0], ProcedureCallContext.EMPTY );
 
         // Then
         while ( stream.hasNext() )
@@ -126,7 +128,7 @@ public class SchemaProcedureIT extends KernelIntegrationTest
         // When
         RawIterator<Object[],ProcedureException> stream =
                 procs().procedureCallRead( procs().procedureGet(  procedureName( "db", "schema" ) ).id(),
-                        new Object[0] );
+                        new Object[0], ProcedureCallContext.EMPTY );
 
         // Then
         while ( stream.hasNext() )

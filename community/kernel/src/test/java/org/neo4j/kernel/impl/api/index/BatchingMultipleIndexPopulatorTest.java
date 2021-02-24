@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -342,7 +342,7 @@ public class BatchingMultipleIndexPopulatorTest
     private EntityUpdates nodeUpdates( int nodeId, int propertyId, String propertyValue, long...
             labelIds )
     {
-        return EntityUpdates.forEntity( (long) nodeId ).withTokens( labelIds ).withTokensAfter( labelIds )
+        return EntityUpdates.forEntity( (long) nodeId, false ).withTokens( labelIds ).withTokensAfter( labelIds )
                 .added( propertyId, Values.of( propertyValue ) )
                 .build();
     }

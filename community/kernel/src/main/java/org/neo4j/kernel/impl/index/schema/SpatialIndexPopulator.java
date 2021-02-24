@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,16 +26,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.index.IndexConfigProvider;
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.impl.index.schema.config.SpaceFillingCurveSettings;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.IndexSample;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -49,9 +51,10 @@ import static org.neo4j.kernel.impl.index.schema.fusion.FusionIndexSampler.combi
 class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopulator<SpatialIndexKey,NativeIndexValue>> implements IndexPopulator
 {
     SpatialIndexPopulator( StoreIndexDescriptor descriptor, SpatialIndexFiles spatialIndexFiles, PageCache pageCache,
-            FileSystemAbstraction fs, IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration )
+            FileSystemAbstraction fs, IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration,
+            TokenNameLookup tokenNameLookup )
     {
-        super( new PartFactory( pageCache, fs, spatialIndexFiles, descriptor, monitor, configuration ) );
+        super( new PartFactory( pageCache, fs, spatialIndexFiles, descriptor, monitor, configuration, tokenNameLookup ) );
     }
 
     @Override
@@ -143,17 +146,30 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
         return combineSamples( samples );
     }
 
+    @Override
+    public Map<String,Value> indexConfig()
+    {
+        Map<String,Value> indexConfig = new HashMap<>();
+        for ( IndexPopulator part : this )
+        {
+            IndexConfigProvider.putAllNoOverwrite( indexConfig, part.indexConfig() );
+        }
+        return indexConfig;
+    }
+
     static class PartPopulator extends NativeIndexPopulator<SpatialIndexKey,NativeIndexValue>
     {
         private final SpaceFillingCurveConfiguration configuration;
         private final SpaceFillingCurveSettings settings;
+        private final CoordinateReferenceSystem crs;
 
         PartPopulator( PageCache pageCache, FileSystemAbstraction fs, SpatialIndexFiles.SpatialFileLayout fileLayout, IndexProvider.Monitor monitor,
-                StoreIndexDescriptor descriptor, SpaceFillingCurveConfiguration configuration )
+                StoreIndexDescriptor descriptor, SpaceFillingCurveConfiguration configuration, TokenNameLookup tokenNameLookup )
         {
-            super( pageCache, fs, fileLayout.getIndexFile(), fileLayout.layout, monitor, descriptor, NO_HEADER_WRITER );
+            super( pageCache, fs, fileLayout.getIndexFile(), fileLayout.layout, monitor, descriptor, NO_HEADER_WRITER, tokenNameLookup );
             this.configuration = configuration;
             this.settings = fileLayout.settings;
+            this.crs = fileLayout.spatialFile.crs;
         }
 
         @Override
@@ -170,12 +186,12 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
         }
 
         @Override
-        ConflictDetectingValueMerger<SpatialIndexKey,NativeIndexValue> getMainConflictDetector()
+        ConflictDetectingValueMerger<SpatialIndexKey,NativeIndexValue,Value[]> getMainConflictDetector()
         {
             // Because of lossy point representation in index we need to always compare on node id,
             // even for unique indexes. If we don't we risk throwing constraint violation exception
             // for points that are in fact unique.
-            return new ConflictDetectingValueMerger<>( true );
+            return new ThrowingConflictDetector<>( true );
         }
 
         @Override
@@ -195,6 +211,14 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
         {
             tree.checkpoint( IOLimiter.UNLIMITED, settings.headerWriter( BYTE_ONLINE ) );
         }
+
+        @Override
+        public Map<String,Value> indexConfig()
+        {
+            Map<String,Value> map = new HashMap<>();
+            SpatialIndexConfig.addSpatialConfig( map, crs, settings );
+            return map;
+        }
     }
 
     static class PartFactory implements Factory<WorkSyncedNativeIndexPopulator<SpatialIndexKey,NativeIndexValue>>
@@ -205,9 +229,10 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
         private final StoreIndexDescriptor descriptor;
         private final IndexProvider.Monitor monitor;
         private final SpaceFillingCurveConfiguration configuration;
+        private final TokenNameLookup tokenNameLookup;
 
         PartFactory( PageCache pageCache, FileSystemAbstraction fs, SpatialIndexFiles spatialIndexFiles, StoreIndexDescriptor descriptor,
-                IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration )
+                IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration, TokenNameLookup tokenNameLookup )
         {
             this.pageCache = pageCache;
             this.fs = fs;
@@ -215,6 +240,7 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
             this.descriptor = descriptor;
             this.monitor = monitor;
             this.configuration = configuration;
+            this.tokenNameLookup = tokenNameLookup;
         }
 
         @Override
@@ -225,7 +251,7 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
 
         private WorkSyncedNativeIndexPopulator<SpatialIndexKey,NativeIndexValue> create( SpatialIndexFiles.SpatialFileLayout fileLayout )
         {
-            PartPopulator populator = new PartPopulator( pageCache, fs, fileLayout, monitor, descriptor, configuration );
+            PartPopulator populator = new PartPopulator( pageCache, fs, fileLayout, monitor, descriptor, configuration, tokenNameLookup );
             populator.create();
             return new WorkSyncedNativeIndexPopulator<>( populator );
         }

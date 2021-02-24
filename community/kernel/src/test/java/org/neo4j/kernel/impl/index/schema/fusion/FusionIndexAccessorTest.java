@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -40,8 +40,10 @@ import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
+import org.neo4j.kernel.impl.annotations.ReporterFactories;
+import org.neo4j.kernel.impl.annotations.ReporterFactory;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
-import org.neo4j.kernel.impl.index.schema.fusion.FusionIndexProvider.DropAction;
+import org.neo4j.kernel.impl.index.schema.IndexDropAction;
 import org.neo4j.storageengine.api.schema.IndexDescriptorFactory;
 import org.neo4j.storageengine.api.schema.IndexReader;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
@@ -50,6 +52,7 @@ import org.neo4j.values.storable.Value;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -83,7 +86,7 @@ public class FusionIndexAccessorTest
 {
     private FusionIndexAccessor fusionIndexAccessor;
     private final long indexId = 0;
-    private final DropAction dropAction = mock( DropAction.class );
+    private final IndexDropAction dropAction = mock( IndexDropAction.class );
     private EnumMap<IndexSlot,IndexAccessor> accessors;
     private IndexAccessor[] aliveAccessors;
     private StoreIndexDescriptor indexDescriptor =
@@ -507,6 +510,43 @@ public class FusionIndexAccessorTest
         {
             // then
             verifyNoMoreInteractions( aliveAccessors[j] );
+        }
+    }
+
+    /* Consistency check */
+
+    @Test
+    public void mustCheckConsistencyOnAllAliveAccessors()
+    {
+        for ( IndexAccessor accessor : aliveAccessors )
+        {
+            when( accessor.consistencyCheck( any( ReporterFactory.class ) ) ).thenReturn( true );
+        }
+        assertTrue( fusionIndexAccessor.consistencyCheck( ReporterFactories.noopReporterFactory() ) );
+        for ( IndexAccessor accessor : aliveAccessors )
+        {
+            verify( accessor, times( 1 ) ).consistencyCheck( any( ReporterFactory.class ) );
+        }
+    }
+
+    @Test
+    public void mustFailConsistencyCheckIfOneAliveAccessorFails()
+    {
+        for ( IndexAccessor failingAccessor : aliveAccessors )
+        {
+            for ( IndexAccessor accessor : aliveAccessors )
+            {
+                if ( accessor == failingAccessor )
+                {
+                    when( failingAccessor.consistencyCheck( any( ReporterFactory.class ) ) ).thenReturn( false );
+                }
+                else
+                {
+                    when( failingAccessor.consistencyCheck( any( ReporterFactory.class ) ) ).thenReturn( true );
+                }
+            }
+            assertFalse( fusionIndexAccessor.consistencyCheck( ReporterFactories.noopReporterFactory() ) );
+            resetMocks();
         }
     }
 

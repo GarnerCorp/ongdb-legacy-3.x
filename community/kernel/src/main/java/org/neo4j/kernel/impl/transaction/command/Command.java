@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -378,6 +378,19 @@ public abstract class Command implements StorageCommand
         public boolean handle( CommandVisitor handler ) throws IOException
         {
             return handler.visitPropertyCommand( this );
+        }
+
+        public long getEntityId()
+        {
+            if ( after.isNodeSet() )
+            {
+                return after.getNodeId();
+            }
+            if ( after.isRelSet() )
+            {
+                return after.getRelId();
+            }
+            throw new UnsupportedOperationException( format( "Unexpected owner of property %s, neither a node nor a relationship", after ) );
         }
 
         public long getNodeId()

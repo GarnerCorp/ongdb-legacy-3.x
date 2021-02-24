@@ -1,24 +1,21 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 
 package org.neo4j.backup.impl;
@@ -39,7 +36,6 @@ import org.neo4j.commandline.arguments.OptionalBooleanArg;
 import org.neo4j.commandline.arguments.OptionalNamedArg;
 import org.neo4j.commandline.arguments.common.MandatoryCanonicalPath;
 import org.neo4j.commandline.arguments.common.OptionalCanonicalPath;
-import org.neo4j.consistency.ConsistencyCheckSettings;
 import org.neo4j.consistency.checking.full.ConsistencyFlags;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
@@ -146,9 +142,11 @@ class OnlineBackupContextFactory
             String pagecacheMemory = arguments.get( ARG_NAME_PAGECACHE );
             Optional<Path> additionalConfig = arguments.getOptionalPath( ARG_NAME_ADDITIONAL_CONFIG_DIR );
             Path reportDir = (Path) arguments.getOptionalPath( ARG_NAME_REPORT_DIRECTORY ).orElseThrow( () ->
-            {
-                return new IllegalArgumentException( ARG_NAME_REPORT_DIRECTORY + " must be a path" );
-            } );
+                                                                                                        {
+                                                                                                            return new IllegalArgumentException(
+                                                                                                                    ARG_NAME_REPORT_DIRECTORY +
+                                                                                                                    " must be a path" );
+                                                                                                        } );
             OnlineBackupRequiredArguments requiredArguments =
                     new OnlineBackupRequiredArguments( address, folder, name, selectedBackupProtocol, fallbackToFull, doConsistencyCheck, timeout, reportDir );
 
@@ -157,7 +155,7 @@ class OnlineBackupContextFactory
             Path logPath = requiredArguments.getResolvedLocationFromName();
 
             Config config = builder.withHome( this.homeDir ).withSetting( GraphDatabaseSettings.logical_logs_location,
-                    logPath.toString() ).withConnectorsDisabled().withNoThrowOnFileLoadFailure().build();
+                                                                          logPath.toString() ).withConnectorsDisabled().withNoThrowOnFileLoadFailure().build();
 
             additionalConfig.map( this::loadAdditionalConfigFile ).ifPresent( config::augment );
 
@@ -172,10 +170,8 @@ class OnlineBackupContextFactory
             // Note: We can remove the loading from config file in 4.0.
             BiFunction<String,Setting<Boolean>,Boolean> oneOf = ( a, s ) -> arguments.has( a ) ? arguments.getBoolean( a ) : config.get( s );
 
-            ConsistencyFlags consistencyFlags = new ConsistencyFlags( oneOf.apply( ARG_NAME_CHECK_GRAPH, ConsistencyCheckSettings.consistency_check_graph ),
-                    oneOf.apply( ARG_NAME_CHECK_INDEXES, ConsistencyCheckSettings.consistency_check_indexes ),
-                    oneOf.apply( ARG_NAME_CHECK_LABELS, ConsistencyCheckSettings.consistency_check_label_scan_store ),
-                    oneOf.apply( ARG_NAME_CHECK_OWNERS, ConsistencyCheckSettings.consistency_check_property_owners ) );
+            ConsistencyFlags consistencyFlags = new ConsistencyFlags( config );
+
             return new OnlineBackupContext( requiredArguments, config, consistencyFlags );
         }
         catch ( IllegalArgumentException e )

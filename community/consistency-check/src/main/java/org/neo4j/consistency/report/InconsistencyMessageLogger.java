@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -49,6 +49,12 @@ public class InconsistencyMessageLogger implements InconsistencyLogger
     }
 
     @Override
+    public void error( String message )
+    {
+        log.error( buildMessage( message ) );
+    }
+
+    @Override
     public void warning( RecordType recordType, AbstractBaseRecord record, String message, Object... args )
     {
         log.warn( buildMessage( message, record, args ) );
@@ -59,6 +65,18 @@ public class InconsistencyMessageLogger implements InconsistencyLogger
                          String message, Object... args )
     {
         log.warn( buildMessage( message, oldRecord, newRecord, args ) );
+    }
+
+    @Override
+    public void warning( String message )
+    {
+        log.warn( buildMessage( message ) );
+    }
+
+    private static String buildMessage( String message )
+    {
+        StringBuilder builder = tabAfterLinebreak( message );
+        return builder.toString();
     }
 
     private static String buildMessage( String message, AbstractBaseRecord record, Object[] args )
@@ -75,6 +93,17 @@ public class InconsistencyMessageLogger implements InconsistencyLogger
         builder.append( System.lineSeparator() ).append( TAB ).append( "+ " ).append( newRecord );
         appendArgs( builder, args );
         return builder.toString();
+    }
+
+    private static StringBuilder tabAfterLinebreak( String message )
+    {
+        String[] lines = message.split( "\n" );
+        StringBuilder builder = new StringBuilder( lines[0].trim() );
+        for ( int i = 1; i < lines.length; i++ )
+        {
+            builder.append( System.lineSeparator() ).append( TAB ).append( lines[i].trim() );
+        }
+        return builder;
     }
 
     private static StringBuilder joinLines( String message )

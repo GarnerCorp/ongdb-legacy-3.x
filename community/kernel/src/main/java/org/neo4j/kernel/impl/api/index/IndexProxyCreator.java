@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,11 +26,13 @@ import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
+import org.neo4j.kernel.impl.index.schema.ByteBufferFactory;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 
 import static java.lang.String.format;
+import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 
 /**
  * Helper class of {@link IndexingService}. Used mainly as factory of index proxies.
@@ -57,12 +59,12 @@ class IndexProxyCreator
     }
 
     IndexProxy createPopulatingIndexProxy( final StoreIndexDescriptor descriptor, final boolean flipToTentative, final IndexingService.Monitor monitor,
-                                           final IndexPopulationJob populationJob )
+            final IndexPopulationJob populationJob )
     {
         final FlippableIndexProxy flipper = new FlippableIndexProxy();
 
         final String indexUserDescription = indexUserDescription( descriptor );
-        IndexPopulator populator = populatorFromProvider( descriptor, samplingConfig );
+        IndexPopulator populator = populatorFromProvider( descriptor, samplingConfig, populationJob.bufferFactory() );
         CapableIndexDescriptor capableIndexDescriptor = providerMap.withCapabilities( descriptor );
 
         FailedIndexProxyFactory failureDelegateFactory = new FailedPopulatingIndexProxyFactory( capableIndexDescriptor,
@@ -90,14 +92,14 @@ class IndexProxyCreator
             return onlineProxy;
         } );
 
-        return new ContractCheckingIndexProxy( flipper, false );
+        return new ContractCheckingIndexProxy( flipper );
     }
 
     IndexProxy createRecoveringIndexProxy( StoreIndexDescriptor descriptor )
     {
         CapableIndexDescriptor capableIndexDescriptor = providerMap.withCapabilities( descriptor );
         IndexProxy proxy = new RecoveringIndexProxy( capableIndexDescriptor );
-        return new ContractCheckingIndexProxy( proxy, true );
+        return new ContractCheckingIndexProxy( proxy );
     }
 
     IndexProxy createOnlineIndexProxy( StoreIndexDescriptor descriptor )
@@ -108,7 +110,8 @@ class IndexProxyCreator
             CapableIndexDescriptor capableIndexDescriptor = providerMap.withCapabilities( descriptor );
             IndexProxy proxy;
             proxy = new OnlineIndexProxy( capableIndexDescriptor, onlineAccessor, storeView, false );
-            proxy = new ContractCheckingIndexProxy( proxy, true );
+            proxy = new ContractCheckingIndexProxy( proxy );
+            // it will be started later, when recovery is completed
             return proxy;
         }
         catch ( IOException e )
@@ -122,7 +125,9 @@ class IndexProxyCreator
 
     IndexProxy createFailedIndexProxy( StoreIndexDescriptor descriptor, IndexPopulationFailure populationFailure )
     {
-        IndexPopulator indexPopulator = populatorFromProvider( descriptor, samplingConfig );
+        // Note about the buffer factory instantiation here. Question is why an index populator is instantiated for a failed index proxy to begin with.
+        // The byte buffer factory should not be used here anyway so the buffer size doesn't actually matter.
+        IndexPopulator indexPopulator = populatorFromProvider( descriptor, samplingConfig, heapBufferFactory( 1024 ) );
         CapableIndexDescriptor capableIndexDescriptor = providerMap.withCapabilities( descriptor );
         String indexUserDescription = indexUserDescription( descriptor );
         IndexProxy proxy;
@@ -132,7 +137,7 @@ class IndexProxyCreator
                 populationFailure,
                 new IndexCountsRemover( storeView, descriptor.getId() ),
                 logProvider );
-        proxy = new ContractCheckingIndexProxy( proxy, true );
+        proxy = new ContractCheckingIndexProxy( proxy );
         return proxy;
     }
 
@@ -142,15 +147,15 @@ class IndexProxyCreator
                 descriptor.schema().userDescription( tokenNameLookup ), descriptor.providerDescriptor().toString() );
     }
 
-    private IndexPopulator populatorFromProvider( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig )
+    private IndexPopulator populatorFromProvider( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory )
     {
         IndexProvider indexProvider = providerMap.lookup( descriptor.providerDescriptor() );
-        return indexProvider.getPopulator( descriptor, samplingConfig );
+        return indexProvider.getPopulator( descriptor, samplingConfig, bufferFactory, tokenNameLookup );
     }
 
     private IndexAccessor onlineAccessorFromProvider( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig ) throws IOException
     {
         IndexProvider indexProvider = providerMap.lookup( descriptor.providerDescriptor() );
-        return indexProvider.getOnlineAccessor( descriptor, samplingConfig );
+        return indexProvider.getOnlineAccessor( descriptor, samplingConfig, tokenNameLookup );
     }
 }

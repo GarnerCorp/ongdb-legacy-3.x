@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -63,11 +63,6 @@ public interface OutOfOrderSequence
      * @return the highest gap-free number, without its meta data.
      */
     long getHighestGapFreeNumber();
-
-    /**
-     * @return true if the pair number/meta data has been offered
-     */
-    boolean seen( long number, long[] meta );
 
     /**
      * Used in recovery. I don't like the visibility of this method at all.

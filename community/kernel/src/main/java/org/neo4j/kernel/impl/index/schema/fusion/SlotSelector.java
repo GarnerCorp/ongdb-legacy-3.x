@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,8 +30,10 @@ import static org.apache.commons.lang3.ArrayUtils.contains;
 /**
  * Given a set of values selects a slot to use.
  */
-interface SlotSelector
+public interface SlotSelector
 {
+    SlotSelector nullInstance = new NullInstance();
+
     void validateSatisfied( InstanceSelector<IndexProvider> instances );
 
     /**
@@ -63,6 +65,20 @@ interface SlotSelector
                         String.format( "Only indexes expected to be separated from IndexProvider.EMPTY are %s but was %s",
                                 Arrays.toString( aliveIndex ), instances ) );
             }
+        }
+    }
+
+    class NullInstance implements SlotSelector
+    {
+        @Override
+        public void validateSatisfied( InstanceSelector<IndexProvider> instances )
+        {   // no-op
+        }
+
+        @Override
+        public <V> IndexSlot selectSlot( V[] values, Function<V,ValueGroup> groupOf )
+        {
+            throw new UnsupportedOperationException( "NullInstance cannot select a slot for you. Please use the real deal." );
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 
 case class ParameterExpression(parameterName: String) extends Expression {
@@ -27,9 +28,11 @@ case class ParameterExpression(parameterName: String) extends Expression {
 
   override def toString(): String = "{" + parameterName + "}"
 
-  def rewrite(f: (Expression) => Expression) = f(this)
+  override def rewrite(f: Expression => Expression): Expression = f(this)
 
-  def arguments = Seq.empty
+  override def arguments: Seq[Expression] = Seq.empty
 
-  def symbolTableDependencies = Set()
+  override def children: Seq[AstNode[_]] = Seq.empty
+
+  override def symbolTableDependencies: Set[String] = Set()
 }

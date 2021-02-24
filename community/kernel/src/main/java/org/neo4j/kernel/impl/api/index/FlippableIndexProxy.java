@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.api.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -38,8 +39,8 @@ import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelExceptio
 import org.neo4j.kernel.api.exceptions.index.IndexProxyAlreadyClosedKernelException;
 import org.neo4j.kernel.api.exceptions.schema.UniquePropertyValueValidationException;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.impl.api.index.updater.DelegatingIndexUpdater;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexReader;
 import org.neo4j.storageengine.api.schema.PopulationProgress;
@@ -269,16 +270,27 @@ public class FlippableIndexProxy implements IndexProxy
     }
 
     @Override
-    public boolean awaitStoreScanCompleted() throws IndexPopulationFailedKernelException, InterruptedException
+    public boolean awaitStoreScanCompleted( long time, TimeUnit unit ) throws IndexPopulationFailedKernelException, InterruptedException
     {
         IndexProxy proxy;
-        do
+        lock.readLock().lock();
+        proxy = delegate;
+        lock.readLock().unlock();
+        if ( closed )
         {
+            return false;
+        }
+        boolean stillGoing = proxy.awaitStoreScanCompleted( time, unit );
+        if ( !stillGoing )
+        {
+            // The waiting has ended. However we're not done because say that the delegate typically is a populating proxy, when the wait is over
+            // the populating proxy flips into something else, and if that is a failed proxy then that failure should propagate out from this call.
             lock.readLock().lock();
             proxy = delegate;
             lock.readLock().unlock();
-        } while ( !closed && proxy.awaitStoreScanCompleted() );
-        return true;
+            proxy.awaitStoreScanCompleted( time, unit );
+        }
+        return stillGoing;
     }
 
     @Override
@@ -331,6 +343,20 @@ public class FlippableIndexProxy implements IndexProxy
         try
         {
             return delegate.snapshotFiles();
+        }
+        finally
+        {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public Map<String,Value> indexConfig()
+    {
+        lock.readLock().lock();
+        try
+        {
+            return delegate.indexConfig();
         }
         finally
         {
@@ -404,10 +430,10 @@ public class FlippableIndexProxy implements IndexProxy
                 if ( actionDuringFlip.call() )
                 {
                     this.delegate = flipTarget.create();
+
                     if ( started )
                     {
                         this.delegate.start();
-
                     }
                 }
             }

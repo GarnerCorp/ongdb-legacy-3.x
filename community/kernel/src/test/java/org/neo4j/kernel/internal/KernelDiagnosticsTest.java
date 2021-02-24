@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -61,7 +61,7 @@ public class KernelDiagnosticsTest
         KernelDiagnostics.StoreFiles storeFiles = new KernelDiagnostics.StoreFiles( layout );
         storeFiles.dump( logProvider.getLog( getClass() ).debugLogger() );
 
-        logProvider.assertContainsMessageContaining( "100 / 40 / 40" );
+        logProvider.rawMessageMatcher().assertContains( "100 / 40 / 40" );
     }
 
     @Test
@@ -80,8 +80,8 @@ public class KernelDiagnosticsTest
         KernelDiagnostics.StoreFiles storeFiles = new KernelDiagnostics.StoreFiles( layout );
         storeFiles.dump( logProvider.getLog( getClass() ).debugLogger() );
 
-        logProvider.assertContainsMessageContaining( "Total size of store: 4.00 kB" );
-        logProvider.assertContainsMessageContaining( "Total size of mapped files: 3.00 kB" );
+        logProvider.rawMessageMatcher().assertContains( "Total size of store: 4.00 kB" );
+        logProvider.rawMessageMatcher().assertContains( "Total size of mapped files: 3.00 kB" );
     }
 
     private File directory( File parent, String name ) throws IOException

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.eclipse.collections.api.LongIterable
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, QueryStateHelper}
-import org.neo4j.cypher.internal.v3_5.util.symbols._
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_6.util.symbols._
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
 import org.neo4j.kernel.impl.core.NodeProxy
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.values.AnyValue
@@ -193,7 +193,7 @@ class TriadicSelectionPipeTest extends CypherFunSuite {
             if (ValueUtils.of(m(keys(0))) == context(keys(0))) {
               val stringToProxy: mutable.Map[String, AnyValue] = collection.mutable.Map(m.mapValues(ValueUtils.of).toSeq: _*)
               val outRow = state.newExecutionContext(CommunityExecutionContextFactory())
-              outRow mergeWith ExecutionContext(stringToProxy)
+              outRow.mergeWith(ExecutionContext(stringToProxy), null)
               Some(outRow)
             }
             else None

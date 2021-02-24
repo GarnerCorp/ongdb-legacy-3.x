@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,12 +30,17 @@ import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.kernel.api.schema.constraints.ConstraintDescriptor;
+import org.neo4j.kernel.api.schema.MultiTokenSchemaDescriptor;
+import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
 import org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.constraints.StandardConstraintSemantics;
 import org.neo4j.kernel.impl.store.record.ConstraintRule;
+import org.neo4j.storageengine.api.EntityType;
+import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
+import org.neo4j.storageengine.api.schema.IndexDescriptorFactory;
 import org.neo4j.storageengine.api.schema.SchemaRule;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 import org.neo4j.test.Race;
@@ -46,6 +51,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.neo4j.helpers.collection.Iterators.asSet;
 import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
 import static org.neo4j.kernel.api.schema.constraints.ConstraintDescriptorFactory.uniqueForLabel;
@@ -208,6 +214,37 @@ public class SchemaCacheTest
     }
 
     @Test
+    public void schemaCacheSnapshotsShouldBeReadOnly()
+    {
+        // Given
+        SchemaCache cache = newSchemaCache();
+
+        cache.addSchemaRule( newIndexRule( 1L, 1, 2 ) );
+        cache.addSchemaRule( newIndexRule( 2L, 2, 3 ) );
+
+        SchemaCache snapshot = cache.snapshot();
+
+        cache.addSchemaRule( newIndexRule( 3L, 1, 2 ) );
+
+        // When
+        Set<CapableIndexDescriptor> indexes = asSet( snapshot.indexDescriptorsForLabel( 1 ) );
+
+        // Then
+        Set<StoreIndexDescriptor> expected = asSet( newIndexRule( 1L, 1, 2 ) );
+        assertEquals( expected, indexes );
+
+        try
+        {
+            snapshot.addSchemaRule( newIndexRule( 3L, 1, 2 ) );
+            fail( "SchemaCache snapshots should not permit mutation." );
+        }
+        catch ( IllegalStateException ignore )
+        {
+            // Good.
+        }
+    }
+
+    @Test
     public void shouldReturnNullWhenNoIndexExists()
     {
         // Given
@@ -335,6 +372,32 @@ public class SchemaCacheTest
         {
             assertEquals( 1, Iterators.count( cache.indexesByProperty( propertyId ) ) );
         }
+    }
+
+    @Test
+    public void removeSchemaWithRepeatedLabel()
+    {
+        final SchemaCache cache = newSchemaCache();
+
+        final int id = 1;
+        final int[] repeatedLabels = {0, 1, 0};
+        final MultiTokenSchemaDescriptor schema = SchemaDescriptorFactory.multiToken( repeatedLabels, EntityType.NODE, 1 );
+        final StoreIndexDescriptor storeIndexDescriptor = IndexDescriptorFactory.forSchema( schema ).withId( id );
+        cache.addSchemaRule( storeIndexDescriptor );
+        cache.removeSchemaRule( id );
+    }
+
+    @Test
+    public void removeSchemaWithRepeatedRelType()
+    {
+        final SchemaCache cache = newSchemaCache();
+
+        final int id = 1;
+        final int[] repeatedRelTypes = {0, 1, 0};
+        final MultiTokenSchemaDescriptor schema = SchemaDescriptorFactory.multiToken( repeatedRelTypes, EntityType.RELATIONSHIP, 1 );
+        final StoreIndexDescriptor storeIndexDescriptor = IndexDescriptorFactory.forSchema( schema ).withId( id );
+        cache.addSchemaRule( storeIndexDescriptor );
+        cache.removeSchemaRule( id );
     }
 
     private StoreIndexDescriptor newIndexRule( long id, int label, int propertyKey )

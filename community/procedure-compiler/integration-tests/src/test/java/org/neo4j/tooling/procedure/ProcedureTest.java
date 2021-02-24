@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -44,7 +44,7 @@ public class ProcedureTest
     public final SuppressOutput suppressOutput = SuppressOutput.suppressAll();
     @Rule
     public Neo4jRule graphDb = new Neo4jRule()
-            .dumpLogsOnFailure( System.out )
+            .dumpLogsOnFailure( () -> System.out ) // Late-bind to System.out to work better with SuppressOutput rule.
             .withProcedure( PROCEDURES_CLASS );
     private String procedureNamespace = PROCEDURES_CLASS.getPackage().getName();
 

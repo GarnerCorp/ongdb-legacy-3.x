@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -100,6 +100,8 @@ import org.neo4j.test.rule.TestDirectory;
 import static java.lang.System.currentTimeMillis;
 import static org.neo4j.consistency.ConsistencyCheckService.defaultConsistencyCheckThreadsNumber;
 import static org.neo4j.consistency.internal.SchemaIndexExtensionLoader.instantiateKernelExtensions;
+import static org.neo4j.kernel.configuration.Settings.FALSE;
+import static org.neo4j.kernel.configuration.Settings.TRUE;
 
 public abstract class GraphStoreFixture extends ConfigurablePageCacheRule implements TestRule
 {
@@ -163,6 +165,16 @@ public abstract class GraphStoreFixture extends ConfigurablePageCacheRule implem
 
     public DirectStoreAccess directStoreAccess()
     {
+        return directStoreAccess( false );
+    }
+
+    public DirectStoreAccess readOnlyDirectStoreAccess()
+    {
+        return directStoreAccess( true );
+    }
+
+    private DirectStoreAccess directStoreAccess( boolean readOnly )
+    {
         if ( directStoreAccess == null )
         {
             life.start();
@@ -170,7 +182,7 @@ public abstract class GraphStoreFixture extends ConfigurablePageCacheRule implem
             fileSystem = new DefaultFileSystemAbstraction();
             PageCache pageCache = getPageCache( fileSystem );
             LogProvider logProvider = NullLogProvider.getInstance();
-            Config config = Config.defaults();
+            Config config = Config.defaults( GraphDatabaseSettings.read_only, readOnly ? TRUE : FALSE );
             DefaultIdGeneratorFactory idGeneratorFactory = new DefaultIdGeneratorFactory( fileSystem );
             StoreFactory storeFactory = new StoreFactory(
                     directory.databaseLayout(), config, idGeneratorFactory, pageCache, fileSystem, logProvider, EmptyVersionContextSupplier.EMPTY );
@@ -194,17 +206,24 @@ public abstract class GraphStoreFixture extends ConfigurablePageCacheRule implem
                     new NeoStoreIndexStoreView( LockService.NO_LOCK_SERVICE, nativeStores.getRawNeoStores() );
 
             Monitors monitors = new Monitors();
-            LabelScanStore labelScanStore = startLabelScanStore( pageCache, indexStoreView, monitors );
+            LabelScanStore labelScanStore = startLabelScanStore( pageCache, indexStoreView, monitors, readOnly );
             IndexProviderMap indexes = createIndexes( pageCache, fileSystem, directory.databaseDir(), config, scheduler, logProvider, monitors);
-            directStoreAccess = new DirectStoreAccess( nativeStores, labelScanStore, indexes );
+            TokenHolders tokenHolders = new TokenHolders(
+                    new DelegatingTokenHolder( new ReadOnlyTokenCreator(), TokenHolder.TYPE_PROPERTY_KEY ),
+                    new DelegatingTokenHolder( new ReadOnlyTokenCreator(), TokenHolder.TYPE_LABEL ),
+                    new DelegatingTokenHolder( new ReadOnlyTokenCreator(), TokenHolder.TYPE_RELATIONSHIP_TYPE ) );
+            tokenHolders.propertyKeyTokens().setInitialTokens( neoStore.getPropertyKeyTokenStore().getTokens() );
+            tokenHolders.labelTokens().setInitialTokens( neoStore.getLabelTokenStore().getTokens() );
+            tokenHolders.relationshipTypeTokens().setInitialTokens( neoStore.getRelationshipTypeTokenStore().getTokens() );
+            directStoreAccess = new DirectStoreAccess( nativeStores, labelScanStore, indexes, tokenHolders );
         }
         return directStoreAccess;
     }
 
-    private LabelScanStore startLabelScanStore( PageCache pageCache, IndexStoreView indexStoreView, Monitors monitors )
+    private LabelScanStore startLabelScanStore( PageCache pageCache, IndexStoreView indexStoreView, Monitors monitors, boolean readOnly )
     {
         NativeLabelScanStore labelScanStore =
-                new NativeLabelScanStore( pageCache, directory.databaseLayout(), fileSystem, new FullLabelStream( indexStoreView ), false, monitors,
+                new NativeLabelScanStore( pageCache, directory.databaseLayout(), fileSystem, new FullLabelStream( indexStoreView ), readOnly, monitors,
                         RecoveryCleanupWorkCollector.immediate() );
         try
         {

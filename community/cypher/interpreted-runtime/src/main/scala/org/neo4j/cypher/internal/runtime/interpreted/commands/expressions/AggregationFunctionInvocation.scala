@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,10 +20,11 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.UserDefinedAggregator
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.AggregationFunction
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, ValueConversion}
-import org.neo4j.cypher.internal.v3_5.logical.plans.UserFunctionSignature
+import org.neo4j.cypher.internal.v3_6.logical.plans.UserFunctionSignature
 import org.neo4j.values.AnyValue
 
 abstract class AggregationFunctionInvocation(signature: UserFunctionSignature, arguments: IndexedSeq[Expression])
@@ -51,6 +52,8 @@ abstract class AggregationFunctionInvocation(signature: UserFunctionSignature, a
       inner
     }
   }
+
+  override def children: Seq[AstNode[_]] = arguments
 
   override def symbolTableDependencies: Set[String] = arguments.flatMap(_.symbolTableDependencies).toSet
 

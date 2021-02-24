@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,15 +20,19 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 
 case class Null() extends Expression {
-  def apply(v1: ExecutionContext, state: QueryState) = Values.NO_VALUE
+  override def apply(v1: ExecutionContext, state: QueryState): AnyValue = Values.NO_VALUE
 
   def rewrite(f: (Expression) => Expression): Expression = f(this)
 
-  def arguments = Seq()
+  override def arguments: Seq[Expression] = Seq.empty
 
-  def symbolTableDependencies = Set()
+  override def children: Seq[AstNode[_]] = Seq.empty
+
+  override def symbolTableDependencies: Set[String] = Set()
 }

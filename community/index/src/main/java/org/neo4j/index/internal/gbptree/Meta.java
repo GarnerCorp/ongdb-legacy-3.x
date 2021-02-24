@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -47,7 +47,7 @@ import static org.neo4j.index.internal.gbptree.PageCursorUtil.checkOutOfBounds;
  * {@link #CURRENT_STATE_VERSION} and {@link #CURRENT_GBPTREE_VERSION} aren't used yet because they have
  * never needed to be versioned yet, but remain reserved for future use. The are fixed at 0 a.t.m.
  */
-class Meta
+public class Meta
 {
     static final byte CURRENT_STATE_VERSION = 0;
     static final byte CURRENT_GBPTREE_VERSION = 0;
@@ -143,7 +143,7 @@ class Meta
         return parseMeta( format, pageSize, layoutIdentifier, layoutMajorVersion, layoutMinorVersion );
     }
 
-    void verify( Layout<?,?> layout )
+    public void verify( Layout<?,?> layout )
     {
         if ( unusedVersionSlot3 != Meta.UNUSED_VERSION )
         {

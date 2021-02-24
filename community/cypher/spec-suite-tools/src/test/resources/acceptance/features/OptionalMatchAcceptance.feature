@@ -1,8 +1,11 @@
 #
-# Copyright (c) 2002-2019 "Neo4j,"
+# Copyright (c) 2018-2020 "Graph Foundation"
+# Graph Foundation, Inc. [https://graphfoundation.org]
+#
+# Copyright (c) 2002-2020 "Neo4j,"
 # Neo4j Sweden AB [http://neo4j.com]
 #
-# This file is part of Neo4j.
+# This file is part of ONgDB.
 #
 # Neo4j is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -102,4 +105,30 @@ Feature: OptionalMatchAcceptance
       | 'a'     | 'b'     | 'c'     |
       | 'b'     | 'c'     | null    |
       | 'b'     | 'a'     | null    |
+    And no side effects
+
+  Scenario: optional match followed by match with repeated null relationship
+    Given an empty graph
+    When executing query:
+      """
+       OPTIONAL MATCH (n)-[r]->(m)
+       WITH n, r, m
+       MATCH (n)-[r]->(m2)
+       RETURN n, r, m, m2
+      """
+    Then the result should be:
+      | n    | r    | m    | m2   |
+    And no side effects
+
+  Scenario: double optional match with repeated null relationship
+    Given an empty graph
+    When executing query:
+      """
+       OPTIONAL MATCH (n)-[r]->(m)
+       OPTIONAL MATCH (n)-[r]->(m2)
+       RETURN n, r, m, m2
+      """
+    Then the result should be:
+      | n    | r    | m    | m2   |
+      | null | null | null | null |
     And no side effects

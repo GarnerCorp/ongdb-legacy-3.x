@@ -1,37 +1,35 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause,as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.cypher.internal.queryReduction
 
 import org.neo4j.cypher.internal.compatibility.CommunityRuntimeContextCreator
-import org.neo4j.cypher.internal.compatibility.v3_5.WrappedMonitors
-import org.neo4j.cypher.internal.compiler.v3_5._
-import org.neo4j.cypher.internal.compiler.v3_5.phases.{LogicalPlanState, PlannerContextCreator}
-import org.neo4j.cypher.internal.compiler.v3_5.planner.logical.idp.{IDPQueryGraphSolver, IDPQueryGraphSolverMonitor, SingleComponentPlanner, cartesianProductsOrValueJoins}
-import org.neo4j.cypher.internal.compiler.v3_5.planner.logical.{CachedMetricsFactory, SimpleMetricsFactory}
+import org.neo4j.cypher.internal.compatibility.v3_6.WrappedMonitors
+import org.neo4j.cypher.internal.compiler.v3_6._
+import org.neo4j.cypher.internal.compiler.v3_6.phases.{LogicalPlanState, PlannerContextCreator}
+import org.neo4j.cypher.internal.compiler.v3_6.planner.logical.idp.{IDPQueryGraphSolver, IDPQueryGraphSolverMonitor, SingleComponentPlanner, cartesianProductsOrValueJoins}
+import org.neo4j.cypher.internal.compiler.v3_6.planner.logical.{CachedMetricsFactory, SimpleMetricsFactory}
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
-import org.neo4j.cypher.internal.planner.v3_5.spi.PlanningAttributes.{Cardinalities, ProvidedOrders, Solveds}
-import org.neo4j.cypher.internal.planner.v3_5.spi.{IDPPlannerName, PlanContext, PlannerNameFor, PlanningAttributes}
+import org.neo4j.cypher.internal.planner.v3_6.spi.PlanningAttributes.{Cardinalities, ProvidedOrders, Solveds}
+import org.neo4j.cypher.internal.planner.v3_6.spi.{IDPPlannerName, PlanContext, PlannerNameFor, PlanningAttributes}
 import org.neo4j.cypher.internal.queryReduction.DDmin.Oracle
+import org.neo4j.cypher.internal.runtime.NormalMode
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
 import org.neo4j.cypher.internal.runtime.interpreted._
 import org.neo4j.cypher.internal.spi.codegen.GeneratedQueryStructure
@@ -46,14 +44,14 @@ import org.neo4j.kernel.monitoring.Monitors
 import org.neo4j.logging.NullLog
 import org.neo4j.test.TestGraphDatabaseFactory
 import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
-import org.neo4j.cypher.internal.v3_5.ast._
-import org.neo4j.cypher.internal.v3_5.ast.prettifier.{ExpressionStringifier, Prettifier}
-import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticState
-import org.neo4j.cypher.internal.v3_5.frontend.phases.CompilationPhaseTracer.NO_TRACING
-import org.neo4j.cypher.internal.v3_5.frontend.phases._
-import org.neo4j.cypher.internal.v3_5.rewriting.{Deprecations, RewriterStepSequencer}
-import org.neo4j.cypher.internal.v3_5.util.attribution.SequentialIdGen
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.{CypherFunSuite, CypherTestSupport}
+import org.neo4j.cypher.internal.v3_6.ast._
+import org.neo4j.cypher.internal.v3_6.ast.prettifier.{ExpressionStringifier, Prettifier}
+import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticState
+import org.neo4j.cypher.internal.v3_6.frontend.phases.CompilationPhaseTracer.NO_TRACING
+import org.neo4j.cypher.internal.v3_6.frontend.phases._
+import org.neo4j.cypher.internal.v3_6.rewriting.{Deprecations, RewriterStepSequencer}
+import org.neo4j.cypher.internal.v3_6.util.attribution.SequentialIdGen
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.{CypherFunSuite, CypherTestSupport}
 
 import scala.util.Try
 
@@ -198,14 +196,14 @@ trait CypherReductionSupport extends CypherTestSupport with GraphIcing {
         CypherReductionSupport.config,
         morselRuntimeState = null)
      else
-      CommunityRuntimeContextCreator(CypherReductionSupport.config)
+      CommunityRuntimeContextCreator( NullLog.getInstance(), CypherReductionSupport.config)
 
     val runtimeContext = runtimeContextCreator.create(planContext, MasterCompiler.CLOCK, Set(), readOnly, enterprise)
     val executionPlan = runtime.compileToExecutable(logicalPlanState, runtimeContext)
 
     val queryContext = new TransactionBoundQueryContext(txContextWrapper)(CypherReductionSupport.searchMonitor)
 
-    val runtimeResult = executionPlan.run(queryContext, doProfile = false, ValueConversion.asValues(baseState.extractedParams()))
+    val runtimeResult = executionPlan.run(queryContext, NormalMode, ValueConversion.asValues(baseState.extractedParams()))
     RewindableExecutionResult(runtimeResult, queryContext)
   }
 

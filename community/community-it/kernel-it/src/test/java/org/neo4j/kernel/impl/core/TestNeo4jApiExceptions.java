@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -37,6 +37,7 @@ import org.neo4j.test.TestGraphDatabaseFactory;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.neo4j.helpers.collection.Iterators.count;
 
 public class TestNeo4jApiExceptions
 {
@@ -159,7 +160,7 @@ public class TestNeo4jApiExceptions
 
         try
         {
-            asList( node.getLabels().iterator() );
+            count( node.getLabels().iterator() );
             fail( "Did not get a nice exception" );
         }
         catch ( DatabaseShutdownException e )

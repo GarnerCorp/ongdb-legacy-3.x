@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,7 +21,6 @@ package org.neo4j.kernel;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -43,7 +42,6 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.tracing.cursor.context.VersionContextSupplier;
 import org.neo4j.kernel.api.InwardKernel;
 import org.neo4j.kernel.api.explicitindex.AutoIndexing;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.api.labelscan.LabelScanStore;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.DatabaseAvailability;
@@ -156,6 +154,7 @@ import org.neo4j.logging.internal.LogService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.resources.HeapAllocation;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreId;
@@ -279,7 +278,6 @@ public class NeoStoreDataSource extends LifecycleAdapter
         this.lockService = new ReentrantLockService();
         this.commitProcessFactory = context.getCommitProcessFactory();
         this.pageCache = context.getPageCache();
-        this.monitors.addMonitorListener( new LoggingLogFileMonitor( msgLog ) );
         this.collectionsFactorySupplier = context.getCollectionsFactorySupplier();
         this.databaseAvailability = context.getDatabaseAvailability();
         this.failOnCorruptedLogFiles = context.getConfig().get( GraphDatabaseSettings.fail_on_corrupted_log_files );
@@ -332,11 +330,22 @@ public class NeoStoreDataSource extends LifecycleAdapter
                 .withConfig( config )
                 .withDependencies( dataSourceDependencies ).build();
 
+        LoggingLogFileMonitor logFileMonitor = new LoggingLogFileMonitor( msgLog );
+        LoggingLogTailScannerMonitor tailMonitor = new LoggingLogTailScannerMonitor( logService.getInternalLog( LogTailScanner.class ) );
+        ReverseTransactionCursorLoggingMonitor reverseCursorMonitor =
+                new ReverseTransactionCursorLoggingMonitor( logService.getInternalLog( ReversedSingleFileTransactionCursor.class ) );
+        monitors.addMonitorListener( logFileMonitor );
+        monitors.addMonitorListener( tailMonitor );
+        monitors.addMonitorListener( reverseCursorMonitor );
+        life.add( LifecycleAdapter.onShutdown( () ->
+        {
+            // We might be started and stopped multiple times, so make sure we clean up after ourselves when we're stopped.
+            monitors.removeMonitorListener( logFileMonitor );
+            monitors.removeMonitorListener( tailMonitor );
+            monitors.removeMonitorListener( reverseCursorMonitor );
+        } ) );
+
         LogTailScanner tailScanner = new LogTailScanner( logFiles, logEntryReader, monitors, failOnCorruptedLogFiles );
-        monitors.addMonitorListener(
-                new LoggingLogTailScannerMonitor( logService.getInternalLog( LogTailScanner.class ) ) );
-        monitors.addMonitorListener( new ReverseTransactionCursorLoggingMonitor(
-                logService.getInternalLog( ReversedSingleFileTransactionCursor.class ) ) );
         LogVersionUpgradeChecker.check( tailScanner, config );
 
         // Upgrade the store before we begin
@@ -574,7 +583,8 @@ public class NeoStoreDataSource extends LifecycleAdapter
                 logicalTransactionStore, logVersionRepository, positionMonitor );
         CorruptedLogsTruncator logsTruncator = new CorruptedLogsTruncator( databaseLayout.databaseDirectory(), logFiles, fileSystemAbstraction );
         ProgressReporter progressReporter = new LogProgressReporter( logService.getInternalLog( Recovery.class ) );
-        Recovery recovery = new Recovery( recoveryService, logsTruncator, recoveryMonitor, progressReporter, failOnCorruptedLogFiles );
+        Lifecycle schemaLife = storageEngine.schemaAndTokensLifecycle();
+        Recovery recovery = new Recovery( recoveryService, logsTruncator, schemaLife, recoveryMonitor, progressReporter, failOnCorruptedLogFiles );
         life.add( recovery );
     }
 
@@ -666,7 +676,7 @@ public class NeoStoreDataSource extends LifecycleAdapter
         return heapAllocation;
     }
 
-    private void buildTransactionMonitor( KernelTransactions kernelTransactions, Clock clock, Config config )
+    private void buildTransactionMonitor( KernelTransactions kernelTransactions, SystemNanoClock clock, Config config )
     {
         KernelTransactionMonitor kernelTransactionTimeoutMonitor = new KernelTransactionMonitor( kernelTransactions, clock, logService );
         dataSourceDependencies.satisfyDependency( kernelTransactionTimeoutMonitor );
@@ -712,7 +722,7 @@ public class NeoStoreDataSource extends LifecycleAdapter
             if ( databaseHealth.isHealthy() )
             {
                 // Flushing of neo stores happens as part of the checkpoint
-                transactionLogModule.checkPointing().forceCheckPoint( new SimpleTriggerInfo( "database shutdown" ) );
+                transactionLogModule.checkPointing().forceCheckPoint( new SimpleTriggerInfo( "Database shutdown" ) );
             }
         } );
     }

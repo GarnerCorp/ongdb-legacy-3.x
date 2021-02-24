@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -78,10 +78,10 @@ import static org.neo4j.kernel.configuration.Settings.min;
 import static org.neo4j.kernel.configuration.Settings.optionsIgnoreCase;
 import static org.neo4j.kernel.configuration.Settings.optionsObeyCase;
 import static org.neo4j.kernel.configuration.Settings.pathSetting;
+import static org.neo4j.kernel.configuration.Settings.powerOf2;
 import static org.neo4j.kernel.configuration.Settings.range;
 import static org.neo4j.kernel.configuration.Settings.setting;
 import static org.neo4j.kernel.configuration.ssl.LegacySslPolicyConfig.LEGACY_POLICY_NAME;
-import static org.neo4j.util.Preconditions.checkArgument;
 
 /**
  * Settings for Neo4j.
@@ -111,7 +111,11 @@ public class GraphDatabaseSettings implements LoadableConfig
     public static final Setting<File> neo4j_home =
             setting( "unsupported.dbms.directories.neo4j_home", PATH, NO_DEFAULT );
 
+    /**
+     * @deprecated This setting is deprecated and will be removed in 4.0.
+     */
     @Description( "Name of the database to load" )
+    @Deprecated
     public static final Setting<String> active_database =
             buildSetting( "dbms.active_database", STRING, DEFAULT_DATABASE_NAME ).constraint( except( SYSTEM_DATABASE_NAME ) ).build();
 
@@ -123,7 +127,11 @@ public class GraphDatabaseSettings implements LoadableConfig
     public static final Setting<File> databases_root_path = derivedSetting( "unsupported.dbms.directories.databases.root",
             data_directory,  data -> new File( data, "databases" ), PATH );
 
+    /**
+     * @deprecated This setting is deprecated and will be removed in 4.0.
+     */
     @Internal
+    @Deprecated
     public static final Setting<File> database_path = derivedSetting( "unsupported.dbms.directories.database",
             databases_root_path, active_database, ( parent, child ) -> new File( parent, child ), PATH );
 
@@ -189,7 +197,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Set this to specify the default parser (language version)." )
     public static final Setting<String> cypher_parser_version = setting(
             "cypher.default_language_version",
-            optionsObeyCase( "2.3", "3.1", "3.4","3.5", DEFAULT ), DEFAULT );
+            optionsObeyCase( "2.3", "3.1", "3.4","3.6", DEFAULT ), DEFAULT );
 
     @Description( "Set this to specify the default planner for the default language version." )
     public static final Setting<String> cypher_planner = setting(
@@ -375,7 +383,7 @@ public class GraphDatabaseSettings implements LoadableConfig
 
     @Description( "Enables or disables tracking of how much time a query spends actively executing on the CPU. " +
                   "Calling `dbms.listQueries` will display the time. " +
-                  "This can also be logged in the query log by using `log_queries_detailed_time_logging_enabled`." )
+                  "This can also be logged in the query log by using `dbms.logs.query.time_logging_enabled`." )
     @Dynamic
     public static final Setting<Boolean> track_query_cpu_time = setting( "dbms.track_query_cpu_time", BOOLEAN, FALSE );
 
@@ -405,6 +413,29 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Internal
     public static final Setting<Integer> cypher_worker_count =
             setting( "unsupported.cypher.number_of_workers", INTEGER, "0" );
+
+    @Description( "Max number of recent queries to collect in the data collector module. Will round down to the" +
+            " nearest power of two. The default number (8192 query invocations) " +
+            " was chosen as a trade-off between getting a useful amount of queries, and not" +
+            " wasting too much heap. Even with a buffer full of unique queries, the estimated" +
+            " footprint lies in tens of MBs. If the buffer is full of cached queries, the" +
+            " retained size was measured to 265 kB. Setting this to 0 will disable data collection" +
+            " of queries completely." )
+    @Internal
+    public static final Setting<Integer> data_collector_max_recent_query_count =
+            buildSetting( "unsupported.datacollector.max_recent_query_count", INTEGER, "8192" )
+                    .constraint( min( 0 ) ).build();
+
+    @Description( "Sets the upper limit for how much of the query text that will be retained by the query collector." +
+            " For queries longer than the limit, only a prefix of size limit will be retained by the collector." +
+            " Lowering this value will reduce the memory footprint of collected query invocations under loads with" +
+            " many queries with long query texts, which could occur for generated queries. The downside is that" +
+            " on retrieving queries by `db.stats.retrieve`, queries longer than this max size would be returned" +
+            " incomplete. Setting this to 0 will completely drop query texts from the collected queries." )
+    @Internal
+    public static final Setting<Integer> data_collector_max_query_text_size =
+            buildSetting( "unsupported.datacollector.max_query_text_size", INTEGER, "10000" )
+                    .constraint( min( 0 ) ).build();
 
     @Description( "The maximum amount of time to wait for the database to become available, when " +
                   "starting a new transaction." )
@@ -500,7 +531,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Configures the general policy for when check-points should occur. The default policy is the " +
                   "'periodic' check-point policy, as specified by the 'dbms.checkpoint.interval.tx' and " +
                   "'dbms.checkpoint.interval.time' settings. " +
-                  "The Neo4j Enterprise Edition provides two alternative policies: " +
+                  "The ONgDB Enterprise Edition provides two alternative policies: " +
                   "The first is the 'continuous' check-point policy, which will ignore those settings and run the " +
                   "check-point process all the time. " +
                   "The second is the 'volumetric' check-point policy, which makes a best-effort at check-pointing " +
@@ -532,7 +563,7 @@ public class GraphDatabaseSettings implements LoadableConfig
 
     @Dynamic
     @Description( "Limit the number of IOs the background checkpoint process will consume per second. " +
-                  "This setting is advisory, is ignored in Neo4j Community Edition, and is followed to " +
+                  "This setting is advisory, is ignored in ONgDB Community Edition, and is followed to " +
                   "best effort in Enterprise Edition. " +
                   "An IO is in this case a 8 KiB (mostly sequential) write. Limiting the write IO in " +
                   "this way will leave more bandwidth in the IO subsystem to service random-read IOs, " +
@@ -540,9 +571,9 @@ public class GraphDatabaseSettings implements LoadableConfig
                   "entirely in memory. The only drawback of this setting is that longer checkpoint times " +
                   "may lead to slightly longer recovery times in case of a database or system crash. " +
                   "A lower number means lower IO pressure, and consequently longer checkpoint times. " +
-                  "The configuration can also be commented out to remove the limitation entirely, and " +
-                  "let the checkpointer flush data as fast as the hardware will go. " +
-                  "Set this to -1 to disable the IOPS limit." )
+                  "Set this to -1 to disable the IOPS limit and remove the limitation entirely; " +
+                  "this will let the checkpointer flush data as fast as the hardware will go. " +
+                  "Removing the setting, or commenting it out, will set the default value of 300." )
     public static final Setting<Integer> check_point_iops_limit = setting( "dbms.checkpoint.iops.limit", INTEGER, "300" );
 
     // Auto Indexing
@@ -747,7 +778,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Internal
     @Description( "The profiling frequency for the page cache. Accurate profiles allow the page cache to do active " +
                   "warmup after a restart, reducing the mean time to performance. " +
-                  "This feature available in Neo4j Enterprise Edition." )
+                  "This feature available in ONgDB Enterprise Edition." )
     public static final Setting<Duration> pagecache_warmup_profiling_interval =
             setting( "unsupported.dbms.memory.pagecache.warmup.profile.interval", DURATION, "1m" );
 
@@ -755,7 +786,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Page cache can be configured to perform usage sampling of loaded pages that can be used to construct active load profile. " +
             "According to that profile pages can be reloaded on the restart, replication, etc. " +
             "This setting allows disabling that behavior. " +
-            "This feature available in Neo4j Enterprise Edition." )
+            "This feature available in ONgDB Enterprise Edition." )
     public static final Setting<Boolean> pagecache_warmup_enabled = setting( "unsupported.dbms.memory.pagecache.warmup.enable", BOOLEAN, TRUE );
 
     @Description( "Allows the enabling or disabling of the file watcher service." +
@@ -826,7 +857,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Log executed queries that take longer than the configured threshold, dbms.logs.query.threshold. " +
             "Log entries are by default written to the file _query.log_ located in the Logs directory. " +
             "For location of the Logs directory, see <<file-locations>>. " +
-            "This feature is available in the Neo4j Enterprise Edition." )
+            "This feature is available in the ONgDB Enterprise Edition." )
     @Dynamic
     public static final Setting<Boolean> log_queries =
             setting( "dbms.logs.query.enabled", BOOLEAN, FALSE );
@@ -1085,11 +1116,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     public static final Setting<Long> tx_state_off_heap_max_cacheable_block_size = buildSetting(
             "dbms.tx_state.off_heap.max_cacheable_block_size", BYTES, "512k" )
             .constraint( min( kibiBytes( 4 ) ) )
-            .constraint( ( x, ignore ) ->
-            {
-                checkArgument( Long.bitCount( x ) == 1, "Value must be a power of 2: %d", x );
-                return x;
-            } )
+            .constraint( powerOf2() )
             .build();
 
     @Description( "Defines the size of the off-heap memory blocks cache. The cache will contain this number of blocks for each block size " +

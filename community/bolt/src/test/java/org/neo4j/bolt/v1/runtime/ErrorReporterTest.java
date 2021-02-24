@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -69,12 +69,12 @@ public class ErrorReporterTest
         reporter.report( error );
 
         // then
-        userLog.assertContainsLogCallContaining( "Client triggered an unexpected error" );
-        userLog.assertContainsLogCallContaining( reference.toString() );
-        userLog.assertContainsLogCallContaining( "Database error" );
+        userLog.rawMessageMatcher().assertContains( "Client triggered an unexpected error" );
+        userLog.rawMessageMatcher().assertContains( reference.toString() );
+        userLog.rawMessageMatcher().assertContains( "Database error" );
 
-        internalLog.assertContainsLogCallContaining( reference.toString() );
-        internalLog.assertContainsLogCallContaining( "Database error" );
+        internalLog.rawMessageMatcher().assertContains( reference.toString() );
+        internalLog.rawMessageMatcher().assertContains( "Database error" );
     }
 
     private static ErrorReporter newErrorReporter( LogProvider userLog, LogProvider internalLog )

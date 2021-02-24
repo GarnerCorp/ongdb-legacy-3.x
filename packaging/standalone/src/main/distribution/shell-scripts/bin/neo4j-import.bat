@@ -2,9 +2,9 @@
 rem Copyright (c) 2002-2018 "Neo4j,"
 rem Neo4j Sweden AB [http://neo4j.com]
 rem
-rem This file is part of Neo4j.
+rem This file is part of ONgDB.
 rem
-rem Neo4j is free software: you can redistribute it and/or modify
+rem ONgDB is free software: you can redistribute it and/or modify
 rem it under the terms of the GNU General Public License as published by
 rem the Free Software Foundation, either version 3 of the License, or
 rem (at your option) any later version.
@@ -19,5 +19,5 @@ rem along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 SETLOCAL
 
-Powershell -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass -File %~dp0neo4j-import.ps1 %*
+Powershell -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass -File "%~dp0neo4j-import.ps1" %*
 EXIT /B %ERRORLEVEL%

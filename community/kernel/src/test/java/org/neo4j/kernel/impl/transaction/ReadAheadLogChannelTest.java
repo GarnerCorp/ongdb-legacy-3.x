@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -42,7 +42,6 @@ import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHA
 
 public class ReadAheadLogChannelTest
 {
-
     @Rule
     public final DefaultFileSystemRule fileSystemRule = new DefaultFileSystemRule();
     @Rule

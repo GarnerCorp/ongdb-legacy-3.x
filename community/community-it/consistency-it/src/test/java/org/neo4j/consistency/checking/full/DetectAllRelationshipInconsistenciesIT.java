@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,7 +27,6 @@ import org.junit.rules.RuleChain;
 import org.neo4j.consistency.RecordType;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.consistency.statistics.Statistics;
-import org.neo4j.dbms.database.DatabaseManager;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -43,6 +42,7 @@ import org.neo4j.kernel.api.labelscan.LabelScanStore;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.MyRelTypes;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
+import org.neo4j.kernel.impl.core.TokenHolders;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.RelationshipStore;
 import org.neo4j.kernel.impl.store.StoreAccess;
@@ -126,11 +126,12 @@ public class DetectAllRelationshipInconsistenciesIT
                 StoreAccess storeAccess = new StoreAccess( neoStores ).initialize();
                 DirectStoreAccess directStoreAccess = new DirectStoreAccess( storeAccess,
                         db.getDependencyResolver().resolveDependency( LabelScanStore.class ),
-                        db.getDependencyResolver().resolveDependency( IndexProviderMap.class ) );
+                        db.getDependencyResolver().resolveDependency( IndexProviderMap.class ),
+                        db.getDependencyResolver().resolveDependency( TokenHolders.class ) );
 
                 int threads = random.intBetween( 2, 10 );
                 FullCheck checker = new FullCheck( getTuningConfiguration(), ProgressMonitorFactory.NONE,
-                        Statistics.NONE, threads );
+                        Statistics.NONE, threads, true );
                 AssertableLogProvider logProvider = new AssertableLogProvider( true );
                 ConsistencySummaryStatistics summary = checker.execute( directStoreAccess,
                         logProvider.getLog( FullCheck.class ) );
@@ -138,7 +139,7 @@ public class DetectAllRelationshipInconsistenciesIT
                         RecordType.RELATIONSHIP );
 
                 assertTrue( "Couldn't detect sabotaged relationship " + sabotage, relationshipInconsistencies > 0 );
-                logProvider.assertContainsLogCallContaining( sabotage.after.toString() );
+                logProvider.rawMessageMatcher().assertContains( sabotage.after.toString() );
             }
         }
         finally

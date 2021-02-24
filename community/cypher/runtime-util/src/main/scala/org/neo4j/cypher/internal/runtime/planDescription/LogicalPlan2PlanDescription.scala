@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.runtime.planDescription
 
-import org.neo4j.cypher.internal.planner.v3_5.spi.PlanningAttributes.{Cardinalities, ProvidedOrders}
+import org.neo4j.cypher.internal.planner.v3_6.spi.PlanningAttributes.{Cardinalities, ProvidedOrders}
 import org.neo4j.cypher.internal.runtime.planDescription.InternalPlanDescription.Arguments._
-import org.neo4j.cypher.internal.v3_5.logical.plans
-import org.neo4j.cypher.internal.v3_5.logical.plans._
-import org.neo4j.cypher.internal.v3_5.expressions.functions.Point
-import org.neo4j.cypher.internal.v3_5.expressions.{FunctionInvocation, FunctionName, LabelToken, MapExpression, Namespace, PropertyKeyToken, Expression => ASTExpression}
-import org.neo4j.cypher.internal.v3_5.frontend.PlannerName
-import org.neo4j.cypher.internal.v3_5.util.InternalException
+import org.neo4j.cypher.internal.v3_6.expressions.functions.Point
+import org.neo4j.cypher.internal.v3_6.expressions.{FunctionInvocation, FunctionName, LabelToken, MapExpression, Namespace, PropertyKeyToken, Expression => ASTExpression}
+import org.neo4j.cypher.internal.v3_6.frontend.PlannerName
+import org.neo4j.cypher.internal.v3_6.logical.plans
+import org.neo4j.cypher.internal.v3_6.logical.plans._
+import org.neo4j.cypher.internal.v3_6.util.InternalException
 
 object LogicalPlan2PlanDescription {
 
@@ -37,7 +37,7 @@ object LogicalPlan2PlanDescription {
                      providedOrders: ProvidedOrders): InternalPlanDescription = {
     new LogicalPlan2PlanDescription(readOnly, cardinalities, providedOrders).create(input)
       .addArgument(Version("CYPHER "+plannerName.version))
-      .addArgument(RuntimeVersion("3.5"))
+      .addArgument(RuntimeVersion("3.6"))
       .addArgument(Planner(plannerName.toTextOutput))
       .addArgument(PlannerImpl(plannerName.name))
       .addArgument(PlannerVersion(plannerName.version))
@@ -286,7 +286,10 @@ case class LogicalPlan2PlanDescription(readOnly: Boolean, cardinalities: Cardina
         PlanDescriptionImpl(id, "SetLabels", children, Seq.empty, variables)
 
       case _: SetNodePropertiesFromMap =>
-        PlanDescriptionImpl(id, "SetNodePropertyFromMap", children, Seq.empty, variables)
+        PlanDescriptionImpl(id, "SetNodePropertiesFromMap", children, Seq.empty, variables)
+
+      case _: SetPropertiesFromMap =>
+        PlanDescriptionImpl(id, "SetPropertiesFromMap", children, Seq.empty, variables)
 
       case _: SetProperty |
            _: SetNodeProperty |
@@ -294,7 +297,7 @@ case class LogicalPlan2PlanDescription(readOnly: Boolean, cardinalities: Cardina
         PlanDescriptionImpl(id, "SetProperty", children, Seq.empty, variables)
 
       case _: SetRelationshipPropertiesFromMap =>
-        PlanDescriptionImpl(id, "SetRelationshipPropertyFromMap", children, Seq.empty, variables)
+        PlanDescriptionImpl(id, "SetRelationshipPropertiesFromMap", children, Seq.empty, variables)
 
       case Sort(_, orderBy) =>
         PlanDescriptionImpl(id, "Sort", children, Seq(KeyNames(orderBy.map(_.id))), variables)
@@ -455,7 +458,7 @@ case class LogicalPlan2PlanDescription(readOnly: Boolean, cardinalities: Cardina
           case PointDistanceSeekRangeWrapper(PointDistanceRange(point, distance, inclusive)) =>
             val funcName = Point.name
             val poi = point match {
-              case FunctionInvocation(Namespace(List()), FunctionName(funcName), _, Seq(MapExpression(args))) =>
+              case FunctionInvocation(Namespace(List()), FunctionName(funcName), _, Seq(MapExpression(args)),_) =>
                 s"point(${args.map(_._1.name).mkString(",")})"
               case _ => point.toString
             }

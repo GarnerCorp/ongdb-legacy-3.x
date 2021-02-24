@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -33,10 +33,17 @@ import static java.lang.String.format;
 public class NonTransactionalTokenNameLookup implements TokenNameLookup
 {
     private final TokenHolders tokenHolders;
+    private final boolean includeId;
 
     public NonTransactionalTokenNameLookup( TokenHolders tokenHolders )
     {
+        this( tokenHolders, false );
+    }
+
+    public NonTransactionalTokenNameLookup( TokenHolders tokenHolders, boolean includeId )
+    {
         this.tokenHolders = tokenHolders;
+        this.includeId = includeId;
     }
 
     @Override
@@ -57,16 +64,22 @@ public class NonTransactionalTokenNameLookup implements TokenNameLookup
         return tokenById( tokenHolders.propertyKeyTokens(), propertyKeyId, "property" );
     }
 
-    private static String tokenById( TokenHolder tokenHolder, int tokenId, String tokenName )
+    private String tokenById( TokenHolder tokenHolder, int tokenId, String tokenType )
     {
         try
         {
-            return tokenHolder.getTokenById( tokenId ).name();
+            String tokenName = tokenHolder.getTokenById( tokenId ).name();
+            return includeId ? nameAndId( tokenId, tokenName ) : tokenName;
         }
         catch ( TokenNotFoundException e )
         {
             // Ignore errors from reading key
         }
-        return format( "%s[%d]", tokenName, tokenId );
+        return nameAndId( tokenId, tokenType );
+    }
+
+    private static String nameAndId( int id, String name )
+    {
+        return format( "%s[%d]", name, id );
     }
 }

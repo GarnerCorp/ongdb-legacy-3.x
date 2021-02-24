@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,7 +27,7 @@ import org.neo4j.values.storable.Values
 abstract class NullInNullOutExpression(argument: Expression) extends Expression {
   def compute(value: AnyValue, m: ExecutionContext, state:QueryState): AnyValue
 
-  def apply(ctx: ExecutionContext, state: QueryState): AnyValue = argument(ctx, state) match {
+  override def apply(ctx: ExecutionContext, state: QueryState): AnyValue = argument(ctx, state) match {
     case x if x == Values.NO_VALUE => Values.NO_VALUE
     case x    => compute(x, ctx, state)
   }

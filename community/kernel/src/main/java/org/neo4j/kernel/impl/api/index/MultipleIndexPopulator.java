@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -45,11 +45,11 @@ import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelExceptio
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.impl.api.SchemaState;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.storageengine.api.EntityType;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexSample;
 import org.neo4j.storageengine.api.schema.PopulationProgress;
@@ -87,10 +87,11 @@ import static org.neo4j.kernel.impl.api.index.IndexPopulationFailure.failure;
 public class MultipleIndexPopulator implements IndexPopulator
 {
     public static final String QUEUE_THRESHOLD_NAME = "queue_threshold";
-    static final String BATCH_SIZE_NAME = "batch_size";
+    public static final String BATCH_SIZE_NAME = "batch_size";
 
-    private final int QUEUE_THRESHOLD = FeatureToggles.getInteger( getClass(), QUEUE_THRESHOLD_NAME, 20_000 );
-    private final int BATCH_SIZE = FeatureToggles.getInteger( BatchingMultipleIndexPopulator.class, BATCH_SIZE_NAME, 10_000 );
+    final int QUEUE_THRESHOLD = FeatureToggles.getInteger( getClass(), QUEUE_THRESHOLD_NAME, 20_000 );
+    final int BATCH_SIZE = FeatureToggles.getInteger( BatchingMultipleIndexPopulator.class, BATCH_SIZE_NAME, 10_000 );
+    final boolean PRINT_DEBUG = FeatureToggles.flag( MultipleIndexPopulator.class, "print_debug", false );
 
     // Concurrency queue since multiple concurrent threads may enqueue updates into it. It is important for this queue
     // to have fast #size() method since it might be drained in batches
@@ -293,6 +294,12 @@ public class MultipleIndexPopulator implements IndexPopulator
         throw new UnsupportedOperationException( "Multiple index populator can't perform index sampling." );
     }
 
+    @Override
+    public void scanCompleted( PhaseTracker phaseTracker )
+    {
+        throw new UnsupportedOperationException( "Not supposed to be called" );
+    }
+
     void resetIndexCounts()
     {
         forEachPopulation( this::resetIndexCountsForPopulation );
@@ -309,6 +316,7 @@ public class MultipleIndexPopulator implements IndexPopulator
         {
             try
             {
+                population.scanCompleted();
                 population.flip( verifyBeforeFlipping );
             }
             catch ( Throwable t )
@@ -341,6 +349,11 @@ public class MultipleIndexPopulator implements IndexPopulator
     void cancelIndexPopulation( IndexPopulation indexPopulation )
     {
         indexPopulation.cancel();
+    }
+
+    void dropIndexPopulation( IndexPopulation indexPopulation )
+    {
+        indexPopulation.cancelAndDrop();
     }
 
     private boolean removeFromOngoingPopulations( IndexPopulation indexPopulation )
@@ -386,6 +399,10 @@ public class MultipleIndexPopulator implements IndexPopulator
         int queueSize = updatesQueue.size();
         if ( queueSize > 0 && queueSize >= queueThreshold )
         {
+            if ( PRINT_DEBUG )
+            {
+                log.info( "Populating from queue at %d", currentlyIndexedNodeId );
+            }
             // Before applying updates from the updates queue any pending scan updates needs to be applied, i.e. flushed.
             // This is because 'currentlyIndexedNodeId' is based on how far the scan has come.
             flushAll();
@@ -397,8 +414,16 @@ public class MultipleIndexPopulator implements IndexPopulator
                     // no need to check for null as nobody else is emptying this queue
                     IndexEntryUpdate<?> update = updatesQueue.poll();
                     storeScan.acceptUpdate( updater, update, currentlyIndexedNodeId );
+                    if ( PRINT_DEBUG )
+                    {
+                        log.info( "Applied %s from queue" + update );
+                    }
                 }
                 while ( !updatesQueue.isEmpty() );
+            }
+            if ( PRINT_DEBUG )
+            {
+                log.info( "Done applying updates from queue" );
             }
             return true;
         }
@@ -535,14 +560,30 @@ public class MultipleIndexPopulator implements IndexPopulator
 
         void cancel()
         {
+            cancel( () -> populator.close( false ) );
+        }
+
+        void cancelAndDrop()
+        {
+            cancel( populator::drop );
+        }
+
+        /**
+         * Cancels population also executing a specific operation on the populator
+         * @param specificPopulatorOperation specific operation in addition to closing the populator.
+         */
+        private void cancel( Runnable specificPopulatorOperation )
+        {
             populatorLock.lock();
             try
             {
                 if ( populationOngoing )
                 {
-                    populator.close( false );
-                    resetIndexCountsForPopulation( this );
+                    // First of all remove this population from the list of ongoing populations so that it won't receive more updates.
+                    // This is good because closing the populator may wait for an opportunity to perform the close, among the incoming writes to it.
                     removeFromOngoingPopulations( this );
+                    specificPopulatorOperation.run();
+                    resetIndexCountsForPopulation( this );
                     populationOngoing = false;
                 }
             }
@@ -590,21 +631,17 @@ public class MultipleIndexPopulator implements IndexPopulator
                 }
                 finally
                 {
+                    logCompletionMessage();
                     populationOngoing = false;
                     populatorLock.unlock();
                 }
             }, failedIndexProxyFactory );
             removeFromOngoingPopulations( this );
-            logCompletionMessage();
         }
 
         private void logCompletionMessage()
         {
-            InternalIndexState postPopulationState = flipper.getState();
-            String messageTemplate = isIndexPopulationOngoing( postPopulationState )
-                                     ? "Index created. Starting data checks. Index [%s] is %s."
-                                     : "Index creation finished. Index [%s] is %s.";
-            log.info( messageTemplate, indexUserDescription, postPopulationState.name() );
+            log.info( "Index creation finished for index [%s].", indexUserDescription );
         }
 
         private boolean isIndexPopulationOngoing( InternalIndexState postPopulationState )
@@ -624,15 +661,25 @@ public class MultipleIndexPopulator implements IndexPopulator
             return batchedUpdates.size() >= BATCH_SIZE;
         }
 
-        Collection<IndexEntryUpdate<?>> takeCurrentBatch()
+        List<IndexEntryUpdate<?>> takeCurrentBatch()
         {
             if ( batchedUpdates.isEmpty() )
             {
                 return Collections.emptyList();
             }
-            Collection<IndexEntryUpdate<?>> batch = batchedUpdates;
+            List<IndexEntryUpdate<?>> batch = batchedUpdates;
             batchedUpdates = new ArrayList<>( BATCH_SIZE );
             return batch;
+        }
+
+        void scanCompleted() throws IndexEntryConflictException
+        {
+            populator.scanCompleted( phaseTracker );
+        }
+
+        PopulationProgress progress( PopulationProgress storeScanProgress )
+        {
+            return populator.progress( storeScanProgress );
         }
     }
 
@@ -643,6 +690,10 @@ public class MultipleIndexPopulator implements IndexPopulator
         public boolean visit( EntityUpdates updates )
         {
             add( updates );
+            if ( PRINT_DEBUG )
+            {
+                log.info( "Added scan updates for entity %d", updates.getEntityId() );
+            }
             return populateFromQueueBatched( updates.getEntityId() );
         }
 

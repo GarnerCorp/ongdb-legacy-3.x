@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -29,9 +29,14 @@ public interface PhaseTracker
 
     enum Phase
     {
+        // The order in which the phases are declared defines the order in which they will be printed in the log.
+        // Keep them arranged in the order in which they naturally are seen during index population.
         SCAN,
         WRITE,
-        FLIP
+        MERGE,
+        BUILD,
+        APPLY_EXTERNAL,
+        FLIP;
     }
 
     class NullPhaseTracker implements PhaseTracker

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -74,7 +74,7 @@ public class ConstraintCreationIT
                 db.getDependencyResolver().resolveDependency( IndexProviderMap.class ).getDefaultProvider();
         File indexDir = indexProvider.directoryStructure().directoryForIndex( indexId );
 
-        assertEquals( 0, indexDir.listFiles().length );
+        assertFalse( indexDir.exists() );
     }
 
     private void attemptAndFailConstraintCreation()

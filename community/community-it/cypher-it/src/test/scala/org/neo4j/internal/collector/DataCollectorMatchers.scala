@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,7 +21,9 @@ package org.neo4j.internal.collector
 
 import java.time.ZonedDateTime
 
-import org.neo4j.cypher.internal.v3_5.parser.CypherParser
+import org.neo4j.cypher.internal.PreParser
+import org.neo4j.cypher.{CypherExpressionEngineOption, CypherPlannerOption, CypherRuntimeOption, CypherVersion}
+import org.neo4j.cypher.internal.v3_6.parser.CypherParser
 import org.scalatest.matchers.{MatchResult, Matcher}
 
 import scala.collection.mutable.ArrayBuffer
@@ -31,6 +33,8 @@ import scala.reflect.Manifest
   * Matchers allowing more flexible matching on results from RewindableExecutionResult.
   */
 object DataCollectorMatchers {
+
+  private val preParser = new PreParser(CypherVersion.default, CypherPlannerOption.default, CypherRuntimeOption.default, CypherExpressionEngineOption.default, 0)
 
   /**
     * Matches a ZonedDateTime if it occurs between (inclusive) to given points in time.
@@ -195,7 +199,7 @@ object DataCollectorMatchers {
               errors += s"Expected value '$expectedValue' at position $i, but list was too small"
           }
           if (values.size > expected.size)
-            errors += s"Expected list of size ${expected.size}, but got additional elements ${values.slice(expected.size, values.size)}"
+            errors += s"Expected list of ${expected.size} elements, but got additional elements ${values.slice(expected.size, values.size)}"
 
         case x =>
           errors += s"Expected list but got '$x'"
@@ -235,12 +239,12 @@ object DataCollectorMatchers {
   case class BeCypherMatcher(expected: String) extends Matcher[AnyRef] {
 
     val parser = new CypherParser
-    private val expectedAst = parser.parse(expected)
+    private val expectedAst = parser.parse(preParser.preParseQuery(expected, false).statement)
 
     override def apply(left: AnyRef): MatchResult =
       MatchResult(
         matches = left match {
-          case text: String => parser.parse(text) == expectedAst
+          case text: String => parser.parse(preParser.preParseQuery(text, false).statement) == expectedAst
           case _ => false
         },
         rawFailureMessage = s"'$left' is not the same Cypher as '$expected'",

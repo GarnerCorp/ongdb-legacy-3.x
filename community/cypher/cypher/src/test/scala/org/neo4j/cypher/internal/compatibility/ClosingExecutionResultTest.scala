@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -25,13 +25,13 @@ import java.util
 import org.neo4j.cypher.exceptionHandler.RunSafely
 import org.neo4j.cypher.internal.runtime._
 import org.neo4j.cypher.internal.runtime.planDescription.InternalPlanDescription
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.result.QueryResult
 import org.neo4j.graphdb.Result.ResultVisitor
 import org.neo4j.graphdb.{Notification, ResourceIterator, Result}
 import org.neo4j.helpers.collection.Iterators
 import org.neo4j.kernel.api.query.ExecutingQuery
 import org.neo4j.kernel.impl.query.QueryExecutionMonitor
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
 
 class ClosingExecutionResultTest extends CypherFunSuite {
 
@@ -385,6 +385,12 @@ class ClosingExecutionResultTest extends CypherFunSuite {
     override def endFailure(query: ExecutingQuery, failure: Throwable): Unit = {
       this.query = query
       this.reason = if (failure == null) Failure else Error(failure)
+      nCalls += 1
+    }
+
+    override def endFailure(query: ExecutingQuery, reason: String): Unit = {
+      this.query = query
+      this.reason = Failure
       nCalls += 1
     }
 

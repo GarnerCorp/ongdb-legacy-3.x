@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -130,6 +130,23 @@ public class DocValuesCollector extends SimpleCollector
         TopDocs topDocs = getTopDocs( sort, size );
         LeafReaderContext[] contexts = getLeafReaderContexts( getMatchingDocs() );
         return new TopDocsValuesIterator( topDocs, contexts, field );
+    }
+
+    public ValuesIterator getPagedSortedValuesIterator( String field, Sort sort, int skip, int limit ) throws IOException
+    {
+        if ( sort == null || sort == Sort.INDEXORDER )
+        {
+            // currently can't be paged; does not affect regular fulltext queries since they use sort = Sort.RELEVANCE
+            return getValuesIterator( field );
+        }
+        int size = getTotalHits();
+        if ( size == 0 )
+        {
+            return ValuesIterator.EMPTY;
+        }
+        TopDocs topDocsPaged = getTopDocsPaged( sort, size, skip, limit );
+        LeafReaderContext[] contexts = getLeafReaderContexts( getMatchingDocs() );
+        return new TopDocsValuesIterator( topDocsPaged, contexts, field );
     }
 
     /**
@@ -280,6 +297,24 @@ public class DocValuesCollector extends SimpleCollector
             TopFieldCollector collector = TopFieldCollector.create( sort, size, false, true, false );
             replayTo( collector );
             topDocs = collector.topDocs();
+        }
+        return topDocs;
+    }
+
+    private TopDocs getTopDocsPaged( Sort sort, int totalHits, int skip, int limit ) throws IOException
+    {
+        TopDocs topDocs;
+        if ( sort == Sort.RELEVANCE )
+        {
+            TopScoreDocCollector collector = TopScoreDocCollector.create( totalHits );
+            replayTo( collector );
+            topDocs = collector.topDocs( skip, limit );
+        }
+        else
+        {
+            TopFieldCollector collector = TopFieldCollector.create( sort, totalHits, false, true, false );
+            replayTo( collector );
+            topDocs = collector.topDocs( skip, limit );
         }
         return topDocs;
     }

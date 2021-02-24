@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -36,6 +36,7 @@ import org.neo4j.internal.kernel.api.IndexOrder;
 import org.neo4j.internal.kernel.api.IndexQuery;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.kernel.impl.annotations.ReporterFactories;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
@@ -50,6 +51,7 @@ import org.neo4j.values.storable.Values;
 
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
+import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 
 public abstract class IndexAccessorCompatibility extends IndexProviderCompatibilityTestSuite.Compatibility
 {
@@ -66,10 +68,10 @@ public abstract class IndexAccessorCompatibility extends IndexProviderCompatibil
     public void before() throws Exception
     {
         IndexSamplingConfig indexSamplingConfig = new IndexSamplingConfig( Config.defaults() );
-        IndexPopulator populator = indexProvider.getPopulator( descriptor, indexSamplingConfig );
+        IndexPopulator populator = indexProvider.getPopulator( descriptor, indexSamplingConfig, heapBufferFactory( 1024 ), tokenNameLookup );
         populator.create();
         populator.close( true );
-        accessor = indexProvider.getOnlineAccessor( descriptor, indexSamplingConfig );
+        accessor = indexProvider.getOnlineAccessor( descriptor, indexSamplingConfig, tokenNameLookup );
     }
 
     @After
@@ -77,7 +79,7 @@ public abstract class IndexAccessorCompatibility extends IndexProviderCompatibil
     {
         try
         {
-            testSuite.consistencyCheck( accessor );
+            accessor.consistencyCheck( ReporterFactories.throwingReporterFactory() );
         }
         finally
         {

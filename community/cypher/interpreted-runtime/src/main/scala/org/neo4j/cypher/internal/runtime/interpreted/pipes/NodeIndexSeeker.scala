@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,12 +21,12 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{Expression, InequalitySeekRangeExpression, PointDistanceSeekRangeExpression, PrefixSeekRangeExpression}
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, IsList, makeValueNeoSafe}
-import org.neo4j.cypher.internal.v3_5.logical.plans._
+import org.neo4j.cypher.internal.v3_6.logical.plans._
 import org.neo4j.internal.kernel.api.{IndexQuery, IndexReference, NodeValueIndexCursor}
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable._
-import org.neo4j.cypher.internal.v3_5.frontend.helpers.SeqCombiner.combine
-import org.neo4j.cypher.internal.v3_5.util.{CypherTypeException, InternalException}
+import org.neo4j.cypher.internal.v3_6.frontend.helpers.SeqCombiner.combine
+import org.neo4j.cypher.internal.v3_6.util.{CypherTypeException, InternalException}
 
 import scala.collection.JavaConverters._
 
@@ -125,11 +125,14 @@ trait NodeIndexSeeker {
             (valueRange.distance, valueRange.point) match {
               case (distance: NumberValue, point: PointValue) =>
                 val bboxes = point.getCoordinateReferenceSystem.getCalculator.boundingBox(point, distance.doubleValue()).asScala
+                // The geographic calculator pads the range to avoid numerical errors, which means we rely more on post-filtering
+                // This also means we can fix the date-line '<' case by simply being inclusive in the index seek, and again rely on post-filtering
+                val inclusive = if (bboxes.length > 1) true else range.inclusive
                 bboxes.map( bbox => List(IndexQuery.range(propertyIds.head,
                   bbox.first(),
-                  range.inclusive,
+                  inclusive,
                   bbox.other(),
-                  range.inclusive
+                  inclusive
                 )))
               case _ => Nil
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -93,8 +93,8 @@ public class DatabaseHealthTest
 
         assertFalse( databaseHealth.isHealthy() );
         assertTrue( databaseHealth.healed() );
-        logProvider.assertContainsLogCallContaining( "Database health set to OK" );
-        logProvider.assertNoMessagesContaining( "Database encountered a critical error and can't be healed. Restart required." );
+        logProvider.rawMessageMatcher().assertContains( "Database health set to OK" );
+        logProvider.rawMessageMatcher().assertNotContains( "Database encountered a critical error and can't be healed. Restart required." );
     }
 
     @Test
@@ -111,8 +111,8 @@ public class DatabaseHealthTest
 
         assertFalse( databaseHealth.isHealthy() );
         assertFalse( databaseHealth.healed() );
-        logProvider.assertNoMessagesContaining( "Database health set to OK" );
-        logProvider.assertContainsLogCallContaining(
+        logProvider.rawMessageMatcher().assertNotContains( "Database health set to OK" );
+        logProvider.rawMessageMatcher().assertContains(
                 "Database encountered a critical error and can't be healed. Restart required." );
     }
 }

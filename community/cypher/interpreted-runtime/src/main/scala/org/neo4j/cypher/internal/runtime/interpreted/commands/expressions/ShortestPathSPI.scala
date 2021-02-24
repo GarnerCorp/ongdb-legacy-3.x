@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,22 +20,22 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.{Expander, KernelPredicate}
-import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
+import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection
 import org.neo4j.graphdb.{Node, Path, PropertyContainer}
 
 abstract class BaseExpander() extends Expander {
-  def addRelationshipFilter(newFilter: KernelPredicate[PropertyContainer]): Expander =
+  override def addRelationshipFilter(newFilter: KernelPredicate[PropertyContainer]): Expander =
     newWith(newRelFilters = relFilters :+ newFilter)
 
-  def addNodeFilter(newFilter: KernelPredicate[PropertyContainer]): Expander =
+  override def addNodeFilter(newFilter: KernelPredicate[PropertyContainer]): Expander =
     newWith(newNodeFilters = nodeFilters :+ newFilter)
 
   protected def newWith(newNodeFilters: Seq[KernelPredicate[PropertyContainer]] = nodeFilters,
                         newRelFilters: Seq[KernelPredicate[PropertyContainer]] = relFilters): Expander
 }
 
-case class OnlyDirectionExpander(nodeFilters: Seq[KernelPredicate[PropertyContainer]],
-                                 relFilters: Seq[KernelPredicate[PropertyContainer]],
+case class OnlyDirectionExpander(override val nodeFilters: Seq[KernelPredicate[PropertyContainer]],
+                                 override val relFilters: Seq[KernelPredicate[PropertyContainer]],
                                  direction: SemanticDirection) extends BaseExpander {
 
   override protected def newWith(newNodeFilters: Seq[KernelPredicate[PropertyContainer]],
@@ -43,8 +43,8 @@ case class OnlyDirectionExpander(nodeFilters: Seq[KernelPredicate[PropertyContai
     copy(nodeFilters = newNodeFilters, relFilters = newRelFilters)
 }
 
-case class TypeAndDirectionExpander(nodeFilters: Seq[KernelPredicate[PropertyContainer]],
-                                    relFilters: Seq[KernelPredicate[PropertyContainer]],
+case class TypeAndDirectionExpander(override val nodeFilters: Seq[KernelPredicate[PropertyContainer]],
+                                    override val relFilters: Seq[KernelPredicate[PropertyContainer]],
                                     typDirs: Seq[(String, SemanticDirection)]) extends BaseExpander {
 
   override protected def newWith(newNodeFilters: Seq[KernelPredicate[PropertyContainer]],

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,16 +20,16 @@
 package org.neo4j.kernel.impl.index.schema;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettingsCache;
 import org.neo4j.kernel.impl.index.schema.config.SpaceFillingCurveSettingsWriter;
@@ -41,19 +41,20 @@ import org.neo4j.values.storable.Value;
 class GenericNativeIndexAccessor extends NativeIndexAccessor<GenericKey,NativeIndexValue>
 {
     private final IndexSpecificSpaceFillingCurveSettingsCache spaceFillingCurveSettings;
-    private final IndexDirectoryStructure directoryStructure;
     private final SpaceFillingCurveConfiguration configuration;
+    private final IndexDropAction dropAction;
     private Validator<Value[]> validator;
 
     GenericNativeIndexAccessor( PageCache pageCache, FileSystemAbstraction fs, File storeFile, IndexLayout<GenericKey,NativeIndexValue> layout,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, IndexProvider.Monitor monitor, StoreIndexDescriptor descriptor,
-            IndexSpecificSpaceFillingCurveSettingsCache spaceFillingCurveSettings, IndexDirectoryStructure directoryStructure,
-            SpaceFillingCurveConfiguration configuration )
+            IndexSpecificSpaceFillingCurveSettingsCache spaceFillingCurveSettings, SpaceFillingCurveConfiguration configuration, IndexDropAction dropAction,
+            boolean readOnly, TokenNameLookup tokenNameLookup )
     {
-        super( pageCache, fs, storeFile, layout, monitor, descriptor, new SpaceFillingCurveSettingsWriter( spaceFillingCurveSettings ) );
+        super( pageCache, fs, storeFile, layout, monitor, descriptor, new SpaceFillingCurveSettingsWriter( spaceFillingCurveSettings ), readOnly,
+                tokenNameLookup );
         this.spaceFillingCurveSettings = spaceFillingCurveSettings;
-        this.directoryStructure = directoryStructure;
         this.configuration = configuration;
+        this.dropAction = dropAction;
         instantiateTree( recoveryCleanupWorkCollector, headerWriter );
     }
 
@@ -61,14 +62,7 @@ class GenericNativeIndexAccessor extends NativeIndexAccessor<GenericKey,NativeIn
     public void drop()
     {
         super.drop();
-        try
-        {
-            NativeIndexes.deleteIndex( fileSystem, directoryStructure, descriptor.getId(), false );
-        }
-        catch ( IOException e )
-        {
-            throw new UncheckedIOException( e );
-        }
+        dropAction.drop( descriptor.getId(), false );
     }
 
     @Override
@@ -96,4 +90,13 @@ class GenericNativeIndexAccessor extends NativeIndexAccessor<GenericKey,NativeIn
         // This accessor needs to use the header writer here because coordinate reference systems may have changed since last checkpoint.
         tree.checkpoint( ioLimiter, headerWriter );
     }
+
+    @Override
+    public Map<String,Value> indexConfig()
+    {
+        Map<String,Value> map = new HashMap<>();
+        spaceFillingCurveSettings.visitIndexSpecificSettings( new SpatialConfigExtractor( map ) );
+        return map;
+    }
+
 }

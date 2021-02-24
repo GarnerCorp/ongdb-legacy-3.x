@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -37,7 +37,7 @@ import org.neo4j.logging.{LogProvider, NullLogProvider}
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.{MapValue, VirtualValues}
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.{CypherFunSuite, CypherTestSupport}
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.{CypherFunSuite, CypherTestSupport}
 
 import scala.collection.JavaConverters._
 import scala.collection.Map
@@ -45,22 +45,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-case class ExpectedException[T <: Throwable](e: T) {
-  def messageContains(s: String) = assertThat(e.getMessage, containsString(s))
-}
-
 trait ExecutionEngineTestSupport extends CypherTestSupport with ExecutionEngineHelper {
   self: CypherFunSuite with GraphDatabaseTestSupport =>
 
-  var eengine: ExecutionEngine = null
+  var eengine: ExecutionEngine = _
 
-  override protected def initTest() {
-    super.initTest()
+  override protected def onNewGraphDatabase(): Unit = {
     eengine = createEngine(graph)
   }
-
-  def runAndFail[T <: Throwable : Manifest](q: String): ExpectedException[T] =
-    ExpectedException(intercept[T](execute(q)))
 
   override def executeScalar[T](q: String, params: (String, Any)*): T = try {
     super.executeScalar[T](q, params: _*)

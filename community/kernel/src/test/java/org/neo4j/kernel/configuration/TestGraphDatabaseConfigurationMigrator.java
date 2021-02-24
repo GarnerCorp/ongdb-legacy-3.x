@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -204,7 +204,7 @@ public class TestGraphDatabaseConfigurationMigrator
 
     private void assertContainsWarningMessage()
     {
-        logProvider.assertContainsMessageContaining( "WARNING! Deprecated configuration options used. See manual for details" );
+        logProvider.rawMessageMatcher().assertContains( "WARNING! Deprecated configuration options used. See manual for details" );
     }
 
     private void assertContainsWarningMessage( String deprecationMessage )
@@ -212,7 +212,7 @@ public class TestGraphDatabaseConfigurationMigrator
         assertContainsWarningMessage();
         if ( StringUtils.isNotEmpty( deprecationMessage ) )
         {
-            logProvider.assertContainsMessageContaining( deprecationMessage );
+            logProvider.rawMessageMatcher().assertContains( deprecationMessage );
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,12 +27,12 @@ import org.neo4j.cypher.internal.compatibility.CypherCacheMonitor
 import org.neo4j.cypher.internal.runtime.interpreted.LastCommittedTxIdProvider
 import org.neo4j.cypher.internal.tracing.CompilationTracer
 import org.neo4j.cypher.internal.tracing.CompilationTracer.QueryCompilationEvent
-import org.neo4j.cypher.{CypherExpressionEngineOption, ParameterNotFoundException, exceptionHandler}
+import org.neo4j.cypher.{CypherExecutionMode, CypherExpressionEngineOption, ParameterNotFoundException, exceptionHandler}
 import org.neo4j.graphdb.Result
 import org.neo4j.helpers.collection.Pair
 import org.neo4j.internal.kernel.api.security.AccessMode
 import org.neo4j.kernel.GraphDatabaseQueryService
-import org.neo4j.kernel.impl.query.{QueryExecution, ResultBuffer, TransactionalContext}
+import org.neo4j.kernel.impl.query.{QueryExecutionMonitor, TransactionalContext}
 import org.neo4j.kernel.monitoring.Monitors
 import org.neo4j.logging.LogProvider
 import org.neo4j.values.virtual.MapValue
@@ -55,6 +55,7 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
   require(queryService != null, "Can't work with a null graph database")
 
   // HELPER OBJECTS
+  private val queryExecutionMonitor = kernelMonitors.newMonitor(classOf[QueryExecutionMonitor])
 
   private val preParser = new PreParser(config.version, config.planner, config.runtime, config.expressionEngineOption, config.queryCacheSize)
   private val lastCommittedTxIdProvider = LastCommittedTxIdProvider(queryService)
@@ -78,8 +79,7 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
   private val queryCache: QueryCache[String,Pair[String, ParameterTypeMap], ExecutableQuery] =
     new QueryCache[String, Pair[String, ParameterTypeMap], ExecutableQuery](config.queryCacheSize, planStalenessCaller, cacheTracer)
 
-  private val masterCompiler: MasterCompiler =
-    new MasterCompiler(queryService, kernelMonitors, config, logProvider, new CompilerLibrary(compatibilityFactory))
+  private val masterCompiler: MasterCompiler = new MasterCompiler(config, new CompilerLibrary(compatibilityFactory))
 
   private val schemaHelper = new SchemaHelper(queryCache)
 
@@ -91,16 +91,29 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
   def execute(query: String, params: MapValue, context: TransactionalContext, profile: Boolean = false): Result = {
     val queryTracer = tracer.compileQuery(query)
 
-    try {
-      val preParsedQuery = preParser.preParseQuery(query, profile)
-      val executableQuery = getOrCompile(context, preParsedQuery, queryTracer, params)
-      if (preParsedQuery.executionMode.name != "explain") {
-        checkParameters(executableQuery.paramNames, params, executableQuery.extractedParams)
-      }
-      val combinedParams = params.updatedWith(executableQuery.extractedParams)
-      context.executingQuery().compilationCompleted(executableQuery.compilerInfo, supplier(executableQuery.planDescription()))
-      executableQuery.execute(context, preParsedQuery, combinedParams)
+    def parseAndCompile: (ExecutableQuery, PreParsedQuery, MapValue) = {
+      try {
+        val preParsedQuery = preParser.preParseQuery(query, profile)
+        val executableQuery = getOrCompile(context, preParsedQuery, queryTracer, params)
+        if (preParsedQuery.executionMode.name != "explain") {
+          checkParameters(executableQuery.paramNames, params, executableQuery.extractedParams)
+        }
+        val combinedParams = params.updatedWith(executableQuery.extractedParams)
+        context.executingQuery().compilationCompleted(executableQuery.compilerInfo, supplier(executableQuery.planDescription()))
 
+        (executableQuery, preParsedQuery, combinedParams)
+
+      } catch {
+        case up: Throwable =>
+          // log failures in query compilation, the execute method that comes next handles itself
+          queryExecutionMonitor.endFailure(context.executingQuery(), up.getMessage)
+          throw up
+      }
+    }
+
+    try {
+      val (executableQuery, preParsedQuery, combinedParams) = parseAndCompile
+      executableQuery.execute(context, preParsedQuery, combinedParams)
     } catch {
       case t: Throwable =>
         context.close(false)
@@ -184,8 +197,13 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
   def clearQueryCaches(): Long =
     List(masterCompiler.clearCaches(), queryCache.clear(), preParser.clearCache()).max
 
-  def isPeriodicCommit(query: String): Boolean =
-    preParser.preParseQuery(query, profile = false).isPeriodicCommit
+  /**
+    * @return { @code true} if the query is a PERIODIC COMMIT query and not an EXPLAIN query
+    */
+  def isPeriodicCommit(query: String): Boolean = {
+    val preParsedQuery = preParser.preParseQuery(query)
+    preParsedQuery.executionMode != CypherExecutionMode.explain && preParsedQuery.isPeriodicCommit
+  }
 
   // HELPERS
 

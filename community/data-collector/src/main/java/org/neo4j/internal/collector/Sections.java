@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,7 +23,6 @@ import java.util.Arrays;
 
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 
-@SuppressWarnings( "WeakerAccess" )
 class Sections
 {
     private Sections()
@@ -32,6 +31,7 @@ class Sections
 
     static final String GRAPH_COUNTS = "GRAPH COUNTS";
     static final String TOKENS = "TOKENS";
+    static final String META = "META";
     static final String QUERIES = "QUERIES";
 
     private static final String[] SECTIONS = {GRAPH_COUNTS, TOKENS, QUERIES};

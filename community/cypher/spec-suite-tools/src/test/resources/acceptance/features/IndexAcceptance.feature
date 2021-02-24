@@ -1,8 +1,11 @@
 #
-# Copyright (c) 2002-2019 "Neo4j,"
+# Copyright (c) 2018-2020 "Graph Foundation"
+# Graph Foundation, Inc. [https://graphfoundation.org]
+#
+# Copyright (c) 2002-2020 "Neo4j,"
 # Neo4j Sweden AB [http://neo4j.com]
 #
-# This file is part of Neo4j.
+# This file is part of ONgDB.
 #
 # Neo4j is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -299,6 +302,56 @@ Feature: IndexAcceptance
       | c                         |
       | (:User {prop: '1_val'})   |
       | (:User {prop: '11_val'})  |
+    And no side effects
+
+  Scenario: Should allow OR with index and incoming scope
+    Given an empty graph
+    And having executed:
+      """
+      CREATE INDEX ON :Person(name)
+      """
+    And having executed:
+      """
+      CREATE INDEX ON :Person(number)
+      """
+    And having executed:
+      """
+      CREATE (:Person   {name: 'x', number: 0}),
+             (:Person   {name: 'y', number: 1}),
+             (:Person   {name: 'z', number: 2})
+      """
+    When executing query:
+      """
+      WITH 100 as variable
+      MATCH (n:Person)
+      WHERE n.name STARTS WITH 'x' OR n.number = 1
+      RETURN variable, n.name, n.number
+      """
+    Then the result should be:
+      | variable | n.name | n.number |
+      | 100      | 'x'    | 0        |
+      | 100      | 'y'    | 1        |
+    And no side effects
+
+  Scenario: Should allow OR with index and incoming scope to OPTIONAL
+    Given an empty graph
+    And having executed:
+      """
+      CREATE (:Person   {name: 'x', number: 0}),
+             (:Person   {name: 'y', number: 1}),
+             (:Person   {name: 'z', number: 2})
+      """
+    When executing query:
+      """
+      WITH 100 as variable
+      OPTIONAL MATCH (n:Person)
+      WHERE n.name STARTS WITH 'x' OR n.number = 1
+      RETURN variable, n.name, n.number
+      """
+    Then the result should be:
+      | variable | n.name | n.number |
+      | 100      | 'x'    | 0        |
+      | 100      | 'y'    | 1        |
     And no side effects
 
   Scenario: STARTS WITH should handle null prefix

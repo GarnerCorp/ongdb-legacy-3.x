@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,7 +22,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, QueryStateHelper}
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{CoalesceFunction, Expression, Literal, Null}
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
+import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.stringValue
 
@@ -52,14 +53,16 @@ class CoalesceTest extends CypherFunSuite {
 }
 
 case class BreakingExpression() extends Expression {
-  def apply(v1: ExecutionContext, state: QueryState) = {
+  override def apply(v1: ExecutionContext, state: QueryState): AnyValue = {
     import org.scalatest.Assertions._
     fail("Coalesce is not lazy")
   }
 
-  def rewrite(f: (Expression) => Expression) = null
+  override def rewrite(f: Expression => Expression): Expression = null
 
-  def arguments = Nil
+  override def arguments: Seq[Expression] = Seq.empty
 
-  def symbolTableDependencies = Set()
+  override def children: Seq[AstNode[_]] = Seq.empty
+
+  override def symbolTableDependencies: Set[String] = Set()
 }

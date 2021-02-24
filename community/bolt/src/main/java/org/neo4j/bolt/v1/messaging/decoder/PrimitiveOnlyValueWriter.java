@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -51,7 +51,7 @@ public class PrimitiveOnlyValueWriter extends BaseToObjectValueWriter<RuntimeExc
         return value();
     }
 
-    public Object sensitiveValueAsObject( AnyValue value, String sensitiveKey )
+    public Object sensitiveValueAsObject( AnyValue value )
     {
         if ( value instanceof UTF8StringValue )
         {
@@ -65,8 +65,7 @@ public class PrimitiveOnlyValueWriter extends BaseToObjectValueWriter<RuntimeExc
         {
             return ArrayUtils.EMPTY_BYTE_ARRAY;
         }
-        throw new UnsupportedOperationException(
-                String.format( "INIT message authentication token field '%s' should be a UTF-8 encoded string", sensitiveKey ) );
+        return valueAsObject( value );
     }
 
     @Override

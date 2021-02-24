@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -42,6 +42,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.GraphDatabaseQueryService;
 import org.neo4j.kernel.api.security.AuthManager;
 import org.neo4j.kernel.api.security.UserManagerSupplier;
+import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.configuration.ConnectorPortRegister;
 import org.neo4j.kernel.configuration.HttpConnector;
@@ -141,6 +142,7 @@ public abstract class AbstractNeoServer implements NeoServer
     private HttpConnector httpConnector;
     private HttpConnector httpsConnector;
     private AsyncRequestLog requestLog;
+    private final Supplier<AvailabilityGuard> availabilityGuardSupplier;
 
     protected abstract Iterable<ServerModule> createServerModules();
 
@@ -164,6 +166,7 @@ public abstract class AbstractNeoServer implements NeoServer
         httpsAdvertisedAddress = advertisedAddressFor( config, httpsConnector );
 
         database = new LifecycleManagingDatabase( config, graphFactory, dependencies );
+        this.availabilityGuardSupplier = ((LifecycleManagingDatabase) database)::getAvailabilityGuard;
         life.add( database );
         life.add( new ServerDependenciesLifeCycleAdapter() );
         life.add( new ServerComponentsLifecycleAdapter() );
@@ -263,7 +266,7 @@ public abstract class AbstractNeoServer implements NeoServer
         return config;
     }
 
-    private void configureWebServer()
+    protected void configureWebServer()
     {
         webServer.setHttpAddress( httpListenAddress );
         webServer.setHttpsAddress( httpsListenAddress );
@@ -279,7 +282,7 @@ public abstract class AbstractNeoServer implements NeoServer
         }
     }
 
-    private void startWebServer() throws Exception
+    protected void startWebServer() throws Exception
     {
         try
         {
@@ -347,7 +350,17 @@ public abstract class AbstractNeoServer implements NeoServer
     @Override
     public void stop()
     {
+        tryShutdownAvailabiltyGuard();
         life.stop();
+    }
+
+    private void tryShutdownAvailabiltyGuard()
+    {
+        AvailabilityGuard guard = availabilityGuardSupplier.get();
+        if ( guard != null )
+        {
+            guard.shutdown();
+        }
     }
 
     private void stopWebServer() throws Exception

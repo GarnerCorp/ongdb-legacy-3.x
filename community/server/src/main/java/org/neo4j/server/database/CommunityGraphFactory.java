@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -36,6 +36,7 @@ public class CommunityGraphFactory implements GraphFactory
     public GraphDatabaseFacade newGraphDatabase( Config config, Dependencies dependencies )
     {
         File storeDir = config.get( GraphDatabaseSettings.databases_root_path );
+
         GraphDatabaseFacadeFactory facadeFactory = new GraphDatabaseFacadeFactory( COMMUNITY, CommunityEditionModule::new );
         return facadeFactory.newFacade( storeDir, config, dependencies );
     }

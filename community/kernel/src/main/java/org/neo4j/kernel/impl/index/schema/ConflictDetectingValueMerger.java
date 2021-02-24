@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,18 +23,16 @@ import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.ValueMerger;
 import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
-import org.neo4j.values.storable.Value;
-import org.neo4j.values.storable.ValueTuple;
 
 /**
  * {@link ValueMerger} which will merely detect conflict, not change any value if conflict, i.e. if the
  * key already exists. After this merge has been used in a call to {@link Writer#merge(Object, Object, ValueMerger)}
- * {@link #checkConflict(Value[])} can be called to check whether or not that call conflicted with
- * an existing key. A call to {@link #checkConflict(Value[])} will also initialize the conflict flag.
+ * {@link #checkConflict(REPORT_TYPE)} can be called to check whether or not that call conflicted with
+ * an existing key. A call to {@link #checkConflict(REPORT_TYPE)} will also initialize the conflict flag.
  *
  * @param <VALUE> type of values being merged.
  */
-class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue> implements ValueMerger<KEY,VALUE>
+abstract class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue, REPORT_TYPE> implements ValueMerger<KEY,VALUE>
 {
     private final boolean compareEntityIds;
 
@@ -48,7 +46,7 @@ class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VALUE extend
     }
 
     @Override
-    public VALUE merge( KEY existingKey, KEY newKey, VALUE existingValue, VALUE newValue )
+    public MergeResult merge( KEY existingKey, KEY newKey, VALUE existingValue, VALUE newValue )
     {
         if ( existingKey.getEntityId() != newKey.getEntityId() )
         {
@@ -56,7 +54,7 @@ class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VALUE extend
             existingNodeId = existingKey.getEntityId();
             addedNodeId = newKey.getEntityId();
         }
-        return null;
+        return MergeResult.UNCHANGED;
     }
 
     /**
@@ -71,12 +69,24 @@ class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VALUE extend
         key.setCompareId( compareEntityIds );
     }
 
-    void checkConflict( Value[] values ) throws IndexEntryConflictException
+    boolean wasConflicting()
     {
-        if ( conflict )
+        return conflict;
+    }
+
+    void reportConflict( REPORT_TYPE toReport ) throws IndexEntryConflictException
+    {
+        conflict = false;
+        doReportConflict( existingNodeId, addedNodeId, toReport );
+    }
+
+    void checkConflict( REPORT_TYPE toReport ) throws IndexEntryConflictException
+    {
+        if ( wasConflicting() )
         {
-            conflict = false;
-            throw new IndexEntryConflictException( existingNodeId, addedNodeId, ValueTuple.of( values ) );
+            reportConflict( toReport );
         }
     }
+
+    abstract void doReportConflict( long existingNodeId, long addedNodeId, REPORT_TYPE toReport ) throws IndexEntryConflictException;
 }

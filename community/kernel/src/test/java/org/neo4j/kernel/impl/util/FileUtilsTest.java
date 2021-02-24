@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -240,13 +240,6 @@ public class FileUtilsTest
         // Future work: Maybe we should do like on Mac and assume true on Windows as well?
         assumeTrue( SystemUtils.IS_OS_WINDOWS );
         assertFalse( FileUtils.highIODevice( Paths.get( "." ), false ) );
-    }
-
-    @Test
-    public void onLinuxDevShmHasHighIO()
-    {
-        assumeTrue( SystemUtils.IS_OS_LINUX );
-        assertTrue( FileUtils.highIODevice( Paths.get( "/dev/shm" ), false ) );
     }
 
     @Test

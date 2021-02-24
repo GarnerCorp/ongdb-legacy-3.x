@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -279,9 +279,9 @@ public class ConsistencyCheckService
                 storeAccess = new StoreAccess( neoStores );
             }
             storeAccess.initialize();
-            DirectStoreAccess stores = new DirectStoreAccess( storeAccess, labelScanStore, indexes );
+            DirectStoreAccess stores = new DirectStoreAccess( storeAccess, labelScanStore, indexes, tokenHolders );
             FullCheck check = new FullCheck(
-                    progressFactory, statistics, numberOfThreads, consistencyFlags, config );
+                    progressFactory, statistics, numberOfThreads, consistencyFlags, config, true );
             summary = check.execute( stores, new DuplicatingLog( log, reportLog ) );
         }
         finally

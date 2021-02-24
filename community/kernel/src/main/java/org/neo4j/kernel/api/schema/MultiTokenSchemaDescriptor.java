@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -39,11 +39,25 @@ public class MultiTokenSchemaDescriptor implements SchemaDescriptor
     private final EntityType entityType;
     private final int[] propertyIds;
 
+    private final int[] sortIds;
+    private final int[] sortTypes;
+
     MultiTokenSchemaDescriptor( int[] entityTokens, EntityType entityType, int[] propertyIds )
     {
         this.entityTokens = entityTokens;
         this.entityType = entityType;
         this.propertyIds = propertyIds;
+        this.sortIds = new int[0];
+        this.sortTypes = new int[0];
+    }
+
+    MultiTokenSchemaDescriptor( int[] entityTokens, EntityType entityType, int[] propertyIds, int[] sortIds, int[] sortTypes )
+    {
+        this.entityTokens = entityTokens;
+        this.entityType = entityType;
+        this.propertyIds = propertyIds;
+        this.sortIds = sortIds;
+        this.sortTypes = sortTypes;
     }
 
     @Override
@@ -84,8 +98,15 @@ public class MultiTokenSchemaDescriptor implements SchemaDescriptor
                 SchemaUtil.niceProperties( tokenNameLookup, propertyIds ) );
     }
 
+    // Returns both propertyIds and sortIds
     @Override
     public int[] getPropertyIds()
+    {
+        return ArrayUtils.addAll( propertyIds, sortIds );
+    }
+
+    @Override
+    public int[] getPropertyIdsNoSorts()
     {
         return propertyIds;
     }
@@ -127,6 +148,18 @@ public class MultiTokenSchemaDescriptor implements SchemaDescriptor
     }
 
     @Override
+    public int[] getSortIds()
+    {
+        return sortIds;
+    }
+
+    @Override
+    public int[] getSortTypes()
+    {
+        return sortTypes;
+    }
+
+    @Override
     public boolean equals( Object o )
     {
         if ( this == o )
@@ -139,7 +172,7 @@ public class MultiTokenSchemaDescriptor implements SchemaDescriptor
         }
         SchemaDescriptor that = (SchemaDescriptor) o;
         return Arrays.equals( entityTokens, that.getEntityTokenIds() ) && entityType == that.entityType() &&
-               Arrays.equals( propertyIds, that.getPropertyIds() );
+               Arrays.equals( this.getPropertyIds(), that.getPropertyIds() );
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,16 +21,23 @@ package org.neo4j.kernel.impl.api.index;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.neo4j.function.Suppliers;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
+import org.neo4j.kernel.impl.index.schema.ByteBufferFactory;
+import org.neo4j.kernel.impl.index.schema.UnsafeDirectByteBufferAllocator;
+import org.neo4j.memory.GlobalMemoryTracker;
+import org.neo4j.memory.ThreadSafePeakMemoryAllocationTracker;
 import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.PopulationProgress;
+import org.neo4j.util.concurrent.Runnables;
 
 import static java.lang.Thread.currentThread;
 import static org.neo4j.helpers.FutureAdapter.latchGuardedValue;
+import static org.neo4j.kernel.impl.index.schema.BlockBasedIndexPopulator.parseBlockSize;
 
 /**
  * A background job for initially populating one or more index over existing data in the database.
@@ -42,6 +49,8 @@ public class IndexPopulationJob implements Runnable
 {
     private final IndexingService.Monitor monitor;
     private final boolean verifyBeforeFlipping;
+    private final ByteBufferFactory bufferFactory;
+    private final ThreadSafePeakMemoryAllocationTracker memoryAllocationTracker;
     private final MultipleIndexPopulator multiPopulator;
     private final CountDownLatch doneSignal = new CountDownLatch( 1 );
 
@@ -53,6 +62,8 @@ public class IndexPopulationJob implements Runnable
         this.multiPopulator = multiPopulator;
         this.monitor = monitor;
         this.verifyBeforeFlipping = verifyBeforeFlipping;
+        this.memoryAllocationTracker = new ThreadSafePeakMemoryAllocationTracker( GlobalMemoryTracker.INSTANCE );
+        this.bufferFactory = new ByteBufferFactory( () -> new UnsafeDirectByteBufferAllocator( memoryAllocationTracker ), parseBlockSize() );
     }
 
     /**
@@ -117,9 +128,12 @@ public class IndexPopulationJob implements Runnable
         finally
         {
             // will only close "additional" resources, not the actual populators, since that's managed by flip
-            multiPopulator.close( true );
-            doneSignal.countDown();
-            currentThread().setName( oldThreadName );
+            Runnables.runAll( "Failed to close resources in IndexPopulationJob",
+                    () -> multiPopulator.close( true ),
+                    () -> monitor.populationJobCompleted( memoryAllocationTracker.peakMemoryUsage() ),
+                    bufferFactory::close,
+                    doneSignal::countDown,
+                    () -> currentThread().setName( oldThreadName ) );
         }
     }
 
@@ -129,14 +143,15 @@ public class IndexPopulationJob implements Runnable
         storeScan.run();
     }
 
-    PopulationProgress getPopulationProgress()
+    PopulationProgress getPopulationProgress( MultipleIndexPopulator.IndexPopulation indexPopulation )
     {
         if ( storeScan == null )
         {
             // indexing hasn't begun yet
             return PopulationProgress.NONE;
         }
-        return storeScan.getProgress();
+        PopulationProgress storeScanProgress = storeScan.getProgress();
+        return indexPopulation.progress( storeScanProgress );
     }
 
     public Future<Void> cancel()
@@ -146,6 +161,7 @@ public class IndexPopulationJob implements Runnable
         {
             cancelled = true;
             storeScan.stop();
+            monitor.populationCancelled();
         }
 
         return latchGuardedValue( Suppliers.singleton( null ), doneSignal, "Index population job cancel" );
@@ -154,6 +170,11 @@ public class IndexPopulationJob implements Runnable
     void cancelPopulation( MultipleIndexPopulator.IndexPopulation population )
     {
         multiPopulator.cancelIndexPopulation( population );
+    }
+
+    void dropPopulation( MultipleIndexPopulator.IndexPopulation population )
+    {
+        multiPopulator.dropIndexPopulation( population );
     }
 
     /**
@@ -173,8 +194,27 @@ public class IndexPopulationJob implements Runnable
         return getClass().getSimpleName() + "[populator:" + multiPopulator + "]";
     }
 
-    public void awaitCompletion() throws InterruptedException
+    /**
+     * Awaits completion of this population job, but waits maximum the given time.
+     *
+     * @param time time to wait at the most for completion. A value of 0 means indefinite wait.
+     * @param unit {@link TimeUnit unit} of the {@code time}.
+     * @return {@code true} if the job is still running when leaving this method, otherwise {@code false} meaning that the job is completed.
+     * @throws InterruptedException if the wait got interrupted.
+     */
+    public boolean awaitCompletion( long time, TimeUnit unit ) throws InterruptedException
     {
-        doneSignal.await();
+        if ( time == 0 )
+        {
+            doneSignal.await();
+            return false;
+        }
+        boolean completed = doneSignal.await( time, unit );
+        return !completed;
+    }
+
+    public ByteBufferFactory bufferFactory()
+    {
+        return bufferFactory;
     }
 }

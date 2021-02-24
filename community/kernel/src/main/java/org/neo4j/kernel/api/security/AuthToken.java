@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -66,7 +66,7 @@ public interface AuthToken
         }
         else if ( !(value instanceof byte[]) )
         {
-            throw invalidToken( "the value associated with the key `" + key + "` must be a byte[] but was: "
+            throw invalidToken( "the value associated with the key `" + key + "` must be a UTF-8 encoded string but was: "
                     + value.getClass().getSimpleName() );
         }
         return (byte[]) value;

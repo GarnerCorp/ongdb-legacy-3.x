@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -42,6 +42,7 @@ import org.neo4j.helpers.collection.Pair;
 import org.neo4j.helpers.collection.Visitor;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.Kernel;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.Transaction;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException;
@@ -52,7 +53,6 @@ import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.api.labelscan.NodeLabelUpdate;
 import org.neo4j.kernel.api.schema.SchemaDescriptorFactory;
 import org.neo4j.kernel.configuration.Config;
@@ -66,6 +66,7 @@ import org.neo4j.logging.AssertableLogProvider.LogMatcherBuilder;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.EntityType;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexDescriptorFactory;
 import org.neo4j.storageengine.api.schema.PopulationProgress;
@@ -102,8 +103,10 @@ import static org.neo4j.helpers.collection.MapUtil.map;
 import static org.neo4j.internal.kernel.api.Transaction.Type.implicit;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.kernel.api.index.IndexEntryUpdate.add;
+import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 import static org.neo4j.kernel.impl.api.index.IndexingService.NO_MONITOR;
 import static org.neo4j.kernel.impl.api.index.TestIndexProviderDescriptor.PROVIDER_DESCRIPTOR;
+import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.logging.AssertableLogProvider.inLog;
 
 public class IndexPopulationJobTest
@@ -119,6 +122,7 @@ public class IndexPopulationJobTest
     private final RelationshipType knows = RelationshipType.withName( "knows" );
     private final String name = "name";
     private final String age = "age";
+    private final TokenNameLookup tokenNameLookup = simpleNameLookup;
 
     private Kernel kernel;
     private IndexStoreView indexStoreView;
@@ -410,7 +414,6 @@ public class IndexPopulationJobTest
             // Then
             LogMatcherBuilder match = inLog( IndexPopulationJob.class );
             logProvider.assertExactly( match.info( "Index population started: [%s]", ":FIRST(name)" ),
-                    match.info( "Index creation finished. Index [%s] is %s.", ":FIRST(name)", "ONLINE" ),
                     match.info( containsString( "TIME/PHASE Final: SCAN[" ) ) );
         }
         finally
@@ -439,7 +442,6 @@ public class IndexPopulationJobTest
             // Then
             LogMatcherBuilder match = inLog( IndexPopulationJob.class );
             logProvider.assertExactly( match.info( "Index population started: [%s]", ":FIRST(name)" ),
-                    match.info( "Index created. Starting data checks. Index [%s] is %s.", ":FIRST(name)", "POPULATING" ),
                     match.info( containsString( "TIME/PHASE Final: SCAN[" ) ));
         }
         finally
@@ -599,7 +601,7 @@ public class IndexPopulationJobTest
         @Override
         public PopulationProgress getProgress()
         {
-            return new PopulationProgress( 42, 100 );
+            return PopulationProgress.single( 42, 100 );
         }
     }
 
@@ -750,7 +752,7 @@ public class IndexPopulationJobTest
     {
         IndexSamplingConfig samplingConfig = new IndexSamplingConfig( Config.defaults() );
         IndexProvider indexProvider = db.getDependencyResolver().resolveDependency( DefaultIndexProviderMap.class ).getDefaultProvider();
-        return indexProvider.getPopulator( descriptor.withId( 21 ), samplingConfig );
+        return indexProvider.getPopulator( descriptor.withId( 21 ), samplingConfig, heapBufferFactory( 1024 ), tokenNameLookup );
     }
 
     private IndexPopulationJob newIndexPopulationJob( IndexPopulator populator, FlippableIndexProxy flipper, EntityType type, IndexDescriptor descriptor )

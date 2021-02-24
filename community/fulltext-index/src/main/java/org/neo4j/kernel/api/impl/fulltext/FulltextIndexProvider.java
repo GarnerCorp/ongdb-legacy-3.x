@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,10 +19,12 @@
  */
 package org.neo4j.kernel.api.impl.fulltext;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.lucene.queryparser.classic.ParseException;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,6 +35,7 @@ import org.neo4j.graphdb.index.fulltext.AnalyzerProvider;
 import org.neo4j.internal.kernel.api.IndexCapability;
 import org.neo4j.internal.kernel.api.IndexReference;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.MisconfiguredIndexException;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
@@ -59,12 +62,15 @@ import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
 import org.neo4j.kernel.impl.core.TokenHolders;
 import org.neo4j.kernel.impl.factory.OperationalMode;
+import org.neo4j.kernel.impl.index.schema.ByteBufferFactory;
 import org.neo4j.kernel.impl.newapi.AllStoreHolder;
 import org.neo4j.kernel.impl.storemigration.StoreMigrationParticipant;
 import org.neo4j.kernel.impl.storemigration.participant.SchemaIndexMigrator;
+import org.neo4j.kernel.impl.util.FulltextSortType;
 import org.neo4j.logging.Log;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.EntityType;
+import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.schema.IndexReader;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
@@ -175,7 +181,8 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
         // All of the above has failed, so we need to load the settings in from the storage directory of the index.
         // This situation happens during recovery.
         PartitionedIndexStorage indexStorage = getIndexStorage( descriptor.getId() );
-        fulltextIndexDescriptor = readOrInitialiseDescriptor( descriptor, defaultAnalyzerName, tokenHolders.propertyKeyTokens(), indexStorage, fileSystem );
+        fulltextIndexDescriptor =
+                readOrInitialiseDescriptor( descriptor, defaultAnalyzerName, tokenHolders.propertyKeyTokens(), indexStorage.getIndexFolder(), fileSystem );
         return new FulltextIndexCapability( fulltextIndexDescriptor.isEventuallyConsistent() );
     }
 
@@ -222,11 +229,12 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
     }
 
     @Override
-    public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig )
+    public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory,
+            TokenNameLookup tokenNameLookup )
     {
         PartitionedIndexStorage indexStorage = getIndexStorage( descriptor.getId() );
         FulltextIndexDescriptor fulltextIndexDescriptor = readOrInitialiseDescriptor(
-                descriptor, defaultAnalyzerName, tokenHolders.propertyKeyTokens(), indexStorage, fileSystem );
+                descriptor, defaultAnalyzerName, tokenHolders.propertyKeyTokens(), indexStorage.getIndexFolder(), fileSystem );
         DatabaseIndex<FulltextIndexReader> fulltextIndex = FulltextIndexBuilder
                 .create( fulltextIndexDescriptor, config, tokenHolders.propertyKeyTokens() )
                 .withFileSystem( fileSystem )
@@ -240,16 +248,17 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
         }
         log.debug( "Creating populator for fulltext schema index: %s", descriptor );
         return new FulltextIndexPopulator( fulltextIndexDescriptor, fulltextIndex,
-                () -> FulltextIndexSettings.saveFulltextIndexSettings( fulltextIndexDescriptor, indexStorage, fileSystem ) );
+                () -> FulltextIndexSettings.saveFulltextIndexSettings( fulltextIndexDescriptor, indexStorage.getIndexFolder(), fileSystem ) );
     }
 
     @Override
-    public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig ) throws IOException
+    public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig,
+            TokenNameLookup tokenNameLookup ) throws IOException
     {
         PartitionedIndexStorage indexStorage = getIndexStorage( descriptor.getId() );
 
         FulltextIndexDescriptor fulltextIndexDescriptor = readOrInitialiseDescriptor(
-                descriptor, defaultAnalyzerName, tokenHolders.propertyKeyTokens(), indexStorage, fileSystem );
+                descriptor, defaultAnalyzerName, tokenHolders.propertyKeyTokens(), indexStorage.getIndexFolder(), fileSystem );
         FulltextIndexBuilder fulltextIndexBuilder = FulltextIndexBuilder
                 .create( fulltextIndexDescriptor, config, tokenHolders.propertyKeyTokens() )
                 .withFileSystem( fileSystem )
@@ -312,6 +321,67 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
         SchemaDescriptor schema = SchemaDescriptorFactory.multiToken( entityTokenIds, type, propertyIds );
         indexConfiguration.putIfAbsent( FulltextIndexSettings.INDEX_CONFIG_ANALYZER, defaultAnalyzerName );
         indexConfiguration.putIfAbsent( FulltextIndexSettings.INDEX_CONFIG_EVENTUALLY_CONSISTENT, defaultEventuallyConsistentSetting );
+        String analyzerName = indexConfiguration.getProperty( FulltextIndexSettings.INDEX_CONFIG_ANALYZER );
+        try
+        {
+            FulltextIndexSettings.createAnalyzer( analyzerName );
+        }
+        catch ( RuntimeException e )
+        {
+            throw new IllegalArgumentException( "No such analyzer: " + analyzerName, e );
+        }
+        return new FulltextSchemaDescriptor( schema, indexConfiguration );
+    }
+
+    @Override
+    public SchemaDescriptor schemaSortFor( EntityType type, String[] entityTokens, Properties indexConfiguration, String[] properties, String[] sortProperties,
+                                           Map<String,String> sortTypes )
+    {
+        if ( entityTokens.length == 0 )
+        {
+            throw new BadSchemaException(
+                    "At least one " + (type == EntityType.NODE ? "label" : "relationship type") + " must be specified when creating a fulltext index." );
+        }
+        if ( properties.length == 0 )
+        {
+            throw new BadSchemaException( "At least one property name must be specified when creating a fulltext index." );
+        }
+        String[] allProps = ArrayUtils.addAll( properties, sortProperties );
+        if ( Arrays.asList( allProps ).contains( LuceneFulltextDocumentStructure.FIELD_ENTITY_ID ) )
+        {
+            throw new BadSchemaException( "Unable to index the property, the name is reserved for internal use " +
+                                          LuceneFulltextDocumentStructure.FIELD_ENTITY_ID );
+        }
+        // SortType validation
+        if ( sortTypes.values().stream().anyMatch( value -> !isValidSortType( value ) ) )
+        {
+            throw new BadSchemaException( "Unable to create index. One of the sortTypes is not a valid. Valid sortTypes are 'LONG', 'DOUBLE', and 'STRING'." );
+        }
+        int[] entityTokenIds = new int[entityTokens.length];
+        if ( type == EntityType.NODE )
+        {
+            tokenHolders.labelTokens().getOrCreateIds( entityTokens, entityTokenIds );
+        }
+        else
+        {
+            tokenHolders.relationshipTypeTokens().getOrCreateIds( entityTokens, entityTokenIds );
+        }
+        int[] propertyIds = Arrays.stream( properties ).mapToInt( tokenHolders.propertyKeyTokens()::getOrCreateId ).toArray();
+        int[] sortIds = Arrays.stream( sortProperties ).mapToInt( tokenHolders.propertyKeyTokens()::getOrCreateId ).toArray();
+        int[] sortTypesArray = determineSortTypesFromMap( sortProperties, sortTypes );
+
+        SchemaDescriptor schema = SchemaDescriptorFactory.multiTokenSort( entityTokenIds, type, propertyIds, sortIds, sortTypesArray );
+        indexConfiguration.putIfAbsent( FulltextIndexSettings.INDEX_CONFIG_ANALYZER, defaultAnalyzerName );
+        indexConfiguration.putIfAbsent( FulltextIndexSettings.INDEX_CONFIG_EVENTUALLY_CONSISTENT, defaultEventuallyConsistentSetting );
+        String analyzerName = indexConfiguration.getProperty( FulltextIndexSettings.INDEX_CONFIG_ANALYZER );
+        try
+        {
+            FulltextIndexSettings.createAnalyzer( analyzerName );
+        }
+        catch ( RuntimeException e )
+        {
+            throw new IllegalArgumentException( "No such analyzer: " + analyzerName, e );
+        }
         return new FulltextSchemaDescriptor( schema, indexConfiguration );
     }
 
@@ -322,7 +392,7 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
         AllStoreHolder allStoreHolder = (AllStoreHolder) kti.dataRead();
         IndexReference indexReference = kti.schemaRead().indexGetForName( indexName );
         FulltextIndexReader fulltextIndexReader;
-        if ( kti.hasTxStateWithChanges() && !((FulltextSchemaDescriptor) indexReference.schema()).isEventuallyConsistent() )
+        if ( kti.hasTxStateWithChanges() && !isEventuallyConsistent( indexReference ) )
         {
             FulltextAuxiliaryTransactionState auxiliaryTxState = (FulltextAuxiliaryTransactionState) allStoreHolder.auxiliaryTxState( TX_STATE_PROVIDER_KEY );
             fulltextIndexReader = auxiliaryTxState.indexReader( indexReference, kti );
@@ -333,6 +403,58 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
             fulltextIndexReader = (FulltextIndexReader) indexReader;
         }
         return fulltextIndexReader.query( queryString );
+    }
+
+    @Override
+    public ScoreEntityIterator query( KernelTransaction ktx, String indexName, String queryString, FulltextQueryConfig queryConfig )
+            throws IndexNotFoundKernelException, ParseException
+    {
+        KernelTransactionImplementation kti = (KernelTransactionImplementation) ktx;
+        AllStoreHolder allStoreHolder = (AllStoreHolder) kti.dataRead();
+        IndexReference indexReference = kti.schemaRead().indexGetForName( indexName );
+        FulltextIndexReader fulltextIndexReader;
+        if ( kti.hasTxStateWithChanges() && !isEventuallyConsistent( indexReference ) )
+        {
+            FulltextAuxiliaryTransactionState auxiliaryTxState = (FulltextAuxiliaryTransactionState) allStoreHolder.auxiliaryTxState( TX_STATE_PROVIDER_KEY );
+            fulltextIndexReader = auxiliaryTxState.indexReader( indexReference, kti );
+        }
+        else
+        {
+            IndexReader indexReader = allStoreHolder.indexReader( indexReference, false );
+            fulltextIndexReader = (FulltextIndexReader) indexReader;
+        }
+        return fulltextIndexReader.query( queryString, queryConfig );
+    }
+
+    @Override
+    public CountResult queryForCount( KernelTransaction ktx, String indexName, String queryString )
+            throws IndexNotFoundKernelException, ParseException
+    {
+        KernelTransactionImplementation kti = (KernelTransactionImplementation) ktx;
+        AllStoreHolder allStoreHolder = (AllStoreHolder) kti.dataRead();
+        IndexReference indexReference = kti.schemaRead().indexGetForName( indexName );
+        FulltextIndexReader fulltextIndexReader;
+        if ( kti.hasTxStateWithChanges() && !isEventuallyConsistent( indexReference ) )
+        {
+            FulltextAuxiliaryTransactionState auxiliaryTxState = (FulltextAuxiliaryTransactionState) allStoreHolder.auxiliaryTxState( TX_STATE_PROVIDER_KEY );
+            fulltextIndexReader = auxiliaryTxState.indexReader( indexReference, kti );
+        }
+        else
+        {
+            IndexReader indexReader = allStoreHolder.indexReader( indexReference, false );
+            fulltextIndexReader = (FulltextIndexReader) indexReader;
+        }
+        return fulltextIndexReader.queryForCount( queryString );
+    }
+
+    private boolean isEventuallyConsistent( IndexReference indexReference )
+    {
+        if ( indexReference instanceof CapableIndexDescriptor )
+        {
+            CapableIndexDescriptor index = (CapableIndexDescriptor) indexReference;
+            return index.isEventuallyConsistent();
+        }
+        return ((FulltextSchemaDescriptor) indexReference.schema()).isEventuallyConsistent();
     }
 
     @Override
@@ -358,5 +480,29 @@ class FulltextIndexProvider extends IndexProvider implements FulltextAdapter, Au
     public AuxiliaryTransactionState createNewAuxiliaryTransactionState()
     {
         return new FulltextAuxiliaryTransactionState( this, log );
+    }
+
+    private boolean isValidSortType( String sortType )
+    {
+        return FulltextSortType.valueOfIgnoreCase( sortType ) != null;
+    }
+
+    private int[] determineSortTypesFromMap( String[] sortProperties, Map<String,String> sortMap )
+    {
+        int[] sortTypesArray = new int[sortProperties.length];
+        int i = 0;
+        for ( String sortProperty : sortProperties )
+        {
+            if ( sortMap.containsKey( sortProperty ) )
+            {
+                sortTypesArray[i] = FulltextSortType.valueOfIgnoreCase( sortMap.get( sortProperty ) ).getNeoStoreByte();
+                i++;
+            }
+            else
+            {
+                throw new RuntimeException( "Unable to find sortProperty '" + sortProperty + "' inside of the defined sortMap." );
+            }
+        }
+        return sortTypesArray;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -734,6 +734,12 @@ public class QueryExecutionLocksIT
         }
 
         @Override
+        public long startTimeNanos()
+        {
+            return internal.startTimeNanos();
+        }
+
+        @Override
         public long timeout()
         {
             return internal.timeout();
@@ -800,9 +806,21 @@ public class QueryExecutionLocksIT
         }
 
         @Override
+        public Map<String,Object> getMetaData()
+        {
+            return internal.getMetaData();
+        }
+
+        @Override
         public void assertOpen()
         {
             internal.assertOpen();
+        }
+
+        @Override
+        public boolean isSchemaTransaction()
+        {
+            return internal.isSchemaTransaction();
         }
     }
 }

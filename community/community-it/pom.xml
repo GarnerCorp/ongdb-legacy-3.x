@@ -3,18 +3,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.neo4j</groupId>
+        <groupId>org.graphfoundation.ongdb</groupId>
         <artifactId>parent</artifactId>
-        <version>3.5.3</version>
+        <version>3.6.2-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
     <artifactId>community-integration-tests</artifactId>
-    <version>3.5.3</version>
+    <version>3.6.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Neo4j - Community Integration Tests</name>
-    <description>Neo4j community edition integration tests modules.</description>
+    <name>ONgDB - Community Integration Tests</name>
+    <description>ONgDB Community Edition integration tests modules.</description>
 
     <properties>
         <license-text.header>headers/GPL-3-header.txt</license-text.header>

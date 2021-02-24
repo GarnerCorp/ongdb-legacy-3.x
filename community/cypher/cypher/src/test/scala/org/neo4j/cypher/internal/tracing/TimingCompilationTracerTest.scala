@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.MILLISECONDS
 
 import org.mockito.Mockito.verify
-import org.neo4j.cypher.internal.v3_5.frontend.helpers.{closing, using}
-import org.neo4j.cypher.internal.v3_5.frontend.phases.CompilationPhaseTracer.CompilationPhase.{LOGICAL_PLANNING, PARSING}
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_6.frontend.helpers.{closing, using}
+import org.neo4j.cypher.internal.v3_6.frontend.phases.CompilationPhaseTracer.CompilationPhase.{LOGICAL_PLANNING, PARSING}
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.tracing.CompilationTracer.NO_COMPILATION_TRACING
 import org.neo4j.cypher.internal.tracing.TimingCompilationTracer.QueryEvent
 

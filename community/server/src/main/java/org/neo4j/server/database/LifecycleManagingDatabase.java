@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,6 +24,7 @@ import java.io.File;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.facade.GraphDatabaseFacadeFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.logging.Log;
@@ -41,6 +42,7 @@ public class LifecycleManagingDatabase implements Database
     private final GraphFactory dbFactory;
     private final GraphDatabaseFacadeFactory.Dependencies dependencies;
     private final Log log;
+    private volatile AvailabilityGuard availabilityGuard;
 
     private boolean isRunning;
     private GraphDatabaseFacade graph;
@@ -50,7 +52,7 @@ public class LifecycleManagingDatabase implements Database
     {
         this.config = config;
         this.dbFactory = dbFactory;
-        this.dependencies = dependencies;
+        this.dependencies = new AvailabiltyGuardCapturingDependencies( this::setAvailabilityGuard, dependencies );
         this.log = dependencies.userLogProvider().getLog( getClass() );
     }
 
@@ -64,6 +66,16 @@ public class LifecycleManagingDatabase implements Database
     public GraphDatabaseFacade getGraph()
     {
         return graph;
+    }
+
+    public AvailabilityGuard getAvailabilityGuard()
+    {
+        return availabilityGuard;
+    }
+
+    private synchronized void setAvailabilityGuard( AvailabilityGuard availabilityGuard )
+    {
+        this.availabilityGuard = availabilityGuard;
     }
 
     @Override

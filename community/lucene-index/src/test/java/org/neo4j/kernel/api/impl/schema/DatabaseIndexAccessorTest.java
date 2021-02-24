@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -314,9 +314,10 @@ public class DatabaseIndexAccessorTest
             return nothing;
         }, null, waitingWhileIn( TaskCoordinator.class, "awaitCompletion" ), 3, SECONDS );
 
-        try ( IndexReader reader = indexReader /* do not inline! */ )
+        try ( IndexReader reader = indexReader /* do not inline! */;
+              IndexSampler sampler = indexSampler /* do not inline! */ )
         {
-            indexSampler.sampleIndex();
+            sampler.sampleIndex();
             fail( "expected exception" );
         }
         catch ( IndexNotFoundKernelException e )

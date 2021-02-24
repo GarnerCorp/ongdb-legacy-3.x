@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,16 +19,17 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
-import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
+import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.v3_5.logical.plans
+import org.neo4j.cypher.internal.v3_6.logical.plans
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
-import org.neo4j.cypher.internal.v3_5.util.CypherTypeException
+import org.neo4j.cypher.internal.v3_6.util.CypherTypeException
 
 abstract class AbstractCachedNodeProperty extends Expression {
 
@@ -62,7 +63,7 @@ abstract class AbstractCachedNodeProperty extends Expression {
     }
   }
 
-  override def rewrite(f: Expression => Expression) = f(this)
+  override def rewrite(f: Expression => Expression): Expression = f(this)
 
   override def arguments: Seq[Expression] = Seq()
 }
@@ -70,7 +71,7 @@ abstract class AbstractCachedNodeProperty extends Expression {
 case class CachedNodeProperty(nodeName: String, propertyKey: KeyToken, key: plans.CachedNodeProperty)
   extends AbstractCachedNodeProperty
 {
-  def symbolTableDependencies = Set(nodeName, key.cacheKey)
+  override def symbolTableDependencies: Set[String] = Set(nodeName, key.cacheKey)
 
   override def toString: String = key.cacheKey
 
@@ -84,4 +85,6 @@ case class CachedNodeProperty(nodeName: String, propertyKey: KeyToken, key: plan
   override def getCachedProperty(ctx: ExecutionContext): AnyValue = ctx.getCachedProperty(key)
 
   override def getPropertyKey(tokenContext: TokenContext): Int = propertyKey.getOptId(tokenContext).getOrElse(StatementConstants.NO_SUCH_PROPERTY_KEY)
+
+  override def children: Seq[AstNode[_]] = Seq(propertyKey)
 }

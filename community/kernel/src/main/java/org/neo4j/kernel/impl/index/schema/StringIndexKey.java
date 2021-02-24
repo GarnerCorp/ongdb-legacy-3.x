@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -202,15 +202,15 @@ class StringIndexKey extends NativeIndexSingleValueKey<StringIndexKey>
 
     void copyFrom( StringIndexKey key )
     {
-        copyFrom( key, key.bytesLength );
+        setEntityId( key.getEntityId() );
+        setCompareId( key.getCompareId() );
+        copyValueFrom( key, key.bytesLength );
     }
 
-    void copyFrom( StringIndexKey key, int targetLength )
+    void copyValueFrom( StringIndexKey key, int targetLength )
     {
         setBytesLength( targetLength );
         System.arraycopy( key.bytes, 0, bytes, 0, targetLength );
-        setEntityId( key.getEntityId() );
-        setCompareId( key.getCompareId() );
     }
 
     /**

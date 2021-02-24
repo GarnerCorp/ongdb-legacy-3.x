@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -33,6 +33,7 @@ import org.neo4j.internal.kernel.api.IndexCapability;
 import org.neo4j.internal.kernel.api.IndexLimitation;
 import org.neo4j.internal.kernel.api.IndexOrder;
 import org.neo4j.internal.kernel.api.IndexValueCapability;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -108,7 +109,9 @@ public class GenericNativeIndexProvider extends NativeIndexProvider<GenericKey,N
     public static final String KEY = NATIVE_BTREE10.providerKey();
     public static final IndexProviderDescriptor DESCRIPTOR = new IndexProviderDescriptor( KEY, NATIVE_BTREE10.providerVersion() );
     public static final IndexCapability CAPABILITY = new GenericIndexCapability();
-    static final boolean parallelPopulation = FeatureToggles.flag( GenericNativeIndexProvider.class, "parallelPopulation", false );
+    public static final String BLOCK_BASED_POPULATION_NAME = "blockBasedPopulation";
+    // todo turn OFF by default before releasing next patch. For now ON by default to test it.
+    private final boolean blockBasedPopulation = FeatureToggles.flag( GenericNativeIndexPopulator.class, BLOCK_BASED_POPULATION_NAME, false );
 
     /**
      * Cache of all setting for various specific CRS's found in the config at instantiation of this provider.
@@ -121,6 +124,7 @@ public class GenericNativeIndexProvider extends NativeIndexProvider<GenericKey,N
      */
     private final SpaceFillingCurveConfiguration configuration;
     private final boolean archiveFailedIndex;
+    private final IndexDropAction dropAction;
 
     GenericNativeIndexProvider( IndexDirectoryStructure.Factory directoryStructureFactory, PageCache pageCache, FileSystemAbstraction fs, Monitor monitor,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, boolean readOnly, Config config )
@@ -130,6 +134,7 @@ public class GenericNativeIndexProvider extends NativeIndexProvider<GenericKey,N
         this.configuredSettings = new ConfiguredSpaceFillingCurveSettingsCache( config );
         this.configuration = getConfiguredSpaceFillingCurveConfiguration( config );
         this.archiveFailedIndex = config.get( GraphDatabaseSettings.archive_failed_index );
+        this.dropAction = new FileSystemIndexDropAction( fs, directoryStructure() );
     }
 
     @Override
@@ -153,27 +158,25 @@ public class GenericNativeIndexProvider extends NativeIndexProvider<GenericKey,N
     }
 
     @Override
-    protected IndexPopulator newIndexPopulator( File storeFile, GenericLayout layout, StoreIndexDescriptor descriptor )
+    protected IndexPopulator newIndexPopulator( File storeFile, GenericLayout layout, StoreIndexDescriptor descriptor, ByteBufferFactory bufferFactory,
+            TokenNameLookup tokenNameLookup )
     {
-        if ( parallelPopulation )
+        if ( blockBasedPopulation )
         {
-            return new ParallelNativeIndexPopulator<>( storeFile, layout, file ->
-                    new GenericNativeIndexPopulator( pageCache, fs, file, layout, monitor, descriptor, layout.getSpaceFillingCurveSettings(),
-                            directoryStructure(), configuration, archiveFailedIndex, !file.equals( storeFile ) ) );
+            return new GenericBlockBasedIndexPopulator( pageCache, fs, storeFile, layout, monitor, descriptor, layout.getSpaceFillingCurveSettings(),
+                    directoryStructure(), configuration, dropAction, archiveFailedIndex, bufferFactory, tokenNameLookup );
         }
-        else
-        {
-            return new WorkSyncedNativeIndexPopulator<>(
-                    new GenericNativeIndexPopulator( pageCache, fs, storeFile, layout, monitor, descriptor, layout.getSpaceFillingCurveSettings(),
-                            directoryStructure(), configuration, archiveFailedIndex, false ) );
-        }
+        return new WorkSyncedNativeIndexPopulator<>(
+                new GenericNativeIndexPopulator( pageCache, fs, storeFile, layout, monitor, descriptor, layout.getSpaceFillingCurveSettings(),
+                        directoryStructure(), configuration, dropAction, archiveFailedIndex, tokenNameLookup ) );
     }
 
     @Override
-    protected IndexAccessor newIndexAccessor( File storeFile, GenericLayout layout, StoreIndexDescriptor descriptor )
+    protected IndexAccessor newIndexAccessor( File storeFile, GenericLayout layout, StoreIndexDescriptor descriptor, boolean readOnly,
+            TokenNameLookup tokenNameLookup )
     {
         return new GenericNativeIndexAccessor( pageCache, fs, storeFile, layout, recoveryCleanupWorkCollector, monitor, descriptor,
-                layout.getSpaceFillingCurveSettings(), directoryStructure(), configuration );
+                layout.getSpaceFillingCurveSettings(), configuration, dropAction, readOnly, tokenNameLookup );
     }
 
     @Override

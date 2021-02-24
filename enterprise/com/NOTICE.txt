@@ -28,9 +28,12 @@ Apache Software License, Version 2.0
   jPowerShell
   jProcesses
   Lucene Core
+  Neo4j - Cypher Expressions 3.4
+  Neo4j - Cypher Util 3.4
   Netty
   Netty/All-in-One
   opencsv
+  openCypher Frontend
   parboiled-core
   parboiled-scala
   WMI4Java
@@ -44,6 +47,10 @@ BSD License
   asm-tree
   asm-util
   Scala Compiler
+  Zstandard
+
+BSD License 2-clause
+  zstd-jni
 
 Bouncy Castle License
   Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs

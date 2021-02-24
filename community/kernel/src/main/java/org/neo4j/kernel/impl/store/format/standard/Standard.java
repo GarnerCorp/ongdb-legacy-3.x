@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -29,7 +29,7 @@ public class Standard
     {
     }
 
-    public static final String LATEST_STORE_VERSION = StandardV3_4.STORE_VERSION;
-    public static final RecordFormats LATEST_RECORD_FORMATS = StandardV3_4.RECORD_FORMATS;
-    public static final String LATEST_NAME = StandardV3_4.NAME;
+    public static final String LATEST_STORE_VERSION = StandardV3_6.STORE_VERSION;
+    public static final RecordFormats LATEST_RECORD_FORMATS = StandardV3_6.RECORD_FORMATS;
+    public static final String LATEST_NAME = StandardV3_6.NAME;
 }

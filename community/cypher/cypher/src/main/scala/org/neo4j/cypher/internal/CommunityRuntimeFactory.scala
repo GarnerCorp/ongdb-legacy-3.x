@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,13 +19,13 @@
  */
 package org.neo4j.cypher.internal
 
-import org.neo4j.cypher.{CypherRuntimeOption, InvalidArgumentException}
 import org.neo4j.cypher.internal.compatibility._
+import org.neo4j.cypher.{CypherRuntimeOption, InvalidArgumentException}
 
 object CommunityRuntimeFactory {
 
-  val interpreted = new FallbackRuntime[RuntimeContext](List(InterpretedRuntime), CypherRuntimeOption.interpreted)
-  val default = new FallbackRuntime[RuntimeContext](List(InterpretedRuntime), CypherRuntimeOption.default)
+  val interpreted = new FallbackRuntime[RuntimeContext](List(ProcedureCallOrSchemaCommandRuntime, InterpretedRuntime), CypherRuntimeOption.interpreted)
+  val default = new FallbackRuntime[RuntimeContext](List(ProcedureCallOrSchemaCommandRuntime, InterpretedRuntime), CypherRuntimeOption.default)
 
   def getRuntime(cypherRuntime: CypherRuntimeOption, disallowFallback: Boolean): CypherRuntime[RuntimeContext] =
     cypherRuntime match {
@@ -36,6 +36,6 @@ object CommunityRuntimeFactory {
       case unsupported if disallowFallback =>
         throw new InvalidArgumentException(s"This version of Neo4j does not support requested runtime: $unsupported")
 
-      case unsupported => new FallbackRuntime[RuntimeContext](List(UnknownRuntime, InterpretedRuntime), unsupported)
+      case unsupported => new FallbackRuntime[RuntimeContext](List(UnknownRuntime, ProcedureCallOrSchemaCommandRuntime,  InterpretedRuntime), unsupported)
     }
 }

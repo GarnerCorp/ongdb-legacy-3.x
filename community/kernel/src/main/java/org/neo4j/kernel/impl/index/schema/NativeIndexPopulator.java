@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,35 +19,33 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.function.Consumer;
 
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.index.internal.gbptree.Writer;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.PageCacheOpenOptions;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.impl.api.index.sampling.UniqueIndexSampler;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.IndexSample;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
+import org.neo4j.util.Preconditions;
+import org.neo4j.values.storable.Value;
 
 import static org.neo4j.index.internal.gbptree.GBPTree.NO_HEADER_WRITER;
 import static org.neo4j.storageengine.api.schema.IndexDescriptor.Type.GENERAL;
@@ -60,7 +58,7 @@ import static org.neo4j.storageengine.api.schema.IndexDescriptor.Type.UNIQUE;
  * @param <VALUE> type of {@link NativeIndexValue}.
  */
 public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue>
-        extends NativeIndex<KEY,VALUE> implements IndexPopulator, ConsistencyCheckableIndexPopulator
+        extends NativeIndex<KEY,VALUE> implements IndexPopulator, ConsistencyCheckable
 {
     public static final byte BYTE_FAILED = 0;
     static final byte BYTE_ONLINE = 1;
@@ -70,21 +68,23 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
     private final VALUE treeValue;
     private final UniqueIndexSampler uniqueSampler;
     private final Consumer<PageCursor> additionalHeaderWriter;
+    final TokenNameLookup tokenNameLookup;
 
-    private ConflictDetectingValueMerger<KEY,VALUE> mainConflictDetector;
-    private ConflictDetectingValueMerger<KEY,VALUE> updatesConflictDetector;
+    private ConflictDetectingValueMerger<KEY,VALUE,Value[]> mainConflictDetector;
+    private ConflictDetectingValueMerger<KEY,VALUE,Value[]> updatesConflictDetector;
 
     private byte[] failureBytes;
     private boolean dropped;
     private boolean closed;
 
     NativeIndexPopulator( PageCache pageCache, FileSystemAbstraction fs, File storeFile, IndexLayout<KEY,VALUE> layout, IndexProvider.Monitor monitor,
-            StoreIndexDescriptor descriptor, Consumer<PageCursor> additionalHeaderWriter, OpenOption... openOptions )
+            StoreIndexDescriptor descriptor, Consumer<PageCursor> additionalHeaderWriter, TokenNameLookup tokenNameLookup )
     {
-        super( pageCache, fs, storeFile, layout, monitor, descriptor, withNoStriping( openOptions ) );
+        super( pageCache, fs, storeFile, layout, monitor, descriptor, false );
         this.treeKey = layout.newKey();
         this.treeValue = layout.newValue();
         this.additionalHeaderWriter = additionalHeaderWriter;
+        this.tokenNameLookup = tokenNameLookup;
         switch ( descriptor.type() )
         {
         case GENERAL:
@@ -96,14 +96,6 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
         default:
             throw new IllegalArgumentException( "Unexpected index type " + descriptor.type() );
         }
-    }
-
-    /**
-     * Because index population is effectively single-threaded. For parallel population each thread has its own part so single-threaded even there.
-     */
-    private static OpenOption[] withNoStriping( OpenOption[] openOptions )
-    {
-        return ArrayUtils.add( openOptions, PageCacheOpenOptions.NO_CHANNEL_STRIPING );
     }
 
     public void clear()
@@ -130,12 +122,12 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
         mainConflictDetector = getMainConflictDetector();
         // for updates we have to have uniqueness on (value,entityId) to allow for intermediary violating updates.
         // there are added conflict checks after updates have been applied.
-        updatesConflictDetector = new ConflictDetectingValueMerger<>( true );
+        updatesConflictDetector = new ThrowingConflictDetector<>( true );
     }
 
-    ConflictDetectingValueMerger<KEY,VALUE> getMainConflictDetector()
+    ConflictDetectingValueMerger<KEY,VALUE,Value[]> getMainConflictDetector()
     {
-        return new ConflictDetectingValueMerger<>( descriptor.type() == GENERAL );
+        return new ThrowingConflictDetector<>( descriptor.type() == GENERAL );
     }
 
     @Override
@@ -144,12 +136,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
         try
         {
             closeTree();
-            if ( !hasOpenOption( StandardOpenOption.DELETE_ON_CLOSE ) )
-            {
-                // This deletion is guarded by a seemingly unnecessary check of this specific open option, but is checked before deletion
-                // due to observed problems on some Windows versions where the deletion could otherwise throw j.n.f.AccessDeniedException
-                deleteFileIfPresent( fileSystem, storeFile );
-            }
+            deleteFileIfPresent( fileSystem, storeFile );
         }
         finally
         {
@@ -205,17 +192,20 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
 
         try
         {
+            assertNotDropped();
             if ( populationCompletedSuccessfully )
             {
+                // Successful and completed population
                 assertPopulatorOpen();
                 markTreeAsOnline();
             }
-            else
+            else if ( failureBytes != null )
             {
-                assertNotDropped();
+                // Failed population
                 ensureTreeInstantiated();
                 markTreeAsFailed();
             }
+            // else cancelled population. Here we simply close the tree w/o checkpointing it and it will look like POPULATING state on next open
         }
         finally
         {
@@ -264,10 +254,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
 
     private void markTreeAsFailed()
     {
-        if ( failureBytes == null )
-        {
-            failureBytes = ArrayUtils.EMPTY_BYTE_ARRAY;
-        }
+        Preconditions.checkState( failureBytes != null, "markAsFailed hasn't been called, populator not actually failed?" );
         tree.checkpoint( IOLimiter.UNLIMITED, new FailureHeaderWriter( failureBytes ) );
     }
 
@@ -276,14 +263,14 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>, VALU
         tree.checkpoint( IOLimiter.UNLIMITED, new NativeIndexHeaderWriter( BYTE_ONLINE, additionalHeaderWriter ) );
     }
 
-    private void processUpdates( Iterable<? extends IndexEntryUpdate<?>> indexEntryUpdates, ConflictDetectingValueMerger<KEY,VALUE> conflictDetector )
+    private void processUpdates( Iterable<? extends IndexEntryUpdate<?>> indexEntryUpdates, ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetector )
             throws IndexEntryConflictException
     {
         try ( Writer<KEY,VALUE> writer = tree.writer() )
         {
             for ( IndexEntryUpdate<?> indexEntryUpdate : indexEntryUpdates )
             {
-                NativeIndexUpdater.processUpdate( treeKey, treeValue, indexEntryUpdate, writer, conflictDetector );
+                NativeIndexUpdater.processUpdate( treeKey, treeValue, indexEntryUpdate, writer, conflictDetector, descriptor, tokenNameLookup );
             }
         }
         catch ( IOException e )

@@ -36,10 +36,11 @@ Apache Software License, Version 2.0
   Apache Shiro :: Lang
   Caffeine cache
   ConcurrentLinkedHashMap
-  Data Mapper for Jackson
   Graphite Integration for Metrics
   hazelcast-all
-  Jackson
+  Jackson-annotations
+  Jackson-core
+  jackson-databind
   Jetty :: Asynchronous HTTP Client
   Jetty :: Http Utility
   Jetty :: IO Utility
@@ -52,9 +53,12 @@ Apache Software License, Version 2.0
   Lucene QueryParsers
   LZ4 and xxHash
   Metrics Core
+  Neo4j - Cypher Expressions 3.4
+  Neo4j - Cypher Util 3.4
   Netty
   Netty/All-in-One
   opencsv
+  openCypher Frontend
   parboiled-core
   parboiled-scala
   Prometheus Java Simpleclient
@@ -72,6 +76,10 @@ BSD License
   asm-tree
   asm-util
   Scala Compiler
+  Zstandard
+
+BSD License 2-clause
+  zstd-jni
 
 Bouncy Castle License
   Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs

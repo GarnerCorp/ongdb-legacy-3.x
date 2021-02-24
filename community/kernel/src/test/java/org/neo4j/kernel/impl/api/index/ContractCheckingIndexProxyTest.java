@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -31,6 +31,8 @@ import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.test.DoubleLatch;
 import org.neo4j.test.ThreadTestUtils;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.neo4j.kernel.impl.api.index.SchemaIndexTestHelper.mockIndexProxy;
 
 public class ContractCheckingIndexProxyTest
@@ -143,7 +145,7 @@ public class ContractCheckingIndexProxyTest
         }
     }
 
-    @Test( expected = IllegalStateException.class )
+    @Test
     public void shouldNotForceBeforeCreate() throws IOException
     {
         // GIVEN
@@ -152,9 +154,10 @@ public class ContractCheckingIndexProxyTest
 
         // WHEN
         outer.force( IOLimiter.UNLIMITED );
+        verifyNoMoreInteractions( inner );
     }
 
-    @Test( expected = IllegalStateException.class )
+    @Test
     public void shouldNotForceAfterClose() throws IOException
     {
         // GIVEN
@@ -165,6 +168,9 @@ public class ContractCheckingIndexProxyTest
         outer.start();
         outer.close();
         outer.force( IOLimiter.UNLIMITED );
+        verify( inner ).start();
+        verify( inner ).close();
+        verifyNoMoreInteractions( inner );
     }
 
     @Test( expected = /* THEN */ IllegalStateException.class )
@@ -335,6 +341,6 @@ public class ContractCheckingIndexProxyTest
 
     private ContractCheckingIndexProxy newContractCheckingIndexProxy( IndexProxy inner )
     {
-        return new ContractCheckingIndexProxy( inner, false );
+        return new ContractCheckingIndexProxy( inner );
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -97,6 +97,12 @@ public interface KernelTransaction extends Transaction, AssertOpen
     long startTime();
 
     /**
+     * @return start time of this transaction, i.e. basically {@link System#nanoTime()} when user called
+     * {@link org.neo4j.internal.kernel.api.Session#beginTransaction(Type)}.
+     */
+    long startTimeNanos();
+
+    /**
      * Timeout for transaction in milliseconds.
      * @return transaction timeout in milliseconds.
      */
@@ -176,6 +182,18 @@ public interface KernelTransaction extends Transaction, AssertOpen
      * @param metaData The data to add.
      */
     void setMetaData( Map<String, Object> metaData );
+
+    /**
+     * Get a map of data that is attached to this transaction.
+     * In cases when no metadata was set before, an empty map is returned.
+     */
+    Map<String, Object> getMetaData();
+
+    /**
+     * @return whether or not this transaction is a schema transaction. Type of transaction is decided
+     * on first write operation, be it data or schema operation.
+     */
+    boolean isSchemaTransaction();
 
     @FunctionalInterface
     interface Revertable extends AutoCloseable

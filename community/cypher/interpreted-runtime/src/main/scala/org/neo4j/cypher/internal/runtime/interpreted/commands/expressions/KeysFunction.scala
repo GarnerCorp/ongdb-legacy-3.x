@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.values.AnyValue
@@ -30,9 +31,11 @@ case class KeysFunction(expr: Expression) extends NullInNullOutExpression(expr) 
   override def compute(value: AnyValue, ctx: ExecutionContext, state: QueryState): ListValue =
     CypherFunctions.keys(value, state.query)
 
-  def rewrite(f: (Expression) => Expression) = f(KeysFunction(expr.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(KeysFunction(expr.rewrite(f)))
 
-  def arguments = Seq(expr)
+  override def arguments: Seq[Expression] = Seq(expr)
 
-  def symbolTableDependencies = expr.symbolTableDependencies
+  override def children: Seq[AstNode[_]] = Seq(expr)
+
+  override def symbolTableDependencies: Set[String] = expr.symbolTableDependencies
 }

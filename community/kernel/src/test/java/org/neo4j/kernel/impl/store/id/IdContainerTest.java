@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.store.id;
 
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +59,23 @@ public class IdContainerTest
     {
         fs = fileSystemRule.get();
         file = testDirectory.file( "ids" );
+    }
+
+    @Test
+    public void includeFileNameIntoReadHeaderException() throws IOException
+    {
+        createEmptyFile();
+        fs.truncate( file, 0 );
+
+        try
+        {
+            IdContainer idContainer = new IdContainer( fs, file, 100, false );
+            idContainer.init();
+        }
+        catch ( InvalidIdGeneratorException e )
+        {
+            assertThat( e.getMessage(), Matchers.containsString( file.getAbsolutePath() ) );
+        }
     }
 
     @Test

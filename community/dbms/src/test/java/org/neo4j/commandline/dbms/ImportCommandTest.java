@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -47,6 +47,7 @@ import org.neo4j.test.extension.SuppressOutputExtension;
 import org.neo4j.test.extension.TestDirectoryExtension;
 import org.neo4j.test.rule.SuppressOutput;
 import org.neo4j.test.rule.TestDirectory;
+import org.neo4j.util.DocumentationURLs;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -170,13 +171,14 @@ class ImportCommandTest
     @Test
     void letImporterDecideAboutDatabaseExistence() throws Exception
     {
+        File report = testDir.file( "report" );
         Path homeDir = testDir.directory( "home" ).toPath();
         PrintStream nullOutput = new PrintStream( NULL_OUTPUT_STREAM );
         OutsideWorld outsideWorld = new RealOutsideWorld( nullOutput, nullOutput, new ByteArrayInputStream( new byte[0] ) );
         Path confPath = testDir.directory( "conf" ).toPath();
         ImportCommand importCommand = new ImportCommand( homeDir, confPath, outsideWorld );
         File nodesFile = createTextFile( "nodes.csv", ":ID", "1", "2" );
-        String[] arguments = {"--mode=csv", "--database=existing.db", "--nodes=" + nodesFile.getAbsolutePath()};
+        String[] arguments = {"--mode=csv", "--database=existing.db", "--nodes=" + nodesFile.getAbsolutePath(), "--report-file=" + report.getAbsolutePath()};
 
         // First run an import so that a database gets created
         importCommand.execute( arguments );
@@ -286,7 +288,7 @@ class ImportCommandTest
                             "        INTEGER: arbitrary integer values for identifying nodes,%n" +
                             "        ACTUAL: (advanced) actual node ids.%n" +
                             "      For more information on id handling, please see the Neo4j Manual:%n" +
-                            "      https://neo4j.com/docs/operations-manual/current/tools/import/%n" +
+                            "      " + DocumentationURLs.IMPORT_TOOL + "%n" +
                             "      [default:STRING]%n" +
                             "  --input-encoding=<character-set>%n" +
                             "      Character set that input data is encoded in. [default:UTF-8]%n" +

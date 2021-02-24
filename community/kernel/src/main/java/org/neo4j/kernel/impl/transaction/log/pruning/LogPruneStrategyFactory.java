@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -67,8 +67,7 @@ public class LogPruneStrategyFactory
      *   <li>1k hours - For keeping last 1000 hours worth of log data</li>
      * </ul>
      */
-    public LogPruneStrategy strategyFromConfigValue( FileSystemAbstraction fileSystem, LogFiles logFiles,
-            Clock clock, String configValue )
+    LogPruneStrategy strategyFromConfigValue( FileSystemAbstraction fileSystem, LogFiles logFiles, Clock clock, String configValue )
     {
         ThresholdConfigValue value = parse( configValue );
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,11 +19,14 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.operations.CypherMath
 import org.neo4j.values._
 
 case class Modulo(a: Expression, b: Expression) extends Arithmetics(a, b) {
-  def calc(a: AnyValue, b: AnyValue): AnyValue = CypherMath.modulo(a, b)
+  override def calc(a: AnyValue, b: AnyValue): AnyValue = CypherMath.modulo(a, b)
 
-  def rewrite(f: (Expression) => Expression) = f(Modulo(a.rewrite(f), b.rewrite(f)))
+  override def rewrite(f: Expression => Expression): Expression = f(Modulo(a.rewrite(f), b.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(a, b)
 }

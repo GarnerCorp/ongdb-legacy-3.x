@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -261,7 +261,7 @@ public class ProcedureJarLoaderTest
         catch ( ZipException expected )
         {
             // then
-            logProvider.assertContainsLogCallContaining(
+            logProvider.internalToStringMessageMatcher().assertContains(
                     escapeJava( String.format( "Plugin jar file: %s corrupted.", new File( theJar.toURI() ).toPath() ) ) );
         }
     }
@@ -289,7 +289,7 @@ public class ProcedureJarLoaderTest
         catch ( ZipException expected )
         {
             // then
-            logProvider.assertContainsLogCallContaining(
+            logProvider.internalToStringMessageMatcher().assertContains(
                     escapeJava( String.format( "Plugin jar file: %s corrupted.", fileWithSpacesInName.toPath() ) ) );
         }
     }

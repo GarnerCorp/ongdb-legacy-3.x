@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,13 +24,11 @@ import org.apache.commons.lang3.SystemUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
@@ -314,11 +312,6 @@ public class FileUtils
         {
             out.write( text );
         }
-    }
-
-    public static BufferedReader newBufferedFileReader( File file, Charset charset ) throws FileNotFoundException
-    {
-        return new BufferedReader( new InputStreamReader( new FileInputStream( file ), charset ) );
     }
 
     public static PrintWriter newFilePrintWriter( File file, Charset charset ) throws FileNotFoundException

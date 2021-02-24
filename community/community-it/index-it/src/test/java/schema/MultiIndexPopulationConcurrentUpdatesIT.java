@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
@@ -84,6 +85,7 @@ import org.neo4j.storageengine.api.EntityType;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.schema.IndexDescriptorFactory;
 import org.neo4j.storageengine.api.schema.IndexReader;
+import org.neo4j.storageengine.api.schema.SchemaRule;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 import org.neo4j.test.rule.EmbeddedDatabaseRule;
 import org.neo4j.values.storable.Values;
@@ -158,9 +160,9 @@ public class MultiIndexPopulationConcurrentUpdatesIT
     public void applyConcurrentDeletesToPopulatedIndex() throws Throwable
     {
         List<EntityUpdates> updates = new ArrayList<>( 2 );
-        updates.add( EntityUpdates.forEntity( country1.getId() ).withTokens( id( COUNTRY_LABEL ) )
+        updates.add( EntityUpdates.forEntity( country1.getId(), false ).withTokens( id( COUNTRY_LABEL ) )
                 .removed( propertyId, Values.of( "Sweden" ) ).build() );
-        updates.add( EntityUpdates.forEntity( color2.getId() ).withTokens( id( COLOR_LABEL ) )
+        updates.add( EntityUpdates.forEntity( color2.getId(), false ).withTokens( id( COLOR_LABEL ) )
                 .removed( propertyId, Values.of( "green" ) ).build() );
 
         launchCustomIndexPopulation( labelsNameIdMap, propertyId, new UpdateGenerator( updates ) );
@@ -188,9 +190,9 @@ public class MultiIndexPopulationConcurrentUpdatesIT
     public void applyConcurrentAddsToPopulatedIndex() throws Throwable
     {
         List<EntityUpdates> updates = new ArrayList<>( 2 );
-        updates.add( EntityUpdates.forEntity( otherNodes[0].getId() ).withTokens( id( COUNTRY_LABEL ) )
+        updates.add( EntityUpdates.forEntity( otherNodes[0].getId(), false ).withTokens( id( COUNTRY_LABEL ) )
                 .added( propertyId, Values.of( "Denmark" ) ).build() );
-        updates.add( EntityUpdates.forEntity( otherNodes[1].getId() ).withTokens( id( CAR_LABEL ) )
+        updates.add( EntityUpdates.forEntity( otherNodes[1].getId(), false ).withTokens( id( CAR_LABEL ) )
                 .added( propertyId, Values.of( "BMW" ) ).build() );
 
         launchCustomIndexPopulation( labelsNameIdMap, propertyId, new UpdateGenerator( updates ) );
@@ -218,9 +220,9 @@ public class MultiIndexPopulationConcurrentUpdatesIT
     public void applyConcurrentChangesToPopulatedIndex() throws Exception
     {
         List<EntityUpdates> updates = new ArrayList<>( 2 );
-        updates.add( EntityUpdates.forEntity( color2.getId() ).withTokens( id( COLOR_LABEL ) )
+        updates.add( EntityUpdates.forEntity( color2.getId(), false ).withTokens( id( COLOR_LABEL ) )
                 .changed( propertyId, Values.of( "green" ), Values.of( "pink" ) ).build() );
-        updates.add( EntityUpdates.forEntity( car2.getId() ).withTokens( id( CAR_LABEL ) )
+        updates.add( EntityUpdates.forEntity( car2.getId(), false ).withTokens( id( CAR_LABEL ) )
                 .changed( propertyId, Values.of( "Ford" ), Values.of( "SAAB" ) ).build() );
 
         launchCustomIndexPopulation( labelsNameIdMap, propertyId, new UpdateGenerator( updates ) );
@@ -316,7 +318,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT
             NullLogProvider nullLogProvider = NullLogProvider.getInstance();
             indexService = IndexingServiceFactory.createIndexingService( Config.defaults(), scheduler,
                     providerMap, storeView, tokenNameLookup, getIndexRules( neoStores ),
-                    nullLogProvider, nullLogProvider, IndexingService.NO_MONITOR, getSchemaState() );
+                    nullLogProvider, nullLogProvider, IndexingService.NO_MONITOR, getSchemaState(), false );
             indexService.start();
 
             rules = createIndexRules( labelNameIdMap, propertyId );
@@ -368,7 +370,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT
             IndexActivationFailedKernelException
     {
         IndexProxy indexProxy = indexService.getIndexProxy( SchemaDescriptorFactory.forLabel( labelId, propertyId ) );
-        indexProxy.awaitStoreScanCompleted();
+        indexProxy.awaitStoreScanCompleted( 0, TimeUnit.MILLISECONDS );
         while ( indexProxy.getState() != InternalIndexState.ONLINE )
         {
             Thread.sleep( 10 );
@@ -385,9 +387,9 @@ public class MultiIndexPopulationConcurrentUpdatesIT
                 .toArray( StoreIndexDescriptor[]::new );
     }
 
-    private List<StoreIndexDescriptor> getIndexRules( NeoStores neoStores )
+    private List<SchemaRule> getIndexRules( NeoStores neoStores )
     {
-        return Iterators.asList( new SchemaStorage( neoStores.getSchemaStore() ).indexesGetAll() );
+        return Iterators.asList( new SchemaStorage( neoStores.getSchemaStore() ).loadAllSchemaRules() );
     }
 
     private Map<String, Integer> getLabelIdsByName( String... names )

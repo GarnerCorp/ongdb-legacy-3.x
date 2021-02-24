@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,6 +23,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 
 import java.util.Arrays;
 
@@ -72,17 +73,17 @@ public class ProtocolHandshaker extends ChannelInboundHandlerAdapter
     @Override
     public void channelRead( ChannelHandlerContext ctx, Object msg )
     {
-        if ( !(msg instanceof ByteBuf) )
-        {
-            // we know it is HTTP as we only have HTTP (for Websocket) and TCP handlers installed.
-            log.warn( "Unsupported connection type: 'HTTP'. Bolt protocol only operates over a TCP connection or WebSocket." );
-            ctx.close();
-            return;
-        }
-        ByteBuf buf = (ByteBuf) msg;
-
         try
         {
+            if ( !(msg instanceof ByteBuf) )
+            {
+                // we know it is HTTP as we only have HTTP (for Websocket) and TCP handlers installed.
+                log.warn( "Unsupported connection type: 'HTTP'. Bolt protocol only operates over a TCP connection or WebSocket." );
+                ctx.close();
+                return;
+            }
+            ByteBuf buf = (ByteBuf) msg;
+
             assertEncryptedIfRequired();
 
             // try to fill out handshake buffer
@@ -124,7 +125,7 @@ public class ProtocolHandshaker extends ChannelInboundHandlerAdapter
         }
         finally
         {
-            buf.release();
+            ReferenceCountUtil.release( msg );
         }
     }
 

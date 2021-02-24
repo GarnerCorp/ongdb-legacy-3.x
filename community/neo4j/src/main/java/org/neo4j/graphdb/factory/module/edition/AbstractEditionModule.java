@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -158,7 +158,16 @@ public abstract class AbstractEditionModule
                 catch ( Exception e )
                 {
                     String errorMessage = "Failed to load security module.";
-                    log.error( errorMessage );
+                    String innerErrorMessage = e.getMessage();
+
+                    if ( innerErrorMessage != null )
+                    {
+                        log.error( errorMessage + " Caused by: " + innerErrorMessage, e );
+                    }
+                    else
+                    {
+                        log.error( errorMessage, e );
+                    }
                     throw new RuntimeException( errorMessage, e );
                 }
             }

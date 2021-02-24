@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,6 +26,9 @@ import org.neo4j.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.storageengine.api.schema.IndexSample;
 import org.neo4j.storageengine.api.schema.IndexSampler;
+
+import static org.neo4j.helpers.collection.Iterables.asCollection;
+import static org.neo4j.io.IOUtils.closeAllSilently;
 
 public class FusionIndexSampler implements IndexSampler
 {
@@ -72,5 +75,11 @@ public class FusionIndexSampler implements IndexSampler
             sampleSize += sample.sampleSize();
         }
         return new IndexSample( indexSize, uniqueValues, sampleSize );
+    }
+
+    @Override
+    public void close()
+    {
+        closeAllSilently( asCollection( samplers ) );
     }
 }

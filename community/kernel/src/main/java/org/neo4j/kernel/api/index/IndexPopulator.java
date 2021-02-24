@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,16 +24,18 @@ import java.util.Collection;
 
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.api.index.UpdateMode;
 import org.neo4j.kernel.impl.api.index.updater.SwallowingIndexUpdater;
 import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.IndexSample;
+import org.neo4j.storageengine.api.schema.PopulationProgress;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 
 /**
  * Used for initial population of an index.
  */
-public interface IndexPopulator
+public interface IndexPopulator extends IndexConfigProvider
 {
     /**
      * Remove all data in the index and paves the way for populating an index.
@@ -110,10 +112,12 @@ public interface IndexPopulator
      * {@link IndexProvider#getInitialState(StoreIndexDescriptor)} also returns {@link InternalIndexState#ONLINE}.
      *
      * @param populationCompletedSuccessfully {@code true} if the index population was successful, where the index should
-     * be marked as {@link InternalIndexState#ONLINE}, otherwise {@code false} where index should be marked as
-     * {@link InternalIndexState#FAILED} and the failure, previously handed to this populator using {@link #markAsFailed(String)}
-     * should be stored and made available for later requests from {@link IndexProvider#getPopulationFailure(StoreIndexDescriptor)}.
-     * @throws UncheckedIOException on I/O error.
+     * be marked as {@link InternalIndexState#ONLINE}. Supplying {@code false} can have two meanings:
+     * <ul>
+     *     <li>if {@link #markAsFailed(String)} have been called the end state should be {@link InternalIndexState#FAILED}.
+     *     This method call should also make sure that the failure message gets stored for retrieval the next open too.</li>
+     *     <li>if {@link #markAsFailed(String)} have NOT been called the end state should be {@link InternalIndexState#POPULATING}</li>
+     * </ul>
      */
     void close( boolean populationCompletedSuccessfully );
 
@@ -139,7 +143,22 @@ public interface IndexPopulator
      */
     IndexSample sampleResult();
 
+    /**
+     * Returns actual population progress, given the progress of the scan. This is for when a populator needs to do
+     * significant work after scan has completed where the scan progress can be seen as only a part of the whole progress.
+     * @param scanProgress progress of the scan.
+     * @return progress of the population of this index as a whole.
+     */
+    default PopulationProgress progress( PopulationProgress scanProgress )
+    {
+        return scanProgress;
+    }
+
     IndexPopulator EMPTY = new Adapter();
+
+    default void scanCompleted( PhaseTracker phaseTracker ) throws IndexEntryConflictException
+    {   // no-op by default
+    }
 
     class Adapter implements IndexPopulator
     {
@@ -162,6 +181,11 @@ public interface IndexPopulator
         public IndexUpdater newPopulatingUpdater( NodePropertyAccessor accessor )
         {
             return SwallowingIndexUpdater.INSTANCE;
+        }
+
+        @Override
+        public void scanCompleted( PhaseTracker phaseTracker )
+        {
         }
 
         @Override

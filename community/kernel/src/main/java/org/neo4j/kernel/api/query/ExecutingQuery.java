@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,8 +22,10 @@ package org.neo4j.kernel.api.query;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -104,8 +106,10 @@ public class ExecutingQuery
         this.clientConnection = clientConnection;
         this.pageCursorCounters = pageCursorCounters;
         this.username = username;
-        this.queryText = queryText;
-        this.queryParameters = queryParameters;
+
+        Set<String> passwordParams = new HashSet<>();
+        this.queryText = QueryObfuscation.obfuscateText( queryText, passwordParams );
+        this.queryParameters = QueryObfuscation.obfuscateParams( queryParameters, passwordParams );
         this.transactionAnnotationData = transactionAnnotationData;
         this.activeLockCount = activeLockCount;
         this.initialActiveLocks = activeLockCount.getAsLong();
@@ -248,9 +252,9 @@ public class ExecutingQuery
         return queryText;
     }
 
-    public ExecutionPlanDescription planDescription()
+    public Supplier<ExecutionPlanDescription> planDescriptionSupplier()
     {
-        return planDescriptionSupplier.get();
+        return planDescriptionSupplier;
     }
 
     public MapValue queryParameters()

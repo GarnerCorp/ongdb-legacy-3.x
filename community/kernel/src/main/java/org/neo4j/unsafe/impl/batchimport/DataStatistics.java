@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -39,15 +39,20 @@ import static java.lang.String.format;
 public class DataStatistics implements Iterable<DataStatistics.RelationshipTypeCount>
 {
     private final List<Client> clients = new ArrayList<>();
+    private final DataImporter.Monitor entityCounts;
     private int opened;
     private RelationshipTypeCount[] typeCounts;
-    private final long nodeCount;
-    private final long propertyCount;
 
     public DataStatistics( long nodeCount, long propertyCount, RelationshipTypeCount[] sortedTypes )
     {
-        this.nodeCount = nodeCount;
-        this.propertyCount = propertyCount;
+        this( new DataImporter.Monitor(), sortedTypes );
+        entityCounts.nodesImported( nodeCount );
+        entityCounts.propertiesImported( propertyCount );
+    }
+
+    public DataStatistics( DataImporter.Monitor entityCounts, RelationshipTypeCount[] sortedTypes )
+    {
+        this.entityCounts = entityCounts;
         this.typeCounts = sortedTypes;
     }
 
@@ -203,12 +208,12 @@ public class DataStatistics implements Iterable<DataStatistics.RelationshipTypeC
 
     public long getNodeCount()
     {
-        return nodeCount;
+        return entityCounts.nodesImported();
     }
 
     public long getPropertyCount()
     {
-        return propertyCount;
+        return entityCounts.propertiesImported();
     }
 
     public long getRelationshipCount()
@@ -224,6 +229,6 @@ public class DataStatistics implements Iterable<DataStatistics.RelationshipTypeC
     @Override
     public String toString()
     {
-        return format( "Imported:%n  %d nodes%n  %d relationships%n  %d properties", nodeCount, getRelationshipCount(), propertyCount );
+        return format( "Imported:%n  %d nodes%n  %d relationships%n  %d properties", getNodeCount(), getRelationshipCount(), getPropertyCount() );
     }
 }

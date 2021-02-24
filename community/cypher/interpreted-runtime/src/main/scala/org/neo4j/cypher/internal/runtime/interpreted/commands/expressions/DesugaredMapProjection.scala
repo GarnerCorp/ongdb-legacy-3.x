@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 
+import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, GraphElementPropertyFunctions, IsMap, LazyMap}
 import org.neo4j.values.AnyValue
@@ -56,7 +57,9 @@ case class DesugaredMapProjection(id: String, includeAllProps: Boolean, literalE
 
   override def arguments = literalExpressions.values.toIndexedSeq
 
-  override def symbolTableDependencies = literalExpressions.symboltableDependencies + id
+  override def children: Seq[AstNode[_]] = arguments
+
+  override def symbolTableDependencies: Set[String] = literalExpressions.symboltableDependencies + id
 
   override def toString = s"$id{.*, " + literalExpressions.mkString + "}"
 }

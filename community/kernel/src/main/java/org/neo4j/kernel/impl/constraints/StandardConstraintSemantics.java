@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -40,8 +40,8 @@ import org.neo4j.storageengine.api.txstate.TxStateVisitor;
 
 public class StandardConstraintSemantics extends ConstraintSemantics
 {
-    public static final String ERROR_MESSAGE_EXISTS = "Property existence constraint requires Neo4j Enterprise Edition";
-    public static final String ERROR_MESSAGE_NODE_KEY = "Node Key constraint requires Neo4j Enterprise Edition";
+    public static final String ERROR_MESSAGE_EXISTS = "Property existence constraint requires ONgDB Enterprise Edition";
+    public static final String ERROR_MESSAGE_NODE_KEY = "Node Key constraint requires ONgDB Enterprise Edition";
 
     public StandardConstraintSemantics()
     {

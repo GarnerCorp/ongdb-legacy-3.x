@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -55,7 +55,7 @@ public class RelationshipStoreScan<FAILURE extends Exception> extends PropertyAw
         if ( propertyUpdatesVisitor != null && containsAnyEntityToken( relationshipTypeIds, reltype ) )
         {
             // Notify the property update visitor
-            EntityUpdates.Builder updates = EntityUpdates.forEntity( cursor.entityReference() ).withTokens( reltype );
+            EntityUpdates.Builder updates = EntityUpdates.forEntity( cursor.entityReference(), true ).withTokens( reltype );
 
             if ( hasRelevantProperty( cursor, updates ) )
             {

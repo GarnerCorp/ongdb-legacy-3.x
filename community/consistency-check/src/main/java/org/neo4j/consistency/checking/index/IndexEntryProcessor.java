@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,21 +23,27 @@ import org.neo4j.consistency.checking.full.IndexCheck;
 import org.neo4j.consistency.checking.full.RecordProcessor;
 import org.neo4j.consistency.report.ConsistencyReporter;
 import org.neo4j.consistency.store.synthetic.IndexEntry;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
+import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 
 public class IndexEntryProcessor extends RecordProcessor.Adapter<Long>
 {
     private final ConsistencyReporter reporter;
     private final IndexCheck indexCheck;
+    private final StoreIndexDescriptor indexDescriptor;
+    private final TokenNameLookup tokenNameLookup;
 
-    public IndexEntryProcessor( ConsistencyReporter reporter, IndexCheck indexCheck )
+    public IndexEntryProcessor( ConsistencyReporter reporter, IndexCheck indexCheck, StoreIndexDescriptor indexDescriptor, TokenNameLookup tokenNameLookup )
     {
         this.reporter = reporter;
         this.indexCheck = indexCheck;
+        this.indexDescriptor = indexDescriptor;
+        this.tokenNameLookup = tokenNameLookup;
     }
 
     @Override
     public void process( Long nodeId )
     {
-        reporter.forIndexEntry( new IndexEntry( nodeId ), indexCheck );
+        reporter.forIndexEntry( new IndexEntry( indexDescriptor, tokenNameLookup, nodeId ), indexCheck );
     }
 }

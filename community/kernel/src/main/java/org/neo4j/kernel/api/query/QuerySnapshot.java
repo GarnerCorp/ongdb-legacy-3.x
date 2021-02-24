@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.query;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.neo4j.graphdb.ExecutionPlanDescription;
@@ -72,9 +73,9 @@ public class QuerySnapshot
         return query.queryText();
     }
 
-    public ExecutionPlanDescription queryPlan()
+    public Supplier<ExecutionPlanDescription> queryPlanSupplier()
     {
-        return query.planDescription();
+        return query.planDescriptionSupplier();
     }
 
     public MapValue queryParameters()

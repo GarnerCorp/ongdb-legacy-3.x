@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -18,6 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.kernel.impl.storageengine.impl.recordstorage;
+
+import org.apache.commons.lang3.exception.CloneFailedException;
 
 import java.nio.ByteBuffer;
 
@@ -337,6 +339,13 @@ class RecordPropertyCursor extends PropertyRecord implements StoragePropertyCurs
         return Values.booleanValue( PropertyBlock.fetchByte( currentBlock() ) == 1 );
     }
 
+    @Override
+    public final PropertyRecord clone()
+    {
+        throw new CloneFailedException( "Record cursors are not cloneable." );
+    }
+
+    @Override
     public String toString()
     {
         if ( !open )

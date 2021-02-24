@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,9 +19,7 @@
  */
 package org.neo4j.internal.collector;
 
-import java.time.ZonedDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -47,7 +45,7 @@ public class DataCollectorProcedures
 
     @Admin
     @Description( "Retrieve statistical data about the current database. Valid sections are '" +
-                  Sections.GRAPH_COUNTS + "', '" + Sections.TOKENS + "', '" + Sections.QUERIES + "'" )
+                  Sections.GRAPH_COUNTS + "', '" + Sections.TOKENS + "', '" + Sections.QUERIES + "', '" + Sections.META + "'" )
     @Procedure( name = "db.stats.retrieve", mode = Mode.READ )
     public Stream<RetrieveResult> retrieve( @Name( value = "section" ) String section,
                                             @Name( value = "config", defaultValue = "" ) Map<String, Object> config )
@@ -62,8 +60,11 @@ public class DataCollectorProcedures
         case Sections.TOKENS:
             return TokensSection.retrieve( dataCollector.kernel );
 
+        case Sections.META:
+            return MetaSection.retrieve( null, dataCollector.kernel, dataCollector.queryCollector.numSilentQueryDrops() );
+
         case Sections.QUERIES:
-            return QueriesSection.retrieve( dataCollector.queryCollector.doGetData(),
+            return QueriesSection.retrieve( dataCollector.queryCollector.getData(),
                                             new PlainText( dataCollector.valueMapper ),
                                             RetrieveConfig.of( config ).maxInvocations );
 
@@ -79,15 +80,14 @@ public class DataCollectorProcedures
                                                          @Name( value = "config", defaultValue = "" ) Map<String, Object> config )
             throws IndexNotFoundKernelException, TransactionFailureException, InvalidArgumentsException
     {
-        Map<String, Object> metaData = new HashMap<>();
-        metaData.put( "graphToken", graphToken );
-        metaData.put( "retrieveTime", ZonedDateTime.now() );
-        TokensSection.putTokenCounts( metaData, dataCollector.kernel );
-        Stream<RetrieveResult> meta = Stream.of( new RetrieveResult( "META", metaData ) );
+        if ( graphToken == null || graphToken.equals( "" ) )
+        {
+            throw new InvalidArgumentsException( "Graph token must be a non-empty string" );
+        }
 
-        return Stream.of( meta,
+        return Stream.of( MetaSection.retrieve( graphToken, dataCollector.kernel, dataCollector.queryCollector.numSilentQueryDrops() ),
                           GraphCountsSection.retrieve( dataCollector.kernel, Anonymizer.IDS ),
-                          QueriesSection.retrieve( dataCollector.queryCollector.doGetData(),
+                          QueriesSection.retrieve( dataCollector.queryCollector.getData(),
                                                    new IdAnonymizer( transaction.tokenRead() ),
                                                    RetrieveConfig.of( config ).maxInvocations )
             ).flatMap( x -> x );

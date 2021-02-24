@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -36,7 +36,7 @@ import org.neo4j.internal.kernel.api.schema.LabelSchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
-import org.neo4j.kernel.impl.index.schema.fusion.FusionIndexProvider.DropAction;
+import org.neo4j.kernel.impl.index.schema.IndexDropAction;
 import org.neo4j.values.storable.Value;
 
 import static org.junit.Assert.fail;
@@ -69,7 +69,7 @@ public class FusionIndexPopulatorTest
     private EnumMap<IndexSlot,IndexPopulator> populators;
     private FusionIndexPopulator fusionIndexPopulator;
     private final long indexId = 8;
-    private final DropAction dropAction = mock( DropAction.class );
+    private final IndexDropAction dropAction = mock( IndexDropAction.class );
 
     @Parameterized.Parameters( name = "{0}" )
     public static FusionVersion[] versions()

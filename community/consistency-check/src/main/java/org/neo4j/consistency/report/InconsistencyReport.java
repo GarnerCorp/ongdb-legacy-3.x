@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -47,6 +47,12 @@ public class InconsistencyReport implements InconsistencyLogger
     }
 
     @Override
+    public void error( String message )
+    {
+        logger.error( message );
+    }
+
+    @Override
     public void warning( RecordType recordType, AbstractBaseRecord record, String message, Object[] args )
     {
         logger.warning( recordType, record, message, args );
@@ -57,6 +63,12 @@ public class InconsistencyReport implements InconsistencyLogger
                          String message, Object[] args )
     {
         logger.warning( recordType, oldRecord, newRecord, message, args );
+    }
+
+    @Override
+    public void warning( String message )
+    {
+        logger.warning( message );
     }
 
     void updateSummary( RecordType type, int errors, int warnings )

@@ -1,24 +1,21 @@
 /*
+ * Copyright (c) 2018-2020 "Graph Foundation"
+ * Graph Foundation, Inc. [https://graphfoundation.org]
+ *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of Neo4j Enterprise Edition. The included source
+ * This file is part of ONgDB Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found in the associated LICENSE.txt file.
+ * Commons Clause, as found
+ * in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- *
- * Neo4j object code can be licensed independently from the source
- * under separate terms from the AGPL. Inquiries can be directed to:
- * licensing@neo4j.com
- *
- * More information is also available at:
- * https://neo4j.com/licensing/
  */
 package org.neo4j.kernel.builtinprocs;
 
@@ -62,6 +59,8 @@ public class ProcedureResourcesIT
     private final String relExplicitIndexName = "relExplicitIndex";
     private final String ftsNodesIndex = "'ftsNodes'";
     private final String ftsRelsIndex = "'ftsRels'";
+    // ftsDropIndex exists only to be dropped.
+    private final String ftsDropIndex = "'ftsDrop'";
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @After
@@ -164,6 +163,8 @@ public class ProcedureResourcesIT
         {
             db.execute( "call db.index.fulltext.createNodeIndex(" + ftsNodesIndex + ", ['Label'], ['prop'])" ).close();
             db.execute( "call db.index.fulltext.createRelationshipIndex(" + ftsRelsIndex + ", ['Label'], ['prop'])" ).close();
+            // Create ftsDropIndex so it can be dropped.
+            db.execute( "call db.index.fulltext.createRelationshipIndex(" + ftsDropIndex + ", ['Label'], ['prop2'])" ).close();
             tx.success();
         }
     }
@@ -400,8 +401,25 @@ public class ProcedureResourcesIT
             proc.withParam( ftsRelsIndex );
             proc.withParam( "'value'" );
             break;
-        case "db.index.fulltext.drop":
+        case "db.index.fulltext.searchNodes":
+            proc.withParam( ftsNodesIndex );
+            proc.withParam( "'value'" );
+            break;
+        case "db.index.fulltext.searchRelationships":
             proc.withParam( ftsRelsIndex );
+            proc.withParam( "'value'" );
+            break;
+        case "db.index.fulltext.countNodes":
+            proc.withParam( ftsNodesIndex );
+            proc.withParam( "'value'" );
+            break;
+        case "db.index.fulltext.countRelationships":
+            proc.withParam( ftsRelsIndex );
+            proc.withParam( "'value'" );
+            break;
+        case "db.index.fulltext.drop":
+            // Drop ftsDropIndex instead of ftsNodesIndex/ftsRelsIndex so it does not cause test failures in other CASEs.
+            proc.withParam( ftsDropIndex );
             break;
         case "db.stats.retrieveAllAnonymized":
             proc.withParam( "'myToken'" );

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -139,7 +139,7 @@ public class NeoStoreIndexStoreView implements IndexStoreView
         {
             return null; // no labels => no updates (it's not going to be in any index)
         }
-        EntityUpdates.Builder update = EntityUpdates.forEntity( nodeId ).withTokens( labels );
+        EntityUpdates.Builder update = EntityUpdates.forEntity( nodeId, true ).withTokens( labels );
         for ( PropertyRecord propertyRecord : propertyStore.getPropertyRecordChain( firstPropertyId ) )
         {
             for ( PropertyBlock property : propertyRecord )

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,10 +22,9 @@ package org.neo4j.index.internal.gbptree;
 import java.io.IOException;
 import java.util.Comparator;
 
-import org.neo4j.index.internal.gbptree.GenerationSafePointerPair.GenerationTarget;
 import org.neo4j.io.pagecache.PageCursor;
 
-import static org.neo4j.index.internal.gbptree.GenerationSafePointerPair.NO_GENERATION_TARGET;
+import static org.neo4j.index.internal.gbptree.GBPTreeGenerationTarget.NO_GENERATION_TARGET;
 import static org.neo4j.index.internal.gbptree.GenerationSafePointerPair.read;
 
 /**
@@ -112,14 +111,19 @@ abstract class TreeNode<KEY,VALUE>
 
     // HEADER METHODS
 
+    static byte treeNodeType( PageCursor cursor )
+    {
+        return cursor.getByte( BYTE_POS_TYPE );
+    }
+
     static boolean isLeaf( PageCursor cursor )
     {
-        return cursor.getByte( BYTE_POS_TYPE ) == LEAF_FLAG;
+        return treeNodeType( cursor ) == LEAF_FLAG;
     }
 
     static boolean isInternal( PageCursor cursor )
     {
-        return cursor.getByte( BYTE_POS_TYPE ) == INTERNAL_FLAG;
+        return treeNodeType( cursor ) == INTERNAL_FLAG;
     }
 
     static long generation( PageCursor cursor )
@@ -137,7 +141,7 @@ abstract class TreeNode<KEY,VALUE>
         return rightSibling( cursor, stableGeneration, unstableGeneration, NO_GENERATION_TARGET );
     }
 
-    static long rightSibling( PageCursor cursor, long stableGeneration, long unstableGeneration, GenerationTarget generationTarget )
+    static long rightSibling( PageCursor cursor, long stableGeneration, long unstableGeneration, GBPTreeGenerationTarget generationTarget )
     {
         cursor.setOffset( BYTE_POS_RIGHTSIBLING );
         return read( cursor, stableGeneration, unstableGeneration, generationTarget );
@@ -148,7 +152,7 @@ abstract class TreeNode<KEY,VALUE>
         return leftSibling( cursor, stableGeneration, unstableGeneration, NO_GENERATION_TARGET );
     }
 
-    static long leftSibling( PageCursor cursor, long stableGeneration, long unstableGeneration, GenerationTarget generationTarget )
+    static long leftSibling( PageCursor cursor, long stableGeneration, long unstableGeneration, GBPTreeGenerationTarget generationTarget )
     {
         cursor.setOffset( BYTE_POS_LEFTSIBLING );
         return read( cursor, stableGeneration, unstableGeneration, generationTarget );
@@ -159,7 +163,7 @@ abstract class TreeNode<KEY,VALUE>
         return successor( cursor, stableGeneration, unstableGeneration, NO_GENERATION_TARGET );
     }
 
-    static long successor( PageCursor cursor, long stableGeneration, long unstableGeneration, GenerationTarget generationTarget )
+    static long successor( PageCursor cursor, long stableGeneration, long unstableGeneration, GBPTreeGenerationTarget generationTarget )
     {
         cursor.setOffset( BYTE_POS_SUCCESSOR );
         return read( cursor, stableGeneration, unstableGeneration, generationTarget );
@@ -270,7 +274,7 @@ abstract class TreeNode<KEY,VALUE>
         return childAt( cursor, pos, stableGeneration, unstableGeneration, NO_GENERATION_TARGET );
     }
 
-    long childAt( PageCursor cursor, int pos, long stableGeneration, long unstableGeneration, GenerationTarget generationTarget )
+    long childAt( PageCursor cursor, int pos, long stableGeneration, long unstableGeneration, GBPTreeGenerationTarget generationTarget )
     {
         cursor.setOffset( childOffset( pos ) );
         return read( cursor, stableGeneration, unstableGeneration, generationTarget );
@@ -358,8 +362,8 @@ abstract class TreeNode<KEY,VALUE>
      *
      * Key count is updated.
      */
-    abstract void doSplitLeaf( PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int insertPos, KEY newKey, VALUE newValue,
-            KEY newSplitter );
+    abstract void doSplitLeaf( PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int insertPos, KEY newKey, VALUE newValue, KEY newSplitter,
+            double ratioToKeepInLeftOnSplit );
 
     /**
      * Performs the entry moving part of split in internal.
@@ -369,8 +373,7 @@ abstract class TreeNode<KEY,VALUE>
      * Key count is updated.
      */
     abstract void doSplitInternal( PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int insertPos,
-            KEY newKey,
-            long newRightChild, long stableGeneration, long unstableGeneration, KEY newSplitter );
+            KEY newKey, long newRightChild, long stableGeneration, long unstableGeneration, KEY newSplitter, double ratioToKeepInLeftOnSplit );
 
     /**
      * Move all rightmost keys and values in left leaf from given position to right leaf.
@@ -393,7 +396,10 @@ abstract class TreeNode<KEY,VALUE>
 
     // Useful for debugging
     @SuppressWarnings( "unused" )
-    void printNode( PageCursor cursor, boolean includeValue, boolean includeAllocSpace, long stableGeneration, long unstableGeneration )
-    {   // default no-op
-    }
+    abstract void printNode( PageCursor cursor, boolean includeValue, boolean includeAllocSpace, long stableGeneration, long unstableGeneration );
+
+    /**
+     * @return {@link String} describing inconsistency of empty string "" if no inconsistencies.
+     */
+    abstract String checkMetaConsistency( PageCursor cursor, int keyCount, Type type, GBPTreeConsistencyCheckVisitor<KEY> visitor );
 }

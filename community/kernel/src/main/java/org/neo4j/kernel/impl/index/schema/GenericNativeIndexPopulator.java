@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,10 +22,11 @@ package org.neo4j.kernel.impl.index.schema;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
@@ -33,28 +34,29 @@ import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettingsCache;
 import org.neo4j.kernel.impl.index.schema.config.SpaceFillingCurveSettingsWriter;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
+import org.neo4j.values.storable.Value;
 
 import static org.neo4j.kernel.impl.index.schema.NativeIndexes.deleteIndex;
 
-class GenericNativeIndexPopulator extends NativeIndexPopulator<GenericKey,NativeIndexValue>
+public class GenericNativeIndexPopulator extends NativeIndexPopulator<GenericKey,NativeIndexValue>
 {
     private final IndexSpecificSpaceFillingCurveSettingsCache spatialSettings;
     private final IndexDirectoryStructure directoryStructure;
     private final SpaceFillingCurveConfiguration configuration;
+    private final IndexDropAction dropAction;
     private final boolean archiveFailedIndex;
-    private final boolean temporary;
 
     GenericNativeIndexPopulator( PageCache pageCache, FileSystemAbstraction fs, File storeFile, IndexLayout<GenericKey,NativeIndexValue> layout,
             IndexProvider.Monitor monitor, StoreIndexDescriptor descriptor, IndexSpecificSpaceFillingCurveSettingsCache spatialSettings,
-            IndexDirectoryStructure directoryStructure, SpaceFillingCurveConfiguration configuration, boolean archiveFailedIndex, boolean temporary )
+            IndexDirectoryStructure directoryStructure, SpaceFillingCurveConfiguration configuration, IndexDropAction dropAction, boolean archiveFailedIndex,
+            TokenNameLookup tokenNameLookup )
     {
-        super( pageCache, fs, storeFile, layout, monitor, descriptor, new SpaceFillingCurveSettingsWriter( spatialSettings ),
-                temporary ? new OpenOption[] {StandardOpenOption.DELETE_ON_CLOSE} : new OpenOption[0] );
+        super( pageCache, fs, storeFile, layout, monitor, descriptor, new SpaceFillingCurveSettingsWriter( spatialSettings ), tokenNameLookup );
         this.spatialSettings = spatialSettings;
         this.directoryStructure = directoryStructure;
         this.configuration = configuration;
+        this.dropAction = dropAction;
         this.archiveFailedIndex = archiveFailedIndex;
-        this.temporary = temporary;
     }
 
     @Override
@@ -64,10 +66,7 @@ class GenericNativeIndexPopulator extends NativeIndexPopulator<GenericKey,Native
         {
             // Archive and delete the index, if it exists. The reason why this isn't done in the generic implementation is that for all other cases a
             // native index populator lives under a fusion umbrella and the archive function sits on the top-level fusion folder, not every single sub-folder.
-            if ( !temporary )
-            {
-                deleteIndex( fileSystem, directoryStructure, descriptor.getId(), archiveFailedIndex );
-            }
+            deleteIndex( fileSystem, directoryStructure, descriptor.getId(), archiveFailedIndex );
 
             // Now move on to do the actual creation.
             super.create();
@@ -79,8 +78,25 @@ class GenericNativeIndexPopulator extends NativeIndexPopulator<GenericKey,Native
     }
 
     @Override
+    public synchronized void drop()
+    {
+        // Close resources
+        super.drop();
+        // Cleanup directory
+        dropAction.drop( descriptor.getId(), archiveFailedIndex );
+    }
+
+    @Override
     NativeIndexReader<GenericKey,NativeIndexValue> newReader()
     {
         return new GenericNativeIndexReader( tree, layout, descriptor, spatialSettings, configuration );
+    }
+
+    @Override
+    public Map<String,Value> indexConfig()
+    {
+        Map<String,Value> map = new HashMap<>();
+        spatialSettings.visitIndexSpecificSettings( new SpatialConfigExtractor( map ) );
+        return map;
     }
 }

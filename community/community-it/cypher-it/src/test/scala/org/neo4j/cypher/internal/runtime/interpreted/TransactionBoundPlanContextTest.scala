@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,8 +22,8 @@ package org.neo4j.cypher.internal.runtime.interpreted
 import java.util.concurrent.TimeUnit.SECONDS
 
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
-import org.neo4j.cypher.internal.planner.v3_5.spi.{IndexDescriptor, IndexLimitation, SlowContains}
-import org.neo4j.graphdb.{GraphDatabaseService, Label, RelationshipType, Transaction}
+import org.neo4j.cypher.internal.planner.v3_6.spi.{IndexDescriptor, IndexLimitation, SlowContains}
+import org.neo4j.graphdb.{GraphDatabaseService, Label, RelationshipType}
 import org.neo4j.internal.kernel.api.Transaction.Type._
 import org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED
 import org.neo4j.kernel.impl.coreapi.{InternalTransaction, PropertyContainerLocker}
@@ -31,9 +31,9 @@ import org.neo4j.kernel.impl.query.Neo4jTransactionalContextFactory
 import org.neo4j.kernel.impl.query.clientconnection.ClientConnectionInfo
 import org.neo4j.test.TestGraphDatabaseFactory
 import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
-import org.neo4j.cypher.internal.v3_5.frontend.phases.devNullLogger
-import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
-import org.neo4j.cypher.internal.v3_5.util._
+import org.neo4j.cypher.internal.v3_6.frontend.phases.devNullLogger
+import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_6.util._
 
 class TransactionBoundPlanContextTest extends CypherFunSuite {
 
@@ -221,7 +221,7 @@ class TransactionBoundPlanContextTest extends CypherFunSuite {
     })
   }
 
-  def inTx(f: TransactionBoundPlanContext => Unit) = {
+  def inTx(f: TransactionBoundPlanContext => Unit): Unit = {
     val tx = graph.beginTransaction(explicit, AUTH_DISABLED)
     val transactionalContext = createTransactionContext(graph, tx)
     val planContext = TransactionBoundPlanContext(TransactionalContextWrapper(transactionalContext), devNullLogger)
@@ -231,8 +231,9 @@ class TransactionBoundPlanContextTest extends CypherFunSuite {
       transactionalContext.close(true)
       tx.success()
     } catch {
-      case _: Throwable =>
+      case t: Throwable =>
         transactionalContext.close(false)
+        throw t
     } finally {
       tx.close()
     }

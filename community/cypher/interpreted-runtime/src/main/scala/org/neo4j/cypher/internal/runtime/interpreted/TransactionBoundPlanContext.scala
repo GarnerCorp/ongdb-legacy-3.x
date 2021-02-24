@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,9 +22,9 @@ package org.neo4j.cypher.internal.runtime.interpreted
 import java.util.Optional
 
 import org.neo4j.cypher.MissingIndexException
-import org.neo4j.cypher.internal.planner.v3_5.spi.IndexDescriptor.{OrderCapability, ValueCapability}
-import org.neo4j.cypher.internal.planner.v3_5.spi._
-import org.neo4j.cypher.internal.v3_5.logical.plans._
+import org.neo4j.cypher.internal.planner.v3_6.spi.IndexDescriptor.{OrderCapability, ValueCapability}
+import org.neo4j.cypher.internal.planner.v3_6.spi._
+import org.neo4j.cypher.internal.v3_6.logical.plans._
 import org.neo4j.internal.kernel.api
 import org.neo4j.internal.kernel.api.exceptions.KernelException
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes.AnyType
@@ -33,9 +33,9 @@ import org.neo4j.internal.kernel.api.{IndexReference, InternalIndexState, procs}
 import org.neo4j.kernel.api.schema.SchemaDescriptorFactory
 import org.neo4j.procedure.Mode
 import org.neo4j.values.storable.ValueCategory
-import org.neo4j.cypher.internal.v3_5.frontend.phases.InternalNotificationLogger
-import org.neo4j.cypher.internal.v3_5.util.symbols._
-import org.neo4j.cypher.internal.v3_5.util.{CypherExecutionException, LabelId, PropertyKeyId, symbols => types}
+import org.neo4j.cypher.internal.v3_6.frontend.phases.InternalNotificationLogger
+import org.neo4j.cypher.internal.v3_6.util.symbols._
+import org.neo4j.cypher.internal.v3_6.util.{CypherExecutionException, LabelId, PropertyKeyId, symbols => types}
 
 import scala.collection.JavaConverters._
 
@@ -46,7 +46,7 @@ object TransactionBoundPlanContext {
       new MutableGraphStatisticsSnapshot()))
 }
 
-class TransactionBoundPlanContext(tc: TransactionalContextWrapper, logger: InternalNotificationLogger, graphStatistics: GraphStatistics)
+class TransactionBoundPlanContext(tc: TransactionalContextWrapper, logger: InternalNotificationLogger, graphStatistics: InstrumentedGraphStatistics)
   extends TransactionBoundTokenContext(tc.kernelTransaction) with PlanContext with IndexDescriptorCompatibility {
 
   override def indexesGetForLabel(labelId: Int): Iterator[IndexDescriptor] = {
@@ -88,6 +88,7 @@ class TransactionBoundPlanContext(tc: TransactionalContextWrapper, logger: Inter
       case InternalIndexState.ONLINE =>
         val label = LabelId(reference.schema().getEntityTokenIds()(0))
         val properties = reference.properties().map(PropertyKeyId)
+        val isUnique = reference.isUnique
         val limitations = reference.limitations().map(kernelToCypher).toSet
         val orderCapability: OrderCapability = tps => {
            reference.orderCapability(tps.map(typeToValueCategory): _*) match {
@@ -112,7 +113,7 @@ class TransactionBoundPlanContext(tc: TransactionalContextWrapper, logger: Inter
           // Also, ignore eventually consistent indexes. Those are for explicit querying via procesures.
           None
         } else {
-          Some(IndexDescriptor(label, properties, limitations, orderCapability, valueCapability))
+          Some(IndexDescriptor(label, properties, limitations, orderCapability, valueCapability, isUnique))
         }
       case _ => None
     }
@@ -162,7 +163,7 @@ class TransactionBoundPlanContext(tc: TransactionalContextWrapper, logger: Inter
     }
   }
 
-  override val statistics: GraphStatistics = graphStatistics
+  override val statistics: InstrumentedGraphStatistics = graphStatistics
 
   override val txIdProvider = LastCommittedTxIdProvider(tc.graph)
 

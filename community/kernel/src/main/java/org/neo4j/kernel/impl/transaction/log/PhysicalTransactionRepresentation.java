@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -161,10 +161,7 @@ public class PhysicalTransactionRepresentation implements TransactionRepresentat
         builder.append( "timeCommitted:" ).append( timeCommitted ).append( ',' );
         builder.append( "lockSession:" ).append( lockSessionIdentifier ).append( ',' );
         builder.append( "additionalHeader:" ).append( Arrays.toString( additionalHeader ) );
-        for ( StorageCommand command : commands )
-        {
-            builder.append( '\n' ).append( command );
-        }
+        builder.append( "commands.length:" ).append( commands.size() );
         return builder.toString();
     }
 

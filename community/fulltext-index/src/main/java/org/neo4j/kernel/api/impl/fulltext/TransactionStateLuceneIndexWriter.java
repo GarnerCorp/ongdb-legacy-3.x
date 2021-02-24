@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -97,7 +97,8 @@ public class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Clo
         DirectoryReader directoryReader = DirectoryReader.open( writer, true );
         IndexSearcher searcher = new IndexSearcher( directoryReader );
         SearcherReference searcherRef = new DirectSearcherReference( searcher, directoryReader );
-        return new SimpleFulltextIndexReader( searcherRef, index.getPropertiesArray(), index.getAnalyzer(), index.getPropertyKeyTokenHolder() );
+        return new SimpleFulltextIndexReader( searcherRef, index.getPropertiesArray(), index.getAnalyzer(), index.getPropertyKeyTokenHolder(),
+                                              index.getSortPropertiesArray(), index.getSortTypes() );
     }
 
     @Override

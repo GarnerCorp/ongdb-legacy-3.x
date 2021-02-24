@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -216,18 +216,18 @@ public class ChunkedOutput implements PackOutput
     @Override
     public void close()
     {
-        if ( buffer != null )
+        try
         {
-            try
+            flush();
+        }
+        catch ( IOException ignore )
+        {
+        }
+        finally
+        {
+            closed = true;
+            if ( buffer != null )
             {
-                flush();
-            }
-            catch ( IOException ignore )
-            {
-            }
-            finally
-            {
-                closed = true;
                 buffer.release();
                 buffer = null;
             }

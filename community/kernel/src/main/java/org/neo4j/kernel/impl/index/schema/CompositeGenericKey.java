@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -136,7 +136,6 @@ class CompositeGenericKey extends GenericKey
     @Override
     boolean getInternal( PageCursor cursor, int keySize )
     {
-        int offset = cursor.getOffset();
         int slots = numberOfStateSlots();
         for ( int i = 0; i < slots; i++ )
         {
@@ -145,9 +144,6 @@ class CompositeGenericKey extends GenericKey
                 // The slot's getInternal has already set cursor exception, if it so desired, with more specific information so don't do it here.
                 return false;
             }
-            int offsetAfterRead = cursor.getOffset();
-            keySize -= offsetAfterRead - offset;
-            offset = offsetAfterRead;
         }
         return true;
     }

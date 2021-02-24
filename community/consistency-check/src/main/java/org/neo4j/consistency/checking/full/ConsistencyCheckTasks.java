@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -43,6 +43,7 @@ import org.neo4j.consistency.store.synthetic.LabelScanIndex;
 import org.neo4j.helpers.collection.BoundedIterable;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.kernel.api.labelscan.LabelScanStore;
 import org.neo4j.kernel.impl.index.labelscan.NativeLabelScanStore;
 import org.neo4j.kernel.impl.store.RecordStore;
@@ -69,6 +70,7 @@ public class ConsistencyCheckTasks
     private final StoreProcessor defaultProcessor;
     private final StoreAccess nativeStores;
     private final Statistics statistics;
+    private final TokenNameLookup tokenNameLookup;
     private final MultiPassStore.Factory multiPass;
     private final ConsistencyReporter reporter;
     private final LabelScanStore labelScanStore;
@@ -79,13 +81,14 @@ public class ConsistencyCheckTasks
     ConsistencyCheckTasks( ProgressMonitorFactory.MultiPartBuilder multiPartBuilder,
             StoreProcessor defaultProcessor, StoreAccess nativeStores, Statistics statistics,
             CacheAccess cacheAccess, LabelScanStore labelScanStore,
-            IndexAccessors indexes, MultiPassStore.Factory multiPass, ConsistencyReporter reporter, int numberOfThreads )
+            IndexAccessors indexes, TokenNameLookup tokenNameLookup, MultiPassStore.Factory multiPass, ConsistencyReporter reporter, int numberOfThreads )
     {
         this.multiPartBuilder = multiPartBuilder;
         this.defaultProcessor = defaultProcessor;
         this.nativeStores = nativeStores;
         this.statistics = statistics;
         this.cacheAccess = cacheAccess;
+        this.tokenNameLookup = tokenNameLookup;
         this.multiPass = multiPass;
         this.reporter = reporter;
         this.labelScanStore = labelScanStore;
@@ -211,7 +214,7 @@ public class ConsistencyCheckTasks
             {
                 tasks.add( recordScanner( format( "Index_%d", indexRule.getId() ),
                         new IndexIterator( indexes.accessorFor( indexRule ) ),
-                        new IndexEntryProcessor( filteredReporter, new IndexCheck( indexRule ) ),
+                        new IndexEntryProcessor( filteredReporter, new IndexCheck( indexRule ), indexRule, tokenNameLookup ),
                         Stage.SEQUENTIAL_FORWARD, ROUND_ROBIN ) );
             }
         }

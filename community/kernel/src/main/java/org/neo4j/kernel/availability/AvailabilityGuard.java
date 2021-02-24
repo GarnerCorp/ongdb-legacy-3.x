@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -41,6 +41,11 @@ public interface AvailabilityGuard
      * @param requirement the requirement object
      */
     void fulfill( AvailabilityRequirement requirement );
+
+    /**
+     * Shutdown the guard. After this method is invoked, the availability guard will always be considered unavailable.
+     */
+    void shutdown();
 
     /**
      * Check if the database is available for transactions to use.

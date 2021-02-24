@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.v3_5.util.Eagerly
-import org.neo4j.cypher.internal.v3_5.util.attribution.Id
+import org.neo4j.cypher.internal.v3_6.util.Eagerly
+import org.neo4j.cypher.internal.v3_6.util.attribution.Id
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualValues
 
@@ -42,6 +42,7 @@ case class DistinctPipe(source: Pipe, expressions: Map[String, Expression])
       val newMap = Eagerly.mutableMapValues(expressions, (expression: Expression) => expression(ctx, state))
       val newCtx = executionContextFactory.newExecutionContext(newMap)
       newCtx.copyCachedFrom(ctx)
+      state.copyArgumentStateTo(newCtx)
       newCtx
     })
 

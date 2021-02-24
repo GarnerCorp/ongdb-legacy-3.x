@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -826,19 +826,15 @@ public class NodeRelationshipCache implements MemoryStatsVisitor.Visitable, Auto
                 continue;
             }
 
-            ByteArray subArray = array.at( nodeId );
-            long subArrayLength = subArray.length();
-            for ( int i = 0; i < subArrayLength && nodeId < highNodeId; i++, nodeId++ )
-            {
-                boolean nodeHasChanged =
-                        (NodeType.isDense( nodeTypes ) && nodeIsChanged( subArray, nodeId, denseMask )) ||
-                        (NodeType.isSparse( nodeTypes ) && nodeIsChanged( subArray, nodeId, sparseMask ));
+            boolean nodeHasChanged =
+                    (NodeType.isDense( nodeTypes ) && nodeIsChanged( array, nodeId, denseMask )) ||
+                    (NodeType.isSparse( nodeTypes ) && nodeIsChanged( array, nodeId, sparseMask ));
 
-                if ( nodeHasChanged && NodeType.matchesDense( nodeTypes, isDense( array, nodeId ) ) )
-                {
-                    visitor.change( nodeId, subArray );
-                }
+            if ( nodeHasChanged && NodeType.matchesDense( nodeTypes, isDense( array, nodeId ) ) )
+            {
+                visitor.change( nodeId, array );
             }
+            nodeId++;
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -94,7 +94,7 @@ public class LabelScanStoreTxApplyRaceIT
         DatabaseLayout dbLayout = db.databaseLayout();
         db.shutdownAndKeepStore();
         assertTrue( new ConsistencyCheckService().runFullConsistencyCheck( dbLayout, defaults(), NONE,
-                toOutputStream( System.out ), false, new ConsistencyFlags( true, true, true, false ) ).isSuccessful() );
+                toOutputStream( System.out ), false, new ConsistencyFlags( true, true, true, true, false ) ).isSuccessful() );
     }
 
     private Runnable creator( AtomicReferenceArray<Node> nodeHeads, int guy )

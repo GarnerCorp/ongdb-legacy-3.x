@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -38,7 +38,7 @@ import org.neo4j.consistency.store.RecordReference;
 import org.neo4j.consistency.store.synthetic.CountsEntry;
 import org.neo4j.consistency.store.synthetic.IndexEntry;
 import org.neo4j.consistency.store.synthetic.LabelScanDocument;
-import org.neo4j.kernel.impl.annotations.Documented;
+import org.neo4j.kernel.impl.annotations.DocumentedUtils;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
@@ -169,6 +169,47 @@ public class ConsistencyReporter implements ConsistencyReport.Reporter
         return handler.report();
     }
 
+    public static FormattingDocumentedHandler formattingHandler( InconsistencyReport report, RecordType type )
+    {
+        return new FormattingDocumentedHandler( report, type );
+    }
+
+    public static class FormattingDocumentedHandler implements InvocationHandler
+    {
+        private final InconsistencyReport report;
+        private final RecordType type;
+        private int errors;
+        private int warnings;
+
+        FormattingDocumentedHandler( InconsistencyReport report, RecordType type )
+        {
+            this.report = report;
+            this.type = type;
+        }
+
+        @Override
+        public Object invoke( Object proxy, Method method, Object[] args )
+        {
+            String message = DocumentedUtils.extractFormattedMessage( method, args );
+            if ( method.getAnnotation( ConsistencyReport.Warning.class ) == null )
+            {
+                errors++;
+                report.error( message );
+            }
+            else
+            {
+                warnings++;
+                report.warning( message );
+            }
+            return null;
+        }
+
+        public void updateSummary()
+        {
+            report.updateSummary( type, errors, warnings );
+        }
+    }
+
     public abstract static class ReportInvocationHandler
             <RECORD extends AbstractBaseRecord, REPORT extends ConsistencyReport>
             implements CheckerEngine<RECORD, REPORT>, InvocationHandler
@@ -249,16 +290,7 @@ public class ConsistencyReporter implements ConsistencyReport.Reporter
         @Override
         public Object invoke( Object proxy, Method method, Object[] args )
         {
-            String message;
-            Documented annotation = method.getAnnotation( Documented.class );
-            if ( annotation != null && !"".equals( annotation.value() ) )
-            {
-               message = annotation.value();
-            }
-            else
-            {
-                message = method.getName();
-            }
+            String message = DocumentedUtils.extractMessage( method );
             if ( method.getAnnotation( ConsistencyReport.Warning.class ) == null )
             {
                 errors++;

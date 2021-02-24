@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2019 "Neo4j,"
+ * Copyright (c) 2002-2020 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -96,7 +96,7 @@ class ThrottlingBeanSnapshotProxy implements InvocationHandler
         {
             return target;
         }
-        checkArgument( iface.isInterface(), "%s is not an interface" );
+        checkArgument( iface.isInterface(), "%s is not an interface", iface );
         requirePositive( updateInterval );
         final ThrottlingBeanSnapshotProxy proxy = new ThrottlingBeanSnapshotProxy( iface, target, updateInterval, clock );
         return iface.cast( newProxyInstance( iface.getClassLoader(), new Class[] {iface}, proxy ) );
