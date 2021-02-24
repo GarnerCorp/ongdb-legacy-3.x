@@ -1,0 +1,11 @@
+= ONgDB Fork by GraphStack.io 
+
+This repository holds the legacy ongdb code for the 3.5 and 3.6 versions of ONgDB.  
+
+GraphStack.io and iGov Inc. are not affiliated, sponsored or endorsed with/by Neo4j, Inc. or Neo4j Sweden AB.
+
+We are open source advocates and part of the graph community.
+
+We are also not part of the GraphFoundation Inc - the non profit organization who manages ONgDB.
+
+This code is the GraphStack.io fork of ONgDB which we use to compile and package for the public.
