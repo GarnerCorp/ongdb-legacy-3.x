@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -41,7 +41,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.kernel.api.index.IndexProvider.Monitor.EMPTY;
-import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 
 public class GenericNativeIndexPopulatorTest
 {
@@ -65,7 +64,7 @@ public class GenericNativeIndexPopulatorTest
         RecoveryCleanupWorkCollector immediate = immediate();
         IndexDropAction dropAction = new FileSystemIndexDropAction( fs, directoryStructure );
         GenericNativeIndexPopulator populator = new GenericNativeIndexPopulator( pageCache, fs, indexFile, layout,
-                EMPTY, descriptor, spatialSettings, directoryStructure, mock( SpaceFillingCurveConfiguration.class ), dropAction, false, simpleNameLookup );
+                EMPTY, descriptor, spatialSettings, directoryStructure, mock( SpaceFillingCurveConfiguration.class ), dropAction, false );
         populator.create();
 
         // when

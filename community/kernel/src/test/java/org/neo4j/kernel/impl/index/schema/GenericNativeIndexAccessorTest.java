@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -38,7 +38,6 @@ import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.kernel.api.index.IndexProvider.Monitor.EMPTY;
-import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 
 public class GenericNativeIndexAccessorTest
 {
@@ -59,7 +58,7 @@ public class GenericNativeIndexAccessorTest
         FileSystemAbstraction fs = storage.fileSystem();
         IndexDropAction dropAction = new FileSystemIndexDropAction( fs, directoryStructure );
         GenericNativeIndexAccessor accessor = new GenericNativeIndexAccessor( storage.pageCache(), fs, indexFile, new GenericLayout( 1, spatialSettings ),
-                immediate(), EMPTY, descriptor, spatialSettings, mock( SpaceFillingCurveConfiguration.class ), dropAction, false, simpleNameLookup );
+                immediate(), EMPTY, descriptor, spatialSettings, mock( SpaceFillingCurveConfiguration.class ), dropAction, false );
 
         // when
         accessor.drop();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -25,7 +25,6 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.neo4j.io.IOUtils;
@@ -45,14 +44,12 @@ class PartitionedFulltextIndexReader extends FulltextIndexReader
 
     private final List<FulltextIndexReader> indexReaders;
 
-    PartitionedFulltextIndexReader( List<PartitionSearcher> partitionSearchers, String[] properties, Analyzer analyzer, TokenHolder propertyKeyTokenHolder,
-                                    String[] sortProperties, Map<String,String> sortTypes )
+    PartitionedFulltextIndexReader( List<PartitionSearcher> partitionSearchers, String[] properties, Analyzer analyzer, TokenHolder propertyKeyTokenHolder )
     {
         this( partitionSearchers.stream()
-                                .map( PartitionSearcherReference::new )
-                                .map( searcher -> new SimpleFulltextIndexReader( searcher, properties, analyzer, propertyKeyTokenHolder, sortProperties,
-                                                                                 sortTypes ) )
-                                .collect( Collectors.toList() ) );
+                .map( PartitionSearcherReference::new )
+                .map( searcher -> new SimpleFulltextIndexReader( searcher, properties, analyzer, propertyKeyTokenHolder ) )
+                .collect( Collectors.toList() ) );
     }
 
     private PartitionedFulltextIndexReader( List<FulltextIndexReader> readers )
@@ -64,12 +61,6 @@ class PartitionedFulltextIndexReader extends FulltextIndexReader
     public ScoreEntityIterator query( String query ) throws ParseException
     {
         return partitionedQuery( query );
-    }
-
-    @Override
-    public ScoreEntityIterator query( String query, FulltextQueryConfig queryConfig ) throws ParseException
-    {
-        return partitionedQuery( query, queryConfig );
     }
 
     @Override
@@ -95,30 +86,9 @@ class PartitionedFulltextIndexReader extends FulltextIndexReader
         return ScoreEntityIterator.mergeIterators( results );
     }
 
-    private ScoreEntityIterator partitionedQuery( String query, FulltextQueryConfig queryConfig ) throws ParseException
-    {
-        List<ScoreEntityIterator> results = new ArrayList<>();
-        for ( FulltextIndexReader indexReader : indexReaders )
-        {
-            results.add( indexReader.query( query, queryConfig ) );
-        }
-        return ScoreEntityIterator.mergeIterators( results );
-    }
-
     @Override
     public long countIndexedNodes( long nodeId, int[] propertyKeyIds, Value... propertyValues )
     {
         return indexReaders.stream().mapToLong( reader -> reader.countIndexedNodes( nodeId, propertyKeyIds, propertyValues ) ).sum();
-    }
-
-    @Override
-    public CountResult queryForCount( String query ) throws ParseException
-    {
-        List<CountResult> results = new ArrayList<>();
-        for ( FulltextIndexReader indexReader : indexReaders )
-        {
-            results.add( indexReader.queryForCount( query ) );
-        }
-        return new CountResult( results.stream().mapToLong( CountResult::getCount ).sum() );
     }
 }

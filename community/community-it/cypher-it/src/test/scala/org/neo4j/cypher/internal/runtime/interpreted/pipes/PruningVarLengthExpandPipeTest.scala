@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{Liter
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.{Equals, Predicate, True}
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.UnresolvedProperty
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.VarLengthExpandPipeTest.createVarLengthPredicate
-import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection
+import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
 import org.neo4j.graphdb.Node
 import org.neo4j.internal.kernel.api.Transaction.Type
 import org.neo4j.internal.kernel.api.security.LoginContext

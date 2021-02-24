@@ -26,9 +26,9 @@ setup_environment() {
 }
 
 setup_heap() {
+  JAVA_MEMORY_OPTS=()
   if [[ -n "${HEAP_SIZE:-}" ]]; then
-    JAVA_MEMORY_OPTS_XMS="-Xms${HEAP_SIZE}"
-    JAVA_MEMORY_OPTS_XMX="-Xmx${HEAP_SIZE}"
+    JAVA_MEMORY_OPTS+=("-Xmx${HEAP_SIZE}")
   fi
 }
 
@@ -55,8 +55,7 @@ detect_os() {
 }
 
 setup_memory_opts() {
-  # In some cases the heap size may have already been set before we get here, from e.g. HEAP_SIZE env.variable, if so then skip
-  if [[ -n "${dbms_memory_heap_initial_size:-}" && -z "${JAVA_MEMORY_OPTS_XMS-}" ]]; then
+  if [[ -n "${dbms_memory_heap_initial_size:-}" ]]; then
     local mem="${dbms_memory_heap_initial_size}"
     if ! [[ ${mem} =~ .*[gGmMkK] ]]; then
       mem="${mem}m"
@@ -69,10 +68,9 @@ WARNING: dbms.memory.heap.initial_size will require a unit suffix in a
                                           ^
 EOF
     fi
-    JAVA_MEMORY_OPTS_XMS="-Xms${mem}"
+    JAVA_MEMORY_OPTS+=("-Xms${mem}")
   fi
-  # In some cases the heap size may have already been set before we get here, from e.g. HEAP_SIZE env.variable, if so then skip
-  if [[ -n "${dbms_memory_heap_max_size:-}" && -z "${JAVA_MEMORY_OPTS_XMX-}" ]]; then
+  if [[ -n "${dbms_memory_heap_max_size:-}" ]]; then
     local mem="${dbms_memory_heap_max_size}"
     if ! [[ ${mem} =~ .*[gGmMkK] ]]; then
       mem="${mem}m"
@@ -85,7 +83,7 @@ WARNING: dbms.memory.heap.max_size will require a unit suffix in a
                                       ^
 EOF
     fi
-    JAVA_MEMORY_OPTS_XMX="-Xmx${mem}"
+    JAVA_MEMORY_OPTS+=("-Xmx${mem}")
   fi
 }
 
@@ -93,7 +91,8 @@ check_java() {
   _find_java_cmd
   setup_memory_opts
 
-  version_command=("${JAVA_CMD}" "-version" ${JAVA_MEMORY_OPTS_XMS-} ${JAVA_MEMORY_OPTS_XMX-})
+  version_command=("${JAVA_CMD}" "-version")
+  [[ -n "${JAVA_MEMORY_OPTS:-}" ]] && version_command+=("${JAVA_MEMORY_OPTS[@]}")
 
   JAVA_VERSION=$("${version_command[@]}" 2>&1 | awk -F '"' '/version/ {print $2}')
   if [[ $JAVA_VERSION = "1."* ]]; then
@@ -141,7 +140,7 @@ call_main_class() {
 
   export NEO4J_HOME NEO4J_CONF
 
-  exec "${JAVA_CMD}" ${JAVA_OPTS:-} ${JAVA_MEMORY_OPTS_XMS-} ${JAVA_MEMORY_OPTS_XMX-} \
+  exec "${JAVA_CMD}" ${JAVA_OPTS:-} ${JAVA_MEMORY_OPTS[@]:-} \
     -classpath "${CLASSPATH}" \
     ${EXTRA_JVM_ARGUMENTS:-} \
     $class_name "$@"
@@ -233,7 +232,7 @@ EOF
   for file in "neo4j-wrapper.conf" "neo4j.conf"; do
     path="${NEO4J_CONF}/${file}"
     if [ -e "${path}" ]; then
-      while read line || [[ -n "$line" ]]; do
+      while read line; do
         parse_line "${line}"
       done <"${path}"
     fi

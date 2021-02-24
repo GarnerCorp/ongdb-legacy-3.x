@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -62,7 +62,6 @@ import org.neo4j.kernel.impl.proc.OutputMappers.OutputMapper;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Admin;
 import org.neo4j.procedure.Description;
-import org.neo4j.procedure.Internal;
 import org.neo4j.procedure.Mode;
 import org.neo4j.procedure.PerformsWrites;
 import org.neo4j.procedure.Procedure;
@@ -128,7 +127,7 @@ class ReflectiveProcedureCompiler
         this.restrictions = restrictions;
     }
 
-    List<CallableUserFunction> compileFunction( Class<?> fcnDefinition, boolean isBuiltin ) throws KernelException
+    List<CallableUserFunction> compileFunction( Class<?> fcnDefinition ) throws KernelException
     {
         try
         {
@@ -149,7 +148,7 @@ class ReflectiveProcedureCompiler
                 String valueName = method.getAnnotation( UserFunction.class ).value();
                 String definedName = method.getAnnotation( UserFunction.class ).name();
                 QualifiedName funcName = extractName( fcnDefinition, method, valueName, definedName );
-                if ( isBuiltin || config.isWhitelisted( funcName.toString() ) )
+                if ( config.isWhitelisted( funcName.toString() ) )
                 {
                     out.add( compileFunction( fcnDefinition, constructor, method, funcName ) );
                 }
@@ -278,7 +277,6 @@ class ReflectiveProcedureCompiler
         Procedure procedure = method.getAnnotation( Procedure.class );
         Mode mode = procedure.mode();
         boolean admin = method.isAnnotationPresent( Admin.class );
-        boolean internal = method.isAnnotationPresent( Internal.class );
         if ( method.isAnnotationPresent( PerformsWrites.class ) )
         {
             if ( procedure.mode() != org.neo4j.procedure.Mode.DEFAULT )
@@ -307,14 +305,14 @@ class ReflectiveProcedureCompiler
                 description = describeAndLogLoadFailure( procName );
                 ProcedureSignature signature =
                         new ProcedureSignature( procName, inputSignature, outputMapper.signature(), Mode.DEFAULT,
-                                admin, null, new String[0], description, warning, procedure.eager(), false, internal );
+                                admin, null, new String[0], description, warning, procedure.eager(), false );
                 return new FailedLoadProcedure( signature );
             }
         }
 
         ProcedureSignature signature =
                 new ProcedureSignature( procName, inputSignature, outputMapper.signature(), mode, admin, deprecated,
-                        config.rolesFor( procName.toString() ), description, warning, procedure.eager(), false, internal );
+                        config.rolesFor( procName.toString() ), description, warning, procedure.eager(), false );
         return new ReflectiveProcedure( signature, constructor, method, outputMapper, setters );
     }
 

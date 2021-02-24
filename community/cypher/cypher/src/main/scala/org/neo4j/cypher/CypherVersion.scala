@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -25,8 +25,8 @@ case object CypherVersion extends CypherOptionCompanion[CypherVersion] {
   case object v2_3 extends CypherVersion("2.3")
   case object v3_1 extends CypherVersion("3.1")
   case object v3_4 extends CypherVersion("3.4")
-  case object v3_6 extends CypherVersion("3.6")
+  case object v3_5 extends CypherVersion("3.5")
 
-  val default = v3_6
-  val all: Set[CypherVersion] = Set(v2_3, v3_1, v3_4, v3_6)
+  val default = v3_5
+  val all: Set[CypherVersion] = Set(v2_3, v3_1, v3_4, v3_5)
 }

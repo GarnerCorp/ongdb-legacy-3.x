@@ -62,6 +62,7 @@ Apache Software License, Version 2.0
   Commons Lang
   Commons Logging
   ConcurrentLinkedHashMap
+  Data Mapper for Jackson
   detect-libc
   disposables
   fastinfoset
@@ -70,12 +71,8 @@ Apache Software License, Version 2.0
   Graphite Integration for Metrics
   grpc
   hazelcast-all
-  Jackson module: JAXB Annotations
-  Jackson-annotations
-  Jackson-core
-  jackson-databind
-  Jackson-JAXRS-base
-  Jackson-JAXRS-JSON
+  Jackson
+  JAX-RS provider for JSON content type
   Jetty :: Asynchronous HTTP Client
   Jetty :: Http Utility
   Jetty :: IO Utility
@@ -94,14 +91,11 @@ Apache Software License, Version 2.0
   Lucene QueryParsers
   LZ4 and xxHash
   Metrics Core
-  Neo4j - Cypher Expressions 3.4
-  Neo4j - Cypher Util 3.4
   neo4j-driver
   Netty
   Netty/All-in-One
   oauth-sign
   opencsv
-  openCypher Frontend
   parboiled-core
   parboiled-scala
   Prometheus Java Simpleclient

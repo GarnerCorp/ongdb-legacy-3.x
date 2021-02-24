@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.scheduler;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -51,9 +50,6 @@ final class ThreadPool
     public JobHandle submit( Runnable job )
     {
         Object registryKey = new Object();
-        CompletableFuture<Void> placeHolder = CompletableFuture.completedFuture( null );
-        registry.put( registryKey, placeHolder );
-
         Runnable registeredJob = () ->
         {
             try
@@ -65,15 +61,9 @@ final class ThreadPool
                 registry.remove( registryKey );
             }
         };
-
         Future<?> future = executor.submit( registeredJob );
-        registry.replace( registryKey, placeHolder, future );
+        registry.put( registryKey, future );
         return new PooledJobHandle( future, registryKey, registry );
-    }
-
-    int activeJobCount()
-    {
-        return registry.size();
     }
 
     void cancelAllJobs()

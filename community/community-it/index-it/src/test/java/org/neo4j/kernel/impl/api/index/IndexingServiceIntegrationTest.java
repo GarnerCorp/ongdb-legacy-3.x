@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
-import org.eclipse.collections.api.iterator.LongIterator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,7 +28,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -39,24 +37,22 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.graphdb.schema.IndexDefinition;
+import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.Kernel;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
+import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.schema.RelationTypeSchemaDescriptor;
+import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
 import org.neo4j.kernel.impl.core.ThreadToStatementContextBridge;
-import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
-import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.store.UnderlyingStorageException;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.storageengine.api.schema.CapableIndexDescriptor;
 import org.neo4j.storageengine.api.schema.PopulationProgress;
-import org.neo4j.test.Race;
 import org.neo4j.test.TestGraphDatabaseFactory;
-import org.neo4j.test.rule.TestDirectory;
+import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.neo4j.internal.kernel.api.Transaction.Type.explicit;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
@@ -73,7 +69,7 @@ public class IndexingServiceIntegrationTest
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
     @Rule
-    public TestDirectory directory = TestDirectory.testDirectory();
+    public EphemeralFileSystemRule fileSystemRule = new EphemeralFileSystemRule();
     private GraphDatabaseService database;
 
     @Parameterized.Parameters( name = "{0}" )
@@ -88,8 +84,10 @@ public class IndexingServiceIntegrationTest
     @Before
     public void setUp()
     {
+        EphemeralFileSystemAbstraction fileSystem = fileSystemRule.get();
         database = new TestGraphDatabaseFactory()
-                .newEmbeddedDatabaseBuilder( directory.storeDir() )
+                .setFileSystem( fileSystem )
+                .newImpermanentDatabaseBuilder()
                 .setConfig( GraphDatabaseSettings.default_schema_provider, schemaIndex.providerName() )
                 .newGraphDatabase();
         createData( database, 100 );
@@ -180,85 +178,40 @@ public class IndexingServiceIntegrationTest
     }
 
     @Test
-    public void dropIndexDirectlyOnIndexingServiceRaceWithCheckpoint() throws Throwable
+    public void failForceIndexesWhenOneOfTheIndexesIsBroken() throws Exception
     {
+        String constraintLabelPrefix = "ConstraintLabel";
+        String constraintPropertyPrefix = "ConstraintProperty";
+        String indexLabelPrefix = "Label";
+        String indexPropertyPrefix = "Property";
+        for ( int i = 0; i < 10; i++ )
+        {
+            try ( Transaction transaction = database.beginTx() )
+            {
+                database.schema().constraintFor( Label.label( constraintLabelPrefix + i ) )
+                        .assertPropertyIsUnique( constraintPropertyPrefix + i ).create();
+                database.schema().indexFor( Label.label( indexLabelPrefix + i ) ).on( indexPropertyPrefix + i ).create();
+                transaction.success();
+            }
+        }
+
+        try ( Transaction ignored = database.beginTx() )
+        {
+            database.schema().awaitIndexesOnline( 1, TimeUnit.MINUTES );
+        }
+
         IndexingService indexingService = getIndexingService( database );
-        CheckPointer checkPointer = getCheckPointer( database );
 
-        try ( Transaction tx = database.beginTx() )
-        {
-            database.schema().indexFor( Label.label( "label" ) ).on( "prop" ).create();
-            tx.success();
-        }
-        try ( Transaction tx = database.beginTx() )
-        {
-            database.schema().awaitIndexesOnline( 1, TimeUnit.HOURS );
-            tx.success();
-        }
+        int indexLabel7 = getLabelId( indexLabelPrefix + 7 );
+        int indexProperty7 = getPropertyKeyId( indexPropertyPrefix + 7 );
 
-        Race race = new Race();
-        race.addContestant( Race.throwing( () -> checkPointer.forceCheckPoint( new SimpleTriggerInfo( "Test force" ) ) ) );
+        IndexProxy index = indexingService.getIndexProxy( TestIndexDescriptorFactory.forLabel( indexLabel7, indexProperty7 ).schema() );
 
-        long indexId = oneIndex( indexingService );
-        CapableIndexDescriptor indexDescriptor = asCapableIndexDescriptor( indexingService, indexId );
-        race.addContestant( Race.throwing( () -> indexingService.dropIndex( indexDescriptor ) ) );
-        race.go();
-    }
+        index.drop();
 
-    @Test
-    public void dropIndexRaceWithCheckpoint() throws Throwable
-    {
-        CheckPointer checkPointer = getCheckPointer( database );
-
-        int nbrOfIndexes = 100;
-        try ( Transaction tx = database.beginTx() )
-        {
-            for ( int i = 0; i < nbrOfIndexes; i++ )
-            {
-                database.schema().indexFor( Label.label( "label" ) ).on( "prop" + i ).create();
-            }
-            tx.success();
-        }
-        try ( Transaction tx = database.beginTx() )
-        {
-            database.schema().awaitIndexesOnline( 1, TimeUnit.HOURS );
-            tx.success();
-        }
-
-        AtomicBoolean allIndexesDropped = new AtomicBoolean();
-        Race race = new Race();
-        race.addContestant( Race.throwing( () -> {
-            while ( !allIndexesDropped.get() )
-            {
-                checkPointer.forceCheckPoint( new SimpleTriggerInfo( "Test force" ) );
-            }
-        } ) );
-        race.addContestant( Race.throwing( () ->
-        {
-            try ( Transaction tx = database.beginTx() )
-            {
-                database.schema().getIndexes().forEach( IndexDefinition::drop );
-                tx.success();
-            }
-            finally
-            {
-                allIndexesDropped.set( true );
-            }
-        } ) );
-        race.go();
-    }
-
-    private long oneIndex( IndexingService indexingService )
-    {
-        LongIterator indexIds = indexingService.getIndexIds().longIterator();
-        assertTrue( indexIds.hasNext() );
-        return indexIds.next();
-    }
-
-    private CapableIndexDescriptor asCapableIndexDescriptor( IndexingService indexingService, long indexId ) throws IndexNotFoundKernelException
-    {
-        IndexProxy indexProxy = indexingService.getIndexProxy( indexId );
-        return indexProxy.getDescriptor();
+        expectedException.expect( UnderlyingStorageException.class );
+        expectedException.expectMessage( "Unable to force" );
+        indexingService.forceAll( IOLimiter.UNLIMITED );
     }
 
     private void waitIndexOnline( IndexProxy indexProxy ) throws InterruptedException
@@ -272,11 +225,6 @@ public class IndexingServiceIntegrationTest
     private IndexingService getIndexingService( GraphDatabaseService database )
     {
         return getDependencyResolver(database).resolveDependency( IndexingService.class );
-    }
-
-    private CheckPointer getCheckPointer( GraphDatabaseService database )
-    {
-        return getDependencyResolver( database ).resolveDependency( CheckPointer.class );
     }
 
     private DependencyResolver getDependencyResolver( GraphDatabaseService database )

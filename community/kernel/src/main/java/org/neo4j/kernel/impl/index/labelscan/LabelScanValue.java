@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -77,14 +77,6 @@ class LabelScanValue
     void clear()
     {
         bits = 0;
-    }
-
-    /**
-     * @return whether or not all bits in this range are cleared, i.e. the whole range is empty.
-     */
-    boolean isEmpty()
-    {
-        return bits == 0;
     }
 
     @Override

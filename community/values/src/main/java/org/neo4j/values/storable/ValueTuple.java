@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,8 +20,6 @@
 package org.neo4j.values.storable;
 
 import java.util.Comparator;
-
-import static org.neo4j.values.utils.ValueMath.HASH_CONSTANT;
 
 /**
  * A tuple of n values.
@@ -107,7 +105,7 @@ public class ValueTuple
         int result = 1;
         for ( Object value : values )
         {
-            result = HASH_CONSTANT * result + value.hashCode();
+            result = 31 * result + value.hashCode();
         }
         return result;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,9 +19,9 @@
  */
 package org.neo4j.server.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.UniformInterfaceException;
+import org.codehaus.jackson.JsonNode;
 import org.json.JSONException;
 import org.junit.Test;
 
@@ -749,7 +749,7 @@ public class BatchOperationIT extends AbstractRestFunctionalDocTestBase
             assertTrue( "Errors not an array", errors.isArray() );
             assertEquals( 1, errors.size() );
 
-            String errorCode = errors.get(0).get("code").asText();
+            String errorCode = errors.get(0).get("code").getTextValue();
             assertEquals( "Neo.ClientError.Statement.SemanticError", errorCode );
         } );
     }

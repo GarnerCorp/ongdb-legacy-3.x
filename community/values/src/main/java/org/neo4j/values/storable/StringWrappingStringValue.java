@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,8 +23,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.neo4j.hashing.HashFunction;
-
-import static org.neo4j.values.utils.ValueMath.HASH_CONSTANT;
 
 /**
  * Implementation of StringValue that wraps a `java.lang.String` and
@@ -64,7 +62,7 @@ final class StringWrappingStringValue extends StringValue
         for ( int offset = 0, codePoint; offset < length; offset += Character.charCount( codePoint ) )
         {
             codePoint = value.codePointAt( offset );
-            h = HASH_CONSTANT * h + codePoint;
+            h = 31 * h + codePoint;
         }
         return h;
     }

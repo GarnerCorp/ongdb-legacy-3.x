@@ -56,13 +56,15 @@ object mergeUniqueIndexSeekLeafPlanner extends AbstractIndexSeekLeafPlanner {
   override def constructPlan(idName: String,
                              label: LabelToken,
                              properties: Seq[IndexedProperty],
+                             isUnique: Boolean,
                              valueExpr: QueryExpression[Expression],
                              hint: Option[UsingIndexHint],
                              argumentIds: Set[String],
                              providedOrder: ProvidedOrder,
                              context: LogicalPlanningContext)
                             (solvedPredicates: Seq[Expression], predicatesForCardinalityEstimation: Seq[Expression]): LogicalPlan =
-      context.logicalPlanProducer.planNodeUniqueIndexSeek(idName, label, properties, valueExpr, solvedPredicates, hint, argumentIds, providedOrder, context)
+    context.logicalPlanProducer.planNodeUniqueIndexSeek(idName, label, properties, valueExpr, solvedPredicates, predicatesForCardinalityEstimation,
+      hint, argumentIds, providedOrder, context)
 
   override def findIndexesForLabel(labelId: Int, context: LogicalPlanningContext): Iterator[IndexDescriptor] =
     context.planContext.uniqueIndexesGetForLabel(labelId)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted
 
-import org.neo4j.cypher.internal.ir.v3_6.VarPatternLength
-import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
+import org.neo4j.cypher.internal.ir.v3_5.VarPatternLength
+import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.ProcedureCallMode
 import org.neo4j.cypher.internal.runtime.interpreted.commands.KeyTokenResolver
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.PatternConverters._
@@ -28,14 +28,14 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.{Expressio
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{AggregationExpression, Literal, ShortestPathExpression}
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.{Predicate, True}
 import org.neo4j.cypher.internal.runtime.interpreted.pipes._
-import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.v3_6.expressions.{Equals => ASTEquals, Expression => ASTExpression, _}
-import org.neo4j.cypher.internal.v3_6.logical.plans
-import org.neo4j.cypher.internal.v3_6.logical.plans.{ColumnOrder, Limit => LimitPlan, LoadCSV => LoadCSVPlan, Skip => SkipPlan, _}
-import org.neo4j.cypher.internal.v3_6.util.attribution.Id
-import org.neo4j.cypher.internal.v3_6.util.{Eagerly, InternalException}
+import org.neo4j.cypher.internal.v3_5.logical.plans
+import org.neo4j.cypher.internal.v3_5.logical.plans.{ColumnOrder, Limit => LimitPlan, LoadCSV => LoadCSVPlan, Skip => SkipPlan, _}
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.{NodeValue, RelationshipValue}
+import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.v3_5.expressions.{Equals => ASTEquals, Expression => ASTExpression, _}
+import org.neo4j.cypher.internal.v3_5.util.attribution.Id
+import org.neo4j.cypher.internal.v3_5.util.{Eagerly, InternalException}
 
 /**
  * Responsible for turning a logical plan with argument pipes into a new pipe.
@@ -111,7 +111,7 @@ case class InterpretedPipeBuilder(recurse: LogicalPlan => Pipe,
         ProjectEndpointsPipe(source, rel,
           start, startInScope,
           end, endInScope,
-          types.map(_.toArray).map(LazyTypes.apply), directed, length.isSimple)(id = id)
+          types.map(_.toArray).map(LazyTypes.apply), directed, length.isSimple)()
 
       case EmptyResult(_) =>
         EmptyResultPipe(source)(id = id)
@@ -131,7 +131,7 @@ case class InterpretedPipeBuilder(recurse: LogicalPlan => Pipe,
         ExpandIntoPipe(source, fromName, relName, toName, dir, LazyTypes(types.toArray))(id = id)
 
       case LockNodes(_, nodesToLock) =>
-        LockNodesPipe(source, nodesToLock)(id = id)
+        LockNodesPipe(source, nodesToLock)()
 
       case OptionalExpand(_, fromName, dir, types, toName, relName, ExpandAll, predicates) =>
         val predicate: Predicate = predicates.map(buildPredicate(id, _)).reduceOption(_ andWith _).getOrElse(True())

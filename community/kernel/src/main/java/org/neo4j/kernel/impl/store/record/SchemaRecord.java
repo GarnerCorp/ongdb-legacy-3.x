@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -73,13 +73,11 @@ public class SchemaRecord extends AbstractBaseRecord implements Iterable<Dynamic
     @Override
     public SchemaRecord clone()
     {
-        SchemaRecord clone = (SchemaRecord) super.clone();
         List<DynamicRecord> list = new ArrayList<>( records.size() );
         for ( DynamicRecord record : records )
         {
             list.add( record.clone() );
         }
-        clone.records = list;
-        return clone;
+        return new SchemaRecord( list );
     }
 }

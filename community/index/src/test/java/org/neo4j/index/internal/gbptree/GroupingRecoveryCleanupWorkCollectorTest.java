@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -35,7 +35,6 @@ import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobSchedulerAdapter;
 
-import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -92,8 +91,7 @@ class GroupingRecoveryCleanupWorkCollectorTest
 
         // when
         addAll( someJobs );
-        final IllegalStateException e = assertThrows( IllegalStateException.class, collector::init );
-        assertEquals( format( "Did not expect there to be any cleanup jobs still here. Jobs[A%n  B%n  C]" ), e.getMessage() );
+        assertThrows( IllegalStateException.class, collector::init );
     }
 
     @Test

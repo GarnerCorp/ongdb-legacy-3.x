@@ -4,18 +4,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.graphfoundation.ongdb</groupId>
+        <groupId>org.neo4j</groupId>
         <artifactId>community-integration-tests</artifactId>
-        <version>3.6.2-SNAPSHOT</version>
+        <version>3.5.12</version>
     </parent>
 
-    <groupId>org.graphfoundation.ongdb.community</groupId>
+    <groupId>org.neo4j.community</groupId>
     <artifactId>index-it</artifactId>
-    <version>3.6.2-SNAPSHOT</version>
+    <version>3.5.12</version>
 
-    <name>ONgDB - Community Index Integration Tests</name>
+    <name>Neo4j - Community Index Integration Tests</name>
     <packaging>jar</packaging>
-    <description>ONgDB Community Edition index integration tests.</description>
+    <description>Neo4j community edition index integration tests.</description>
 
     <properties>
         <license-text.header>headers/GPL-3-header.txt</license-text.header>
@@ -24,9 +24,9 @@
     </properties>
 
     <scm>
-        <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
-        <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
-        <url>https://github.com/graphfoundation/ongdb</url>
+        <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
+        <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
+        <url>https://github.com/neo4j/neo4j</url>
     </scm>
 
     <licenses>
@@ -50,19 +50,19 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.graphfoundation.ongdb</groupId>
-            <artifactId>ongdb</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb.community</groupId>
+            <groupId>org.neo4j.community</groupId>
             <artifactId>it-test-support</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb</groupId>
-            <artifactId>ongdb-random-values</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-random-values</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -72,29 +72,29 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb</groupId>
-            <artifactId>ongdb-logging</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-logging</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb</groupId>
-            <artifactId>ongdb-kernel</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-kernel</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb.community</groupId>
+            <groupId>org.neo4j.community</groupId>
             <artifactId>kernel-it</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb</groupId>
-            <artifactId>ongdb-kernel-api</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-kernel-api</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -132,8 +132,8 @@
             <artifactId>commons-codec</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.graphfoundation.ongdb</groupId>
-            <artifactId>ongdb-io</artifactId>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-io</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>

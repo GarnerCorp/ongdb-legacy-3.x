@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -69,6 +69,6 @@ public class DumpCommandProvider extends AdminCommand.Provider
     @Nonnull
     public AdminCommand create( Path homeDir, Path configDir, OutsideWorld outsideWorld )
     {
-        return new DumpCommand( homeDir, configDir, new Dumper( outsideWorld.errorStream() ), outsideWorld.errorStream() );
+        return new DumpCommand( homeDir, configDir, new Dumper( outsideWorld.errorStream() ) );
     }
 }

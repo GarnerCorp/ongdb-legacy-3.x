@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,10 +21,10 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
-import org.neo4j.cypher.internal.v3_6.logical.plans.{CachedNodeProperty, IndexOrder, IndexedProperty}
+import org.neo4j.cypher.internal.v3_5.logical.plans.{CachedNodeProperty, IndexOrder, IndexedProperty}
 import org.neo4j.internal.kernel.api.IndexReference
-import org.neo4j.cypher.internal.v3_6.expressions.LabelToken
-import org.neo4j.cypher.internal.v3_6.util.attribution.Id
+import org.neo4j.cypher.internal.v3_5.expressions.LabelToken
+import org.neo4j.cypher.internal.v3_5.util.attribution.Id
 
 import scala.collection.Iterator
 

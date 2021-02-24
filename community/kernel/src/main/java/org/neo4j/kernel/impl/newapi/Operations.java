@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -1324,16 +1324,10 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
     private static void assertValidDescriptor( SchemaDescriptor descriptor, SchemaKernelException.OperationContext context )
             throws RepeatedSchemaComponentException
     {
-        long numUniqueProp = Arrays.stream( descriptor.getPropertyIdsNoSorts() ).distinct().count();
+        long numUniqueProp = Arrays.stream( descriptor.getPropertyIds() ).distinct().count();
         long numUniqueEntityTokens = Arrays.stream( descriptor.getEntityTokenIds() ).distinct().count();
 
-        long numUniqueSort = Arrays.stream( descriptor.getSortIds() ).distinct().count();
-
-        if ( numUniqueProp != descriptor.getPropertyIdsNoSorts().length )
-        {
-            throw new RepeatedPropertyInSchemaException( descriptor, context );
-        }
-        if ( numUniqueSort != descriptor.getSortIds().length )
+        if ( numUniqueProp != descriptor.getPropertyIds().length )
         {
             throw new RepeatedPropertyInSchemaException( descriptor, context );
         }

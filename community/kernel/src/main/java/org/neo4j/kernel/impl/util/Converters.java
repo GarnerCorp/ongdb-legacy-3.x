@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -87,7 +87,7 @@ public class Converters
         return name ->
         {
             Comparator<File> sorting = cleverNumberRegexSort ? BY_FILE_NAME_WITH_CLEVER_NUMBERS : BY_FILE_NAME;
-            List<File> files = Validators.matchingFiles( new File( name.trim() ) );
+            List<File> files = Validators.matchingFiles( new File( name ) );
             files.sort( sorting );
             return files.toArray( new File[files.size()] );
         };

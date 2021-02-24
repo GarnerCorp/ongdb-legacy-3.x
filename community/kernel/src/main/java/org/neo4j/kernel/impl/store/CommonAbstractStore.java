@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -949,13 +949,13 @@ public abstract class CommonAbstractStore<RECORD extends AbstractBaseRecord,HEAD
 
     void logVersions( Logger logger )
     {
-        logger.log( String.format( "  %s[%s] %s", getTypeDescriptor(), getStorageFile().getName(), storeVersion ) );
+        logger.log( "  " + getTypeDescriptor() + " " + storeVersion );
     }
 
     void logIdUsage( Logger logger )
     {
-        logger.log( String.format( "  %s[%s]: used=%s high=%s",
-                getTypeDescriptor(), getStorageFile().getName(), getNumberOfIdsInUse(), getHighestPossibleIdInUse() ) );
+        logger.log( String.format( "  %s: used=%s high=%s",
+                getTypeDescriptor(), getNumberOfIdsInUse(), getHighestPossibleIdInUse() ) );
     }
 
     /**

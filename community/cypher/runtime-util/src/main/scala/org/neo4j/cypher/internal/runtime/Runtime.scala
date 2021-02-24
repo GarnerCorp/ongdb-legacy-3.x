@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.runtime
 
-import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
-import org.neo4j.cypher.internal.v3_6.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
+import org.neo4j.cypher.internal.v3_5.logical.plans.LogicalPlan
 import org.neo4j.internal.kernel.api.Transaction
 import org.neo4j.kernel.impl.query.{QueryExecution, ResultBuffer}
 import org.neo4j.values.virtual.MapValue
-import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.v3_6.expressions.Expression
-import org.neo4j.cypher.internal.v3_6.util.symbols.CypherType
+import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.v3_5.expressions.Expression
+import org.neo4j.cypher.internal.v3_5.util.symbols.CypherType
 
 // =============================================== /
 // RUNTIME INTERFACES, implemented by each runtime /

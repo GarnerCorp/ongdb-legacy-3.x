@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -47,7 +47,7 @@ class PreParser(configuredVersion: CypherVersion,
                 planCacheSize: Int) {
 
   private final val ILLEGAL_PLANNER_RUNTIME_COMBINATIONS: Set[(CypherPlannerOption, CypherRuntimeOption)] = Set((CypherPlannerOption.rule, CypherRuntimeOption.compiled), (CypherPlannerOption.rule, CypherRuntimeOption.slotted))
-  private final val ILLEGAL_PLANNER_VERSION_COMBINATIONS: Set[(CypherPlannerOption, CypherVersion)] = Set((CypherPlannerOption.rule, CypherVersion.v3_4), (CypherPlannerOption.rule, CypherVersion.v3_6))
+  private final val ILLEGAL_PLANNER_VERSION_COMBINATIONS: Set[(CypherPlannerOption, CypherVersion)] = Set((CypherPlannerOption.rule, CypherVersion.v3_4), (CypherPlannerOption.rule, CypherVersion.v3_5))
   private final val ILLEGAL_EXPRESSION_ENGINE_RUNTIME_COMBINATIONS: Set[(CypherExpressionEngineOption, CypherRuntimeOption)] =
     Set((CypherExpressionEngineOption.compiled, CypherRuntimeOption.compiled), (CypherExpressionEngineOption.compiled, CypherRuntimeOption.interpreted))
 

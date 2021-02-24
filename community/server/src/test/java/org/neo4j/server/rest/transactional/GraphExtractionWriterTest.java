@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,9 +19,9 @@
  */
 package org.neo4j.server.rest.transactional;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonNode;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.JsonNode;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -248,10 +248,10 @@ public class GraphExtractionWriterTest
                                             String endNodeId, Property... properties )
     {
         JsonNode relationship = get( relationships, id );
-        assertEquals( "Relationship[" + id + "].labels", type, relationship.get( "type" ).asText() );
+        assertEquals( "Relationship[" + id + "].labels", type, relationship.get( "type" ).getTextValue() );
         assertEquals( "Relationship[" + id + "].startNode", startNodeId,
-                      relationship.get( "startNode" ).asText() );
-        assertEquals( "Relationship[" + id + "].endNode", endNodeId, relationship.get( "endNode" ).asText() );
+                      relationship.get( "startNode" ).getTextValue() );
+        assertEquals( "Relationship[" + id + "].endNode", endNodeId, relationship.get( "endNode" ).getTextValue() );
         JsonNode props = relationship.get( "properties" );
         assertEquals( "length( Relationship[" + id + "].properties )", properties.length, props.size() );
         for ( Property property : properties )
@@ -269,11 +269,11 @@ public class GraphExtractionWriterTest
         }
         else if ( expected instanceof String )
         {
-            assertEquals( message, expected, actual.asText() );
+            assertEquals( message, expected, actual.getTextValue() );
         }
         else if ( expected instanceof Number )
         {
-            assertEquals( message, expected, actual.asInt() );
+            assertEquals( message, expected, actual.getNumberValue() );
         }
         else
         {
@@ -287,7 +287,7 @@ public class GraphExtractionWriterTest
         List<String> actual = new ArrayList<>( jsonNode.size() );
         for ( JsonNode node : jsonNode )
         {
-            actual.add( node.asText() );
+            actual.add( node.getTextValue() );
         }
         assertEquals( what, expected, actual );
     }
@@ -296,7 +296,7 @@ public class GraphExtractionWriterTest
     {
         for ( JsonNode jsonNode : jsonNodes )
         {
-            if ( id.equals( jsonNode.get( "id" ).asText() ) )
+            if ( id.equals( jsonNode.get( "id" ).getTextValue() ) )
             {
                 return jsonNode;
             }

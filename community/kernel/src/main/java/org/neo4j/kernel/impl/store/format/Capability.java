@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -65,12 +65,7 @@ public enum Capability
     /**
      * Records can spill over into secondary units (another record with a header saying it's a secondary unit to another record).
      */
-    SECONDARY_RECORD_UNITS( CapabilityType.FORMAT ),
-
-    /**
-     * Lucene Index supports sorting
-     */
-    SORT( CapabilityType.INDEX );
+    SECONDARY_RECORD_UNITS( CapabilityType.FORMAT );
 
     private final CapabilityType[] types;
     private boolean additive;

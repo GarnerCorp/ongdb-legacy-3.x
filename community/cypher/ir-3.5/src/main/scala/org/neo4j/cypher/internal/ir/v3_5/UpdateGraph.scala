@@ -64,21 +64,10 @@ trait UpdateGraph {
    */
   def identifiersToDelete: Set[String] = (deleteExpressions flatMap {
     // DELETE n
-    case DeleteExpression(identifier: Variable, _) => Seq(identifier.name)
     // DELETE (n)-[r]-()
-    case DeleteExpression(PathExpression(e), _) => e.dependencies.map(_.asInstanceOf[Variable].name)
     // DELETE expr
-    case DeleteExpression(expr, _) => Seq(findVariableInNestedStructure(expr))
+    case DeleteExpression(expr, _) => expr.dependencies.map(_.name)
   }).toSet
-
-  @tailrec
-  private def findVariableInNestedStructure(e: Expression): String = e match {
-    case v: Variable => v.name
-    // DELETE coll[i]
-    case ContainerIndex(expr, _) => findVariableInNestedStructure(expr)
-    // DELETE map.key
-    case Property(expr, _) => findVariableInNestedStructure(expr)
-  }
 
   /*
    * Finds all node properties being created with CREATE (:L)
@@ -358,11 +347,13 @@ trait UpdateGraph {
       def extractPropertyKey(patterns: Seq[SetMutatingPattern]): CreatesPropertyKeys = patterns.collect {
         case SetNodePropertyPattern(_, key, _) => CreatesKnownPropertyKeys(key)
         case SetNodePropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
+        case SetPropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
       }.foldLeft[CreatesPropertyKeys](CreatesNoPropertyKeys)(_ + _)
 
       if (patterns.isEmpty) acc
       else patterns.head match {
         case SetNodePropertiesFromMapPattern(_, expression, _)  => CreatesPropertyKeys(expression)
+        case SetPropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
         case SetNodePropertyPattern(_, key, _)  => toNodePropertyPattern(patterns.tail, acc + CreatesKnownPropertyKeys(key))
         case MergeNodePattern(_, _, onCreate, onMatch) =>
           toNodePropertyPattern(patterns.tail, acc + extractPropertyKey(onCreate) + extractPropertyKey(onMatch))
@@ -388,11 +379,13 @@ trait UpdateGraph {
       def extractPropertyKey(patterns: Seq[SetMutatingPattern]): CreatesPropertyKeys = patterns.collect {
         case SetRelationshipPropertyPattern(_, key, _) => CreatesKnownPropertyKeys(key)
         case SetRelationshipPropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
+        case SetPropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
       }.foldLeft[CreatesPropertyKeys](CreatesNoPropertyKeys)(_ + _)
 
       if (patterns.isEmpty) acc
       else patterns.head match {
         case SetRelationshipPropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
+        case SetPropertiesFromMapPattern(_, expression, _) => CreatesPropertyKeys(expression)
         case SetRelationshipPropertyPattern(_, key, _) =>
           toRelPropertyPattern(patterns.tail, acc + CreatesKnownPropertyKeys(key))
         case MergeNodePattern(_, _, onCreate, onMatch) =>

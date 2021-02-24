@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,7 +26,6 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.IndexCapability;
 import org.neo4j.internal.kernel.api.IndexOrder;
 import org.neo4j.internal.kernel.api.IndexValueCapability;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -67,17 +66,15 @@ public class NumberIndexProvider extends NativeIndexProvider<NumberIndexKey,Nati
     }
 
     @Override
-    protected IndexPopulator newIndexPopulator( File storeFile, NumberLayout layout, StoreIndexDescriptor descriptor, ByteBufferFactory bufferFactory,
-            TokenNameLookup tokenNameLookup )
+    protected IndexPopulator newIndexPopulator( File storeFile, NumberLayout layout, StoreIndexDescriptor descriptor, ByteBufferFactory bufferFactory )
     {
-        return new WorkSyncedNativeIndexPopulator<>( new NumberIndexPopulator( pageCache, fs, storeFile, layout, monitor, descriptor, tokenNameLookup ) );
+        return new WorkSyncedNativeIndexPopulator<>( new NumberIndexPopulator( pageCache, fs, storeFile, layout, monitor, descriptor ) );
     }
 
     @Override
-    protected IndexAccessor newIndexAccessor( File storeFile, NumberLayout layout, StoreIndexDescriptor descriptor, boolean readOnly,
-            TokenNameLookup tokenNameLookup )
+    protected IndexAccessor newIndexAccessor( File storeFile, NumberLayout layout, StoreIndexDescriptor descriptor, boolean readOnly )
     {
-        return new NumberIndexAccessor( pageCache, fs, storeFile, layout, recoveryCleanupWorkCollector, monitor, descriptor, readOnly, tokenNameLookup );
+        return new NumberIndexAccessor( pageCache, fs, storeFile, layout, recoveryCleanupWorkCollector, monitor, descriptor, readOnly );
     }
 
     @Override

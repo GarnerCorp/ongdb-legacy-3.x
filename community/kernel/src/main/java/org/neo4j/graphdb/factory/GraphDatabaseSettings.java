@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -197,7 +197,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Set this to specify the default parser (language version)." )
     public static final Setting<String> cypher_parser_version = setting(
             "cypher.default_language_version",
-            optionsObeyCase( "2.3", "3.1", "3.4","3.6", DEFAULT ), DEFAULT );
+            optionsObeyCase( "2.3", "3.1", "3.4","3.5", DEFAULT ), DEFAULT );
 
     @Description( "Set this to specify the default planner for the default language version." )
     public static final Setting<String> cypher_planner = setting(
@@ -383,7 +383,7 @@ public class GraphDatabaseSettings implements LoadableConfig
 
     @Description( "Enables or disables tracking of how much time a query spends actively executing on the CPU. " +
                   "Calling `dbms.listQueries` will display the time. " +
-                  "This can also be logged in the query log by using `dbms.logs.query.time_logging_enabled`." )
+                  "This can also be logged in the query log by using `log_queries_detailed_time_logging_enabled`." )
     @Dynamic
     public static final Setting<Boolean> track_query_cpu_time = setting( "dbms.track_query_cpu_time", BOOLEAN, FALSE );
 
@@ -531,7 +531,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Configures the general policy for when check-points should occur. The default policy is the " +
                   "'periodic' check-point policy, as specified by the 'dbms.checkpoint.interval.tx' and " +
                   "'dbms.checkpoint.interval.time' settings. " +
-                  "The ONgDB Enterprise Edition provides two alternative policies: " +
+                  "The Neo4j Enterprise Edition provides two alternative policies: " +
                   "The first is the 'continuous' check-point policy, which will ignore those settings and run the " +
                   "check-point process all the time. " +
                   "The second is the 'volumetric' check-point policy, which makes a best-effort at check-pointing " +
@@ -563,7 +563,7 @@ public class GraphDatabaseSettings implements LoadableConfig
 
     @Dynamic
     @Description( "Limit the number of IOs the background checkpoint process will consume per second. " +
-                  "This setting is advisory, is ignored in ONgDB Community Edition, and is followed to " +
+                  "This setting is advisory, is ignored in Neo4j Community Edition, and is followed to " +
                   "best effort in Enterprise Edition. " +
                   "An IO is in this case a 8 KiB (mostly sequential) write. Limiting the write IO in " +
                   "this way will leave more bandwidth in the IO subsystem to service random-read IOs, " +
@@ -778,7 +778,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Internal
     @Description( "The profiling frequency for the page cache. Accurate profiles allow the page cache to do active " +
                   "warmup after a restart, reducing the mean time to performance. " +
-                  "This feature available in ONgDB Enterprise Edition." )
+                  "This feature available in Neo4j Enterprise Edition." )
     public static final Setting<Duration> pagecache_warmup_profiling_interval =
             setting( "unsupported.dbms.memory.pagecache.warmup.profile.interval", DURATION, "1m" );
 
@@ -786,7 +786,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Page cache can be configured to perform usage sampling of loaded pages that can be used to construct active load profile. " +
             "According to that profile pages can be reloaded on the restart, replication, etc. " +
             "This setting allows disabling that behavior. " +
-            "This feature available in ONgDB Enterprise Edition." )
+            "This feature available in Neo4j Enterprise Edition." )
     public static final Setting<Boolean> pagecache_warmup_enabled = setting( "unsupported.dbms.memory.pagecache.warmup.enable", BOOLEAN, TRUE );
 
     @Description( "Allows the enabling or disabling of the file watcher service." +
@@ -857,7 +857,7 @@ public class GraphDatabaseSettings implements LoadableConfig
     @Description( "Log executed queries that take longer than the configured threshold, dbms.logs.query.threshold. " +
             "Log entries are by default written to the file _query.log_ located in the Logs directory. " +
             "For location of the Logs directory, see <<file-locations>>. " +
-            "This feature is available in the ONgDB Enterprise Edition." )
+            "This feature is available in the Neo4j Enterprise Edition." )
     @Dynamic
     public static final Setting<Boolean> log_queries =
             setting( "dbms.logs.query.enabled", BOOLEAN, FALSE );

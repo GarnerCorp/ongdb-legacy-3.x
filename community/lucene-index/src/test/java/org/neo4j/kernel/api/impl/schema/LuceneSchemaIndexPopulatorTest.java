@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -66,7 +66,6 @@ import static org.mockito.Mockito.mock;
 import static org.neo4j.helpers.collection.Iterators.asSet;
 import static org.neo4j.kernel.api.impl.schema.LuceneIndexProvider.defaultDirectoryStructure;
 import static org.neo4j.kernel.api.schema.SchemaDescriptorFactory.forLabel;
-import static org.neo4j.kernel.api.schema.SchemaTestUtil.simpleNameLookup;
 import static org.neo4j.kernel.impl.index.schema.ByteBufferFactory.heapBufferFactory;
 
 @ExtendWith( {DefaultFileSystemExtension.class, TestDirectoryExtension.class} )
@@ -97,7 +96,7 @@ class LuceneSchemaIndexPopulatorTest
         indexStoreView = mock( IndexStoreView.class );
         IndexSamplingConfig samplingConfig = new IndexSamplingConfig( Config.defaults() );
         index = IndexDescriptorFactory.forSchema( forLabel( 42, propertyKeyId ), provider.getProviderDescriptor() ).withId( 0 );
-        indexPopulator = provider.getPopulator( index, samplingConfig, heapBufferFactory( 1024 ), simpleNameLookup );
+        indexPopulator = provider.getPopulator( index, samplingConfig, heapBufferFactory( 1024 ) );
         indexPopulator.create();
     }
 

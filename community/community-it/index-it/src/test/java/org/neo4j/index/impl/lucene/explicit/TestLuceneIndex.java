@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -1243,18 +1243,14 @@ public class TestLuceneIndex extends AbstractLuceneIndexTest
             fail( "Shouldn't be able to modify provider" );
         }
         catch ( IllegalArgumentException e )
-        {
-            // Good
-        }
+        { /* Good*/ }
         try
         {
             graphDb.index().removeConfiguration( index, IndexManager.PROVIDER );
             fail( "Shouldn't be able to modify provider" );
         }
         catch ( IllegalArgumentException e )
-        {
-            // Good
-        }
+        { /* Good*/ }
 
         String key = "my-key";
         String value = "my-value";
@@ -1280,9 +1276,7 @@ public class TestLuceneIndex extends AbstractLuceneIndexTest
             fail( "Shouldn't be able to get index with these kinds of differences in config" );
         }
         catch ( IllegalArgumentException e )
-        {
-            // Good
-        }
+        { /* */ }
         nodeIndex( name, MapUtil.stringMap( new HashMap<>( config ), "whatever", "something" ) );
     }
 

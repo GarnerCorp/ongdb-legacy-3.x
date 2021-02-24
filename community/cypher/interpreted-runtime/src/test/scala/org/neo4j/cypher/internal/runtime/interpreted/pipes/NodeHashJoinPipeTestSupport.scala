@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,13 +22,13 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
-import org.neo4j.cypher.internal.v3_6.logical.plans.CachedNodeProperty
+import org.neo4j.cypher.internal.v3_5.logical.plans.CachedNodeProperty
 import org.neo4j.graphdb.Node
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Value
-import org.neo4j.cypher.internal.v3_6.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.v3_6.util.InputPosition
-import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_5.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.v3_5.util.InputPosition
+import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
 
 trait NodeHashJoinPipeTestSupport extends CypherFunSuite {
 

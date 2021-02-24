@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,14 +19,11 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import org.neo4j.helpers.Exceptions;
 import org.neo4j.index.internal.gbptree.Writer;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexUpdater;
-import org.neo4j.storageengine.api.schema.IndexDescriptor;
 import org.neo4j.values.storable.Value;
 
 import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.Inclusion.NEUTRAL;
@@ -36,19 +33,15 @@ class NativeIndexUpdater<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIn
 {
     private final KEY treeKey;
     private final VALUE treeValue;
-    private final IndexDescriptor descriptor;
-    private final TokenNameLookup tokenNameLookup;
     private final ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger = new ThrowingConflictDetector<>( true );
     private Writer<KEY,VALUE> writer;
 
     private boolean closed = true;
 
-    NativeIndexUpdater( KEY treeKey, VALUE treeValue, IndexDescriptor descriptor, TokenNameLookup tokenNameLookup )
+    NativeIndexUpdater( KEY treeKey, VALUE treeValue )
     {
         this.treeKey = treeKey;
         this.treeValue = treeValue;
-        this.descriptor = descriptor;
-        this.tokenNameLookup = tokenNameLookup;
     }
 
     NativeIndexUpdater<KEY,VALUE> initialize( Writer<KEY,VALUE> writer )
@@ -67,7 +60,7 @@ class NativeIndexUpdater<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIn
     public void process( IndexEntryUpdate<?> update ) throws IndexEntryConflictException
     {
         assertOpen();
-        processUpdate( treeKey, treeValue, update, writer, conflictDetectingValueMerger, descriptor, tokenNameLookup );
+        processUpdate( treeKey, treeValue, update, writer, conflictDetectingValueMerger );
     }
 
     @Override
@@ -86,17 +79,16 @@ class NativeIndexUpdater<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIn
     }
 
     static <KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue> void processUpdate( KEY treeKey, VALUE treeValue,
-            IndexEntryUpdate<?> update, Writer<KEY,VALUE> writer, ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger,
-            IndexDescriptor descriptor, TokenNameLookup tokenNameLookup )
+            IndexEntryUpdate<?> update, Writer<KEY,VALUE> writer, ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger )
             throws IndexEntryConflictException
     {
         switch ( update.updateMode() )
         {
         case ADDED:
-            processAdd( treeKey, treeValue, update, writer, conflictDetectingValueMerger, descriptor, tokenNameLookup );
+            processAdd( treeKey, treeValue, update, writer, conflictDetectingValueMerger );
             break;
         case CHANGED:
-            processChange( treeKey, treeValue, update, writer, conflictDetectingValueMerger, descriptor, tokenNameLookup );
+            processChange( treeKey, treeValue, update, writer, conflictDetectingValueMerger );
             break;
         case REMOVED:
             processRemove( treeKey, update, writer );
@@ -117,52 +109,28 @@ class NativeIndexUpdater<KEY extends NativeIndexKey<KEY>, VALUE extends NativeIn
 
     private static <KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue> void processChange( KEY treeKey, VALUE treeValue,
             IndexEntryUpdate<?> update, Writer<KEY,VALUE> writer,
-            ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger, IndexDescriptor descriptor,
-            TokenNameLookup tokenNameLookup )
+            ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger )
             throws IndexEntryConflictException
     {
-        try
-        {
-            // Remove old entry
-            initializeKeyFromUpdate( treeKey, update.getEntityId(), update.beforeValues() );
-            writer.remove( treeKey );
-            // Insert new entry
-            initializeKeyFromUpdate( treeKey, update.getEntityId(), update.values() );
-            treeValue.from( update.values() );
-            conflictDetectingValueMerger.controlConflictDetection( treeKey );
-            writer.merge( treeKey, treeValue, conflictDetectingValueMerger );
-            conflictDetectingValueMerger.checkConflict( update.values() );
-        }
-        catch ( Exception e )
-        {
-            Exceptions.withMessage( e,
-                    String.format( "Failed while trying to write to index, targetIndex=%s, nodeId=%d. Cause: %s",
-                            descriptor.userDescription( tokenNameLookup ), treeKey.getEntityId(), e.getMessage() ) );
-
-            throw e;
-        }
+        // Remove old entry
+        initializeKeyFromUpdate( treeKey, update.getEntityId(), update.beforeValues() );
+        writer.remove( treeKey );
+        // Insert new entry
+        initializeKeyFromUpdate( treeKey, update.getEntityId(), update.values() );
+        treeValue.from( update.values() );
+        conflictDetectingValueMerger.controlConflictDetection( treeKey );
+        writer.merge( treeKey, treeValue, conflictDetectingValueMerger );
+        conflictDetectingValueMerger.checkConflict( update.values() );
     }
 
     private static <KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue> void processAdd( KEY treeKey, VALUE treeValue, IndexEntryUpdate<?> update,
-            Writer<KEY,VALUE> writer, ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger,
-            IndexDescriptor descriptor, TokenNameLookup tokenNameLookup )
+            Writer<KEY,VALUE> writer, ConflictDetectingValueMerger<KEY,VALUE,Value[]> conflictDetectingValueMerger )
             throws IndexEntryConflictException
     {
-        try
-        {
-            initializeKeyAndValueFromUpdate( treeKey, treeValue, update.getEntityId(), update.values() );
-            conflictDetectingValueMerger.controlConflictDetection( treeKey );
-            writer.merge( treeKey, treeValue, conflictDetectingValueMerger );
-            conflictDetectingValueMerger.checkConflict( update.values() );
-        }
-        catch ( Exception e )
-        {
-            Exceptions.withMessage( e,
-                    String.format( "Failed while trying to write to index, targetIndex=%s, nodeId=%d. Cause: %s",
-                            descriptor.userDescription( tokenNameLookup ), treeKey.getEntityId(), e.getMessage() ) );
-
-            throw e;
-        }
+        initializeKeyAndValueFromUpdate( treeKey, treeValue, update.getEntityId(), update.values() );
+        conflictDetectingValueMerger.controlConflictDetection( treeKey );
+        writer.merge( treeKey, treeValue, conflictDetectingValueMerger );
+        conflictDetectingValueMerger.checkConflict( update.values() );
     }
 
     static <KEY extends NativeIndexKey<KEY>, VALUE extends NativeIndexValue> void initializeKeyAndValueFromUpdate( KEY treeKey, VALUE treeValue,

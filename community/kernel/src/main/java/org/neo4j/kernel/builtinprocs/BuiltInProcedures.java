@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,7 +22,6 @@ package org.neo4j.kernel.builtinprocs;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,6 @@ import org.neo4j.kernel.api.Statement;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.TokenAccess;
 import org.neo4j.kernel.impl.api.index.IndexingService;
-import org.neo4j.kernel.impl.util.FulltextSortType;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
@@ -140,7 +138,6 @@ public class BuiltInProcedures
                 long indexId = getIndexId( indexingService, schema );
                 List<String> tokenNames = Arrays.asList( tokens.entityTokensGetNames( schema.entityType(), schema.getEntityTokenIds() ) );
                 List<String> propertyNames = propertyNames( tokens, index );
-                Map<String,Object> sortInformation = sortInformation( tokens, index );
                 String description = "INDEX ON " + schema.userDescription( tokens );
                 IndexStatus status = getIndexStatus( schemaRead, index );
                 Map<String,String> providerDescriptorMap = indexProviderDescriptorMap( schemaRead.index( schema ) );
@@ -149,7 +146,6 @@ public class BuiltInProcedures
                         index.name(),
                         tokenNames,
                         propertyNames,
-                        sortInformation,
                         status.state,
                         type.typeName(),
                         status.populationProgress,
@@ -712,29 +708,13 @@ public class BuiltInProcedures
 
     private static List<String> propertyNames( TokenNameLookup tokens, IndexReference index )
     {
-        int[] propertyIds = index.schema().getPropertyIdsNoSorts();
+        int[] propertyIds = index.properties();
         List<String> propertyNames = new ArrayList<>( propertyIds.length );
         for ( int propertyId : propertyIds )
         {
             propertyNames.add( tokens.propertyKeyGetName( propertyId ) );
         }
         return propertyNames;
-    }
-
-    private static Map<String,Object> sortInformation( TokenNameLookup tokens, IndexReference index )
-    {
-        int[] sortIds = index.schema().getSortIds();
-        int[] sortTypes = index.schema().getSortTypes();
-
-        Map<String,Object> sortInformation = new HashMap<>();
-
-        for ( int i = 0; i < sortIds.length; i++ )
-        {
-            String sortName = tokens.propertyKeyGetName( sortIds[i] );
-            String sortType = FulltextSortType.intToType( sortTypes[i] );
-            sortInformation.put( sortName, sortType );
-        }
-        return sortInformation;
     }
 
     private static <T> Stream<T> toStream( NodeExplicitIndexCursor cursor, LongFunction<T> mapper )
@@ -920,7 +900,6 @@ public class BuiltInProcedures
         public final String indexName;
         public final List<String> tokenNames;
         public final List<String> properties;
-        public final Map<String,Object> sortProperties;
         public final String state;
         public final String type;
         public final Double progress;
@@ -933,7 +912,6 @@ public class BuiltInProcedures
                              String indexName,
                              List<String> tokenNames,
                              List<String> properties,
-                             Map<String,Object> sortProperties,
                              String state,
                              String type,
                              Float progress,
@@ -945,7 +923,6 @@ public class BuiltInProcedures
             this.indexName = indexName;
             this.tokenNames = tokenNames;
             this.properties = properties;
-            this.sortProperties = sortProperties;
             this.state = state;
             this.type = type;
             this.progress = progress.doubleValue();

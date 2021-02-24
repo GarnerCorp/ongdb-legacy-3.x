@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,7 +20,6 @@
 package org.neo4j.kernel.api.impl.fulltext;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.Term;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,7 +35,6 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 import static org.neo4j.kernel.api.impl.fulltext.LuceneFulltextDocumentStructure.documentRepresentingProperties;
-import static org.neo4j.kernel.api.impl.fulltext.LuceneFulltextDocumentStructure.documentRepresentingPropertiesWithSort;
 import static org.neo4j.kernel.api.impl.fulltext.LuceneFulltextDocumentStructure.newTermForChangeOrRemove;
 
 public class FulltextIndexAccessor extends AbstractLuceneIndexAccessor<FulltextIndexReader,DatabaseFulltextIndex>
@@ -46,7 +44,7 @@ public class FulltextIndexAccessor extends AbstractLuceneIndexAccessor<FulltextI
     private final Runnable onClose;
 
     public FulltextIndexAccessor( IndexUpdateSink indexUpdateSink, DatabaseFulltextIndex luceneIndex, FulltextIndexDescriptor descriptor,
-                                  Runnable onClose )
+            Runnable onClose )
     {
         super( luceneIndex, descriptor );
         this.indexUpdateSink = indexUpdateSink;
@@ -132,9 +130,8 @@ public class FulltextIndexAccessor extends AbstractLuceneIndexAccessor<FulltextI
         {
             try
             {
-                Term term = newTermForChangeOrRemove( entityId );
-                Document document = createDocument( entityId, values );
-                writer.updateDocument( term, document );
+                Document document = documentRepresentingProperties( entityId, descriptor.propertyNames(), values );
+                writer.updateDocument( newTermForChangeOrRemove( entityId ), document );
             }
             catch ( IOException e )
             {
@@ -147,7 +144,7 @@ public class FulltextIndexAccessor extends AbstractLuceneIndexAccessor<FulltextI
         {
             try
             {
-                Document document = createDocument( entityId, values );
+                Document document = documentRepresentingProperties( entityId, descriptor.propertyNames(), values );
                 writer.addDocument( document );
             }
             catch ( IOException e )
@@ -161,8 +158,7 @@ public class FulltextIndexAccessor extends AbstractLuceneIndexAccessor<FulltextI
         {
             try
             {
-                Document document = createDocument( entityId, values );
-                writer.updateDocument( newTermForChangeOrRemove( entityId ), document );
+                writer.updateDocument( newTermForChangeOrRemove( entityId ), documentRepresentingProperties( entityId, descriptor.propertyNames(), values ) );
             }
             catch ( IOException e )
             {
@@ -175,27 +171,12 @@ public class FulltextIndexAccessor extends AbstractLuceneIndexAccessor<FulltextI
         {
             try
             {
-                Term term = newTermForChangeOrRemove( entityId );
-                writer.deleteDocuments( term );
+                writer.deleteDocuments( newTermForChangeOrRemove( entityId ) );
             }
             catch ( IOException e )
             {
                 throw new UncheckedIOException( e );
             }
-        }
-    }
-
-    private Document createDocument( long entityId, Value[] values )
-    {
-        if ( descriptor.sortPropertyNames() == null || descriptor.sortPropertyNames().isEmpty() )
-        {
-            return documentRepresentingProperties( entityId, descriptor.propertyNames(), values );
-        }
-        // Sort Properties are present, use them.
-        else
-        {
-            return documentRepresentingPropertiesWithSort( entityId, descriptor.propertyNames(), values, descriptor.sortPropertyNames(),
-                                                           descriptor.sortTypes() );
         }
     }
 }

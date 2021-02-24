@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -72,11 +72,11 @@ public class GBPTreeBootstrapper
         }
         catch ( Exception e )
         {
-            return new FailedBootstrap( e );
+            return new FailedBootstrap();
         }
     }
 
-    public static PageCache pageCache( JobScheduler jobScheduler )
+    static PageCache pageCache( JobScheduler jobScheduler )
     {
         SingleFilePageSwapperFactory swapper = new SingleFilePageSwapperFactory();
         DefaultFileSystemAbstraction fs = new DefaultFileSystemAbstraction();
@@ -97,13 +97,6 @@ public class GBPTreeBootstrapper
 
     private static class FailedBootstrap implements Bootstrap
     {
-        private final Throwable cause;
-
-        FailedBootstrap( Throwable cause )
-        {
-            this.cause = cause;
-        }
-
         @Override
         public boolean isTree()
         {
@@ -113,31 +106,31 @@ public class GBPTreeBootstrapper
         @Override
         public GBPTree<?,?> getTree()
         {
-            throw new IllegalStateException( "Bootstrap failed", cause );
+            throw new IllegalStateException( "Bootstrap failed" );
         }
 
         @Override
         public Layout<?,?> getLayout()
         {
-            throw new IllegalStateException( "Bootstrap failed", cause );
+            throw new IllegalStateException( "Bootstrap failed" );
         }
 
         @Override
         public TreeNode<?,?> getTreeNode()
         {
-            throw new IllegalStateException( "Bootstrap failed", cause );
+            throw new IllegalStateException( "Bootstrap failed" );
         }
 
         @Override
         public TreeState getState()
         {
-            throw new IllegalStateException( "Bootstrap failed", cause );
+            throw new IllegalStateException( "Bootstrap failed" );
         }
 
         @Override
         public Meta getMeta()
         {
-            throw new IllegalStateException( "Bootstrap failed", cause );
+            throw new IllegalStateException( "Bootstrap failed" );
         }
     }
 

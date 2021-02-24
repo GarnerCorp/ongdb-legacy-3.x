@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,11 +19,12 @@
  */
 package org.neo4j.server.rest.repr.formats;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.io.IOContext;
-import com.fasterxml.jackson.core.json.UTF8JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.impl.Utf8Generator;
+import org.codehaus.jackson.io.IOContext;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -45,7 +46,6 @@ import org.neo4j.server.rest.repr.MappingWriter;
 import org.neo4j.server.rest.repr.RepresentationFormat;
 import org.neo4j.server.rest.repr.StreamingFormat;
 
-import static com.fasterxml.jackson.databind.SerializationFeature.FLUSH_AFTER_WRITE_VALUE;
 import static org.neo4j.server.rest.domain.JsonHelper.assertSupportedPropertyValue;
 import static org.neo4j.server.rest.domain.JsonHelper.readJson;
 
@@ -64,14 +64,14 @@ public class StreamingJsonFormat extends RepresentationFormat implements Streami
     private JsonFactory createJsonFactory()
     {
         final ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.disable( FLUSH_AFTER_WRITE_VALUE );
+        objectMapper.getSerializationConfig().disable( SerializationConfig.Feature.FLUSH_AFTER_WRITE_VALUE );
         JsonFactory factory = new JsonFactory( objectMapper )
         {
             @Override
-            protected JsonGenerator _createUTF8Generator( OutputStream out, IOContext ctxt )
+            protected JsonGenerator _createUTF8JsonGenerator( OutputStream out, IOContext ctxt )
             {
                 final int bufferSize = 1024 * 8;
-                UTF8JsonGenerator gen = new UTF8JsonGenerator( ctxt, _generatorFeatures, _objectCodec, out,
+                Utf8Generator gen = new Utf8Generator( ctxt, _generatorFeatures, _objectCodec, out,
                         new byte[bufferSize], 0, true );
                 if ( _characterEscapes != null )
                 {

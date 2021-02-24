@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -670,7 +670,7 @@ public abstract class PageSwapperTest
     }
 
     @Test
-    protected void positionedVectoredReadWhereLastPageExtendBeyondEndOfFileMustHaveRemainderZeroFilled() throws Exception
+    void positionedVectoredReadWhereLastPageExtendBeyondEndOfFileMustHaveRemainderZeroFilled() throws Exception
     {
         File file = file( "file" );
         PageSwapperFactory factory = createSwapperFactory();
@@ -701,7 +701,7 @@ public abstract class PageSwapperTest
     }
 
     @Test
-    protected void positionedVectoredReadWhereSecondLastPageExtendBeyondEndOfFileMustHaveRestZeroFilled() throws Exception
+    void positionedVectoredReadWhereSecondLastPageExtendBeyondEndOfFileMustHaveRestZeroFilled() throws Exception
     {
         File file = file( "file" );
         PageSwapperFactory factory = createSwapperFactory();

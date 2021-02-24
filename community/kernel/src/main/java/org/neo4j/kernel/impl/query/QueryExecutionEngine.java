@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,9 +30,6 @@ public interface QueryExecutionEngine
     Result profileQuery( String query, MapValue parameters, TransactionalContext context )
             throws QueryExecutionKernelException;
 
-    /**
-     * @return {@code true} if the query is a PERIODIC COMMIT query and not an EXPLAIN query
-     */
     boolean isPeriodicCommit( String query );
 
     long clearQueryCaches();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,11 +19,11 @@
  */
 package org.neo4j.server.rest.transactional;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
+
+import org.codehaus.jackson.JsonGenerator;
 
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -161,7 +161,7 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI
 
         DatabaseLayout databaseLayout();
 
-        /** Eg. ONgDB Enterprise HA, ONgDB Community Standalone.. */
+        /** Eg. Neo4j Enterprise HA, Neo4j Community Standalone.. */
         String name();
 
         void shutdown();

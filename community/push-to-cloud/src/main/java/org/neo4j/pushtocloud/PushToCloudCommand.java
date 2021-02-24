@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,6 @@ package org.neo4j.pushtocloud;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -101,10 +97,19 @@ public class PushToCloudCommand implements AdminCommand
             String usernameFromEnv = System.getenv( ENV_USERNAME );
             String passwordFromEnv = System.getenv( ENV_PASSWORD );
 
-            // the strategy here is to have a priority of ways to pass in username/password
-            // 1. highest priority is cli argument, e.g. --username
-            // 2. priority is the environment variable, e.g. ENV_USERNAME
-            // if 1. and 2. is not configured, prompt for input.
+            if ( ( username == null && passwordFromArg != null ) || ( username != null && passwordFromArg == null ) )
+            {
+                throw new IncorrectUsage( "Provide either 'username' and 'password' as argument or none." );
+            }
+            if ( ( usernameFromEnv == null && passwordFromEnv != null ) || ( usernameFromEnv != null && passwordFromEnv == null ) )
+            {
+                throw new IncorrectUsage( "Provide either 'ENV_USERNAME' and 'ENV_PASSWORD' as environment variable or none." );
+            }
+            if ( passwordFromEnv != null && passwordFromArg != null )
+            {
+                throw new IncorrectUsage( "It is not allowed to provide 'username' and 'password' as argument and environment variable." );
+            }
+
             if ( username == null )
             {
                 if ( usernameFromEnv != null )
@@ -113,15 +118,9 @@ public class PushToCloudCommand implements AdminCommand
                 }
                 else
                 {
-                    username = outsideWorld.promptLine( "Neo4j Aura database username (default: neo4j): " );
+                    username = outsideWorld.promptLine( "Neo4j Cloud database username: " );
                 }
             }
-            // default username to neo4j if user pressed 'enter' during the prompt
-            if ( username == null || "".equals( username ) )
-            {
-                username = "neo4j";
-            }
-
             char[] password;
             if ( passwordFromArg != null )
             {
@@ -135,30 +134,24 @@ public class PushToCloudCommand implements AdminCommand
                 }
                 else
                 {
-                    password = outsideWorld.promptPassword( format( "Neo4j Aura database password for %s: ", username ) );
+                    password = outsideWorld.promptPassword( "Neo4j Cloud database password: " );
                 }
             }
 
             String boltURI = arguments.get( ARG_BOLT_URI );
             if ( boltURI == null || "".equals( boltURI ) )
             {
-                boltURI = outsideWorld.promptLine( "Neo4j Aura database Bolt URI: " );
-            }
-            if ( boltURI == null || "".equals( boltURI ) )
-            {
-                throw new IncorrectUsage( "Please provide a Neo4j Aura Bolt URI of the target location to push the database to, " +
+                throw new IncorrectUsage( "Please provide a Neo4j Cloud Bolt URI of the target location to push the database to, " +
                         "using the --bolt-uri argument." );
             }
-            String confirmationViaArgument = arguments.get( ARG_OVERWRITE, "false", "true" );
+            String confirmationViaArgument = arguments.get( ARG_OVERWRITE );
 
             String consoleURL = buildConsoleURI( boltURI );
             String bearerToken = copier.authenticate( verbose, consoleURL, username, password, "true".equals( confirmationViaArgument ) );
 
             Path source = initiateSource( arguments );
-            // only mark dump to delete after processing, if we just created it
-            boolean deleteDump = arguments.get( ARG_DUMP ) == null;
 
-            copier.copy( verbose, consoleURL, boltURI, source, deleteDump, bearerToken );
+            copier.copy( verbose, consoleURL, boltURI, source, bearerToken );
         }
         catch ( Exception e )
         {
@@ -188,7 +181,7 @@ public class PushToCloudCommand implements AdminCommand
         //   bolt+routing://rogue.databases.neo4j.io  --> https://console.neo4j.io/v1/databases/rogue
         //   bolt+routing://rogue-mattias.databases.neo4j.io  --> https://console-mattias.neo4j.io/v1/databases/rogue
 
-        Pattern pattern = Pattern.compile( "(?:bolt(?:\\+routing)?|neo4j(?:\\+s|\\+ssc)?)://([^-]+)(-(.+))?.databases.neo4j.io$" );
+        Pattern pattern = Pattern.compile( "bolt\\+routing://([^-]+)(-(.+))?.databases.neo4j.io$" );
         Matcher matcher = pattern.matcher( boltURI );
         if ( !matcher.matches() )
         {
@@ -247,7 +240,7 @@ public class PushToCloudCommand implements AdminCommand
          * @param username the username.
          * @param password the password.
          * @param consentConfirmed user confirmed to overwrite existing database.
-         * @return a bearer token to pass into {@link #copy(boolean, String, String, Path, boolean, String)} later on.
+         * @return a bearer token to pass into {@link #copy(boolean, String, String, Path, String)} later on.
          * @throws CommandFailed on authentication failure or some other unexpected failure.
          */
         String authenticate( boolean verbose, String consoleURL, String username, char[] password, boolean consentConfirmed ) throws CommandFailed;
@@ -259,11 +252,10 @@ public class PushToCloudCommand implements AdminCommand
          * @param consoleURL console URI to target.
          * @param boltUri bolt URI to target database.
          * @param source dump to copy to the target.
-         * @param deleteSourceAfterImport delete the dump after successful import
          * @param bearerToken token from successful {@link #authenticate(boolean, String, String, char[], boolean)} call.
          * @throws CommandFailed on copy failure or some other unexpected failure.
          */
-        void copy( boolean verbose, String consoleURL, String boltUri, Path source, boolean deleteSourceAfterImport, String bearerToken ) throws CommandFailed;
+        void copy( boolean verbose, String consoleURL, String boltUri, Path source, String bearerToken ) throws CommandFailed;
     }
 
     public interface DumpCreator

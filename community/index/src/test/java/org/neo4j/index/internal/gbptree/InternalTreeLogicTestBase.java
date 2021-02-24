@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.test.rule.RandomRule;
@@ -1158,102 +1156,6 @@ public abstract class InternalTreeLogicTestBase<KEY,VALUE>
         assertEqualsValue( value( baseValue + toAdd ), valueAt( pos ) );
     }
 
-    @Test
-    public void shouldRemoveEntryThatMergerWantsToRemove() throws IOException
-    {
-        // given
-        initialize();
-        long baseKey = random.nextLong();
-        KEY key1 = key( baseKey + 1 );
-        KEY key2 = key( baseKey + 2 );
-        KEY key3 = key( baseKey + 3 );
-        long baseValue = random.nextLong();
-        VALUE value1 = value( baseValue + 1 );
-        VALUE value2 = value( baseValue + 2 );
-        VALUE value3 = value( baseValue + 3 );
-        insert( key1, value1 );
-        insert( key2, value2 );
-        insert( key3, value3 );
-
-        // when
-        ValueMerger<KEY,VALUE> remover = ( existingKey, newKey, existingValue, newValue ) -> ValueMerger.MergeResult.REMOVED;
-        insert( key2, value( baseValue + 4 ), remover );
-
-        // then
-        goTo( readCursor, root.id() );
-        // key1 should exist
-        int searchResult = KeySearch.search( readCursor, node, LEAF, key1, layout.newKey(), keyCount() );
-        assertTrue( KeySearch.isHit( searchResult ) );
-        // key2 should not exist
-        searchResult = KeySearch.search( readCursor, node, LEAF, key2, layout.newKey(), keyCount() );
-        assertFalse( KeySearch.isHit( searchResult ) );
-        // key3 should exist
-        searchResult = KeySearch.search( readCursor, node, LEAF, key3, layout.newKey(), keyCount() );
-        assertTrue( KeySearch.isHit( searchResult ) );
-    }
-
-    @Test
-    public void shouldHandleUnderflowOnMergeRemove() throws IOException
-    {
-        // given
-        initialize();
-        KEY firstKey = key( 0 );
-        insert( firstKey, value( 0 ) );
-        long firstRootId = root.id();
-        int highestInsertedKey = 0;
-        Set<KEY> expectedKeys = new TreeSet<>( ( k1, k2 ) -> layout.compare( k1, k2 ) );
-        expectedKeys.add( firstKey );
-        // insert until there's a root split
-        while ( root.id() == firstRootId )
-        {
-            highestInsertedKey++;
-            KEY key = key( highestInsertedKey );
-            insert( key, value( highestInsertedKey ) );
-            expectedKeys.add( key );
-        }
-        // and continue inserting until there are two keys in root
-        while ( keyCount( root.id() ) < 2 )
-        {
-            highestInsertedKey++;
-            KEY key = key( highestInsertedKey );
-            insert( key, value( highestInsertedKey ) );
-            expectedKeys.add( key );
-        }
-
-        // when
-        int lowestInsertedKey = 0;
-        ValueMerger<KEY,VALUE> remover = ( existingKey, newKey, existingValue, newValue ) -> ValueMerger.MergeResult.REMOVED;
-        while ( keyCount( root.id() ) > 1 )
-        {
-            KEY key = key( lowestInsertedKey );
-            insert( key, value( lowestInsertedKey ), remover );
-            assertTrue( expectedKeys.remove( key ) );
-            lowestInsertedKey++;
-        }
-
-        // then yes, merge w/ ValueMerger that returns REMOVED can handle underflow and merge leaves
-        // verify the actual existing keys too
-        goTo( readCursor, root.id() );
-        int rootKeyCount = keyCount();
-        long[] children = new long[rootKeyCount + 1];
-        for ( int i = 0; i < children.length; i++ )
-        {
-            children[i] = node.childAt( readCursor, i, stableGeneration, unstableGeneration );
-        }
-        for ( long childId : children )
-        {
-            goTo( readCursor, childId );
-            int keyCount = keyCount();
-            for ( int i = 0; i < keyCount; i++ )
-            {
-                KEY key = layout.newKey();
-                node.keyAt( readCursor, key, i, LEAF );
-                assertTrue( expectedKeys.remove( key ) );
-            }
-        }
-        assertTrue( expectedKeys.isEmpty() );
-    }
-
     /* CREATE NEW VERSION ON UPDATE */
 
     @Test
@@ -1623,7 +1525,7 @@ public abstract class InternalTreeLogicTestBase<KEY,VALUE>
         long currentPageId = readCursor.getCurrentPageId();
         root.goTo( readCursor );
         GBPTreeConsistencyChecker<KEY> consistencyChecker =
-                new GBPTreeConsistencyChecker<>( node, layout, id, stableGeneration, unstableGeneration, true );
+                new GBPTreeConsistencyChecker<>( node, layout, id, stableGeneration, unstableGeneration );
         ThrowingConsistencyCheckVisitor<KEY> visitor = new ThrowingConsistencyCheckVisitor<>();
         consistencyChecker.check( null, readCursor, root, visitor );
         goTo( readCursor, currentPageId );
@@ -1786,7 +1688,7 @@ public abstract class InternalTreeLogicTestBase<KEY,VALUE>
     private void assertSuccessorPointerNotCrashOrBroken() throws IOException
     {
         assertNoCrashOrBrokenPointerInGSPP( null, readCursor, stableGeneration, unstableGeneration,
-                GBPTreePointerType.successor(), TreeNode.BYTE_POS_SUCCESSOR, new ThrowingConsistencyCheckVisitor<>(), false );
+                GBPTreePointerType.successor(), TreeNode.BYTE_POS_SUCCESSOR, new ThrowingConsistencyCheckVisitor<>() );
     }
 
     private void assertKeyAssociatedWithValue( KEY key, VALUE expectedValue )
@@ -1938,7 +1840,7 @@ public abstract class InternalTreeLogicTestBase<KEY,VALUE>
     {
         structurePropagation.hasRightKeyInsert = false;
         structurePropagation.hasMidChildUpdate = false;
-        treeLogic.insert( cursor, structurePropagation, key, value, valueMerger, true, stableGeneration, unstableGeneration );
+        treeLogic.insert( cursor, structurePropagation, key, value, valueMerger, stableGeneration, unstableGeneration );
         handleAfterChange();
     }
 

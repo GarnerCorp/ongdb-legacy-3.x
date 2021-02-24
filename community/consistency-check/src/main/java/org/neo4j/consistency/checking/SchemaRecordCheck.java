@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -31,7 +31,6 @@ import org.neo4j.internal.kernel.api.schema.RelationTypeSchemaDescriptor;
 import org.neo4j.internal.kernel.api.schema.SchemaDescriptor;
 import org.neo4j.internal.kernel.api.schema.SchemaProcessor;
 import org.neo4j.kernel.impl.store.SchemaRuleAccess;
-import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.store.record.ConstraintRule;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
@@ -147,7 +146,7 @@ public class SchemaRecordCheck implements RecordCheck<DynamicRecord, Consistency
 
             if ( rule.canSupportUniqueConstraint() && rule.getOwningConstraint() != null )
             {
-                DynamicRecord previousObligation = constraintObligations.put( rule.getOwningConstraint(), cloneRecord( record ) );
+                DynamicRecord previousObligation = constraintObligations.put( rule.getOwningConstraint(), record.clone() );
                 if ( previousObligation != null )
                 {
                     engine.report().duplicateObligation( previousObligation );
@@ -163,7 +162,7 @@ public class SchemaRecordCheck implements RecordCheck<DynamicRecord, Consistency
 
             if ( rule.getConstraintDescriptor().enforcesUniqueness() )
             {
-                DynamicRecord previousObligation = indexObligations.put( rule.getOwnedIndex(), cloneRecord( record ) );
+                DynamicRecord previousObligation = indexObligations.put( rule.getOwnedIndex(), record.clone() );
                 if ( previousObligation != null )
                 {
                     engine.report().duplicateObligation( previousObligation );
@@ -235,12 +234,6 @@ public class SchemaRecordCheck implements RecordCheck<DynamicRecord, Consistency
         checkForDuplicates( rule, record, engine );
     }
 
-    @SuppressWarnings( "unchecked" )
-    private <T extends AbstractBaseRecord> T cloneRecord( T record )
-    {
-        return (T) record.clone();
-    }
-
     static class CheckSchema implements SchemaProcessor
     {
         private final CheckerEngine<DynamicRecord,ConsistencyReport.SchemaConsistencyReport> engine;
@@ -303,7 +296,7 @@ public class SchemaRecordCheck implements RecordCheck<DynamicRecord, Consistency
     private void checkForDuplicates( SchemaRule rule, DynamicRecord record,
             CheckerEngine<DynamicRecord,ConsistencyReport.SchemaConsistencyReport> engine )
     {
-        DynamicRecord previousContentRecord = verifiedRulesWithRecords.put( rule, cloneRecord( record ) );
+        DynamicRecord previousContentRecord = verifiedRulesWithRecords.put( rule, record.clone() );
         if ( previousContentRecord != null )
         {
             engine.report().duplicateRuleContent( previousContentRecord );

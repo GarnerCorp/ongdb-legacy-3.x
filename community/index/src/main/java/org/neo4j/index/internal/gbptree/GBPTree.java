@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -1237,29 +1237,19 @@ public class GBPTree<KEY,VALUE> implements Closeable
 
     public boolean consistencyCheck() throws IOException
     {
-        return consistencyCheck( true );
-    }
-
-    public boolean consistencyCheck( boolean reportCrashPointers ) throws IOException
-    {
         ThrowingConsistencyCheckVisitor<KEY> reporter = new ThrowingConsistencyCheckVisitor<>();
-        return consistencyCheck( reporter, reportCrashPointers );
-    }
-
-    public boolean consistencyCheck( GBPTreeConsistencyCheckVisitor<KEY> visitor ) throws IOException
-    {
-        return consistencyCheck( visitor, true );
+        return consistencyCheck( reporter );
     }
 
     // Utility method
-    public boolean consistencyCheck( GBPTreeConsistencyCheckVisitor<KEY> visitor, boolean reportCrashPointers ) throws IOException
+    public boolean consistencyCheck( GBPTreeConsistencyCheckVisitor<KEY> visitor ) throws IOException
     {
         CleanTrackingConsistencyCheckVisitor<KEY> cleanTrackingVisitor = new CleanTrackingConsistencyCheckVisitor<>( visitor );
         try ( PageCursor cursor = pagedFile.io( 0L /*ignored*/, PagedFile.PF_SHARED_READ_LOCK ) )
         {
             long unstableGeneration = unstableGeneration( generation );
             GBPTreeConsistencyChecker<KEY> consistencyChecker = new GBPTreeConsistencyChecker<>( bTreeNode, layout, freeList,
-                    stableGeneration( generation ), unstableGeneration, reportCrashPointers );
+                    stableGeneration( generation ), unstableGeneration );
 
             consistencyChecker.check( indexFile, cursor, root, cleanTrackingVisitor );
         }
@@ -1385,20 +1375,9 @@ public class GBPTree<KEY,VALUE> implements Closeable
         @Override
         public void merge( KEY key, VALUE value, ValueMerger<KEY,VALUE> valueMerger )
         {
-            internalMerge( key, value, valueMerger, true );
-        }
-
-        @Override
-        public void mergeIfExists( KEY key, VALUE value, ValueMerger<KEY,VALUE> valueMerger )
-        {
-            internalMerge( key, value, valueMerger, false );
-        }
-
-        private void internalMerge( KEY key, VALUE value, ValueMerger<KEY,VALUE> valueMerger, boolean createIfNotExists )
-        {
             try
             {
-                treeLogic.insert( cursor, structurePropagation, key, value, valueMerger, createIfNotExists,
+                treeLogic.insert( cursor, structurePropagation, key, value, valueMerger,
                         stableGeneration, unstableGeneration );
 
                 handleStructureChanges();

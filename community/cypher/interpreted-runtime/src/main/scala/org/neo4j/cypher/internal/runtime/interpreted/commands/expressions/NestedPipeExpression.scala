@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -31,9 +31,10 @@ the result of the NestedPipeExpression evaluation is a collection containing the
  */
 case class NestedPipeExpression(pipe: Pipe, inner: Expression) extends Expression {
   override def apply(ctx: ExecutionContext, state: QueryState): AnyValue = {
+    val maybeOwningPipe = owningPipe
     val innerState =
-      if (owningPipe.isDefined) {
-        state.withInitialContext(ctx).withDecorator(state.decorator.innerDecorator(owningPipe.get))
+      if (maybeOwningPipe.isDefined) {
+        state.withInitialContext(ctx).withDecorator(state.decorator.innerDecorator(maybeOwningPipe.get))
       } else {
         // We will get inaccurate profiling information of any db hits incurred by this nested expression
         // but at least we will be able to execute the query
@@ -45,13 +46,13 @@ case class NestedPipeExpression(pipe: Pipe, inner: Expression) extends Expressio
     VirtualValues.list(map.toArray:_*)
   }
 
-  override def rewrite(f: (Expression) => Expression): Expression = f(NestedPipeExpression(pipe, inner.rewrite(f)))
+  override def rewrite(f: (Expression) => Expression) = f(NestedPipeExpression(pipe, inner.rewrite(f)))
 
   override def arguments: Seq[Expression] = Seq(inner)
 
   override def children: Seq[AstNode[_]] = Seq(inner)
 
-  override def symbolTableDependencies: Set[String] = Set()
+  override def symbolTableDependencies = Set()
 
   override def toString: String = s"NestedExpression()"
 }

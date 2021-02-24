@@ -31,11 +31,8 @@ Apache Software License, Version 2.0
   Lucene Common Analyzers
   Lucene Core
   Lucene QueryParsers
-  Neo4j - Cypher Expressions 3.4
-  Neo4j - Cypher Util 3.4
   Netty/All-in-One
   opencsv
-  openCypher Frontend
   parboiled-core
   parboiled-scala
   WMI4Java

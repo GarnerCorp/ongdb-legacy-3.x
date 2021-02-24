@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -37,9 +37,7 @@ public class InternalTreeLogicDynamicSizeTest extends InternalTreeLogicTestBase<
         {
             long baseSeed = layout.keySeed( base );
             long addSeed = layout.keySeed( add );
-            RawBytes merged = layout.value( baseSeed + addSeed );
-            base.copyFrom( merged );
-            return ValueMerger.MergeResult.MERGED;
+            return layout.value( baseSeed + addSeed );
         };
     }
 

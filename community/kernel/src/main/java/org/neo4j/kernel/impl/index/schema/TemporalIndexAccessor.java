@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,7 +30,6 @@ import org.neo4j.helpers.collection.BoundedIterable;
 import org.neo4j.helpers.collection.CombiningIterable;
 import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.io.pagecache.PageCache;
@@ -56,12 +55,10 @@ class TemporalIndexAccessor extends TemporalIndexCache<TemporalIndexAccessor.Par
     private final IndexDescriptor descriptor;
 
     TemporalIndexAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, PageCache pageCache, FileSystemAbstraction fs,
-            RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, IndexProvider.Monitor monitor, TemporalIndexFiles temporalIndexFiles, boolean readOnly,
-            TokenNameLookup tokenNameLookup )
+            RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, IndexProvider.Monitor monitor, TemporalIndexFiles temporalIndexFiles, boolean readOnly )
             throws IOException
     {
-        super( new PartFactory( pageCache, fs, recoveryCleanupWorkCollector, monitor, descriptor, samplingConfig, temporalIndexFiles, readOnly,
-                tokenNameLookup ) );
+        super( new PartFactory( pageCache, fs, recoveryCleanupWorkCollector, monitor, descriptor, samplingConfig, temporalIndexFiles, readOnly ) );
         this.descriptor = descriptor;
 
         temporalIndexFiles.loadExistingIndexes( this );
@@ -183,10 +180,9 @@ class TemporalIndexAccessor extends TemporalIndexCache<TemporalIndexAccessor.Par
         private final IndexDescriptor descriptor;
 
         PartAccessor( PageCache pageCache, FileSystemAbstraction fs, TemporalIndexFiles.FileLayout<KEY> fileLayout,
-                RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, IndexProvider.Monitor monitor, StoreIndexDescriptor descriptor, boolean readOnly,
-                TokenNameLookup tokenNameLookup )
+                RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, IndexProvider.Monitor monitor, StoreIndexDescriptor descriptor, boolean readOnly )
         {
-            super( pageCache, fs, fileLayout.indexFile, fileLayout.layout, monitor, descriptor, NO_HEADER_WRITER, readOnly, tokenNameLookup );
+            super( pageCache, fs, fileLayout.indexFile, fileLayout.layout, monitor, descriptor, NO_HEADER_WRITER, readOnly );
             this.layout = fileLayout.layout;
             this.descriptor = descriptor;
             instantiateTree( recoveryCleanupWorkCollector, headerWriter );
@@ -210,11 +206,9 @@ class TemporalIndexAccessor extends TemporalIndexCache<TemporalIndexAccessor.Par
         private final IndexSamplingConfig samplingConfig;
         private final TemporalIndexFiles temporalIndexFiles;
         private final boolean readOnly;
-        private final TokenNameLookup tokenNameLookup;
 
         PartFactory( PageCache pageCache, FileSystemAbstraction fs, RecoveryCleanupWorkCollector recoveryCleanupWorkCollector, IndexProvider.Monitor monitor,
-                StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, TemporalIndexFiles temporalIndexFiles, boolean readOnly,
-                TokenNameLookup tokenNameLookup )
+                StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, TemporalIndexFiles temporalIndexFiles, boolean readOnly )
         {
             this.pageCache = pageCache;
             this.fs = fs;
@@ -224,7 +218,6 @@ class TemporalIndexAccessor extends TemporalIndexCache<TemporalIndexAccessor.Par
             this.samplingConfig = samplingConfig;
             this.temporalIndexFiles = temporalIndexFiles;
             this.readOnly = readOnly;
-            this.tokenNameLookup = tokenNameLookup;
         }
 
         @Override
@@ -269,12 +262,12 @@ class TemporalIndexAccessor extends TemporalIndexCache<TemporalIndexAccessor.Par
             {
                 createEmptyIndex( fileLayout );
             }
-            return new PartAccessor<>( pageCache, fs, fileLayout, recoveryCleanupWorkCollector, monitor, descriptor, readOnly, tokenNameLookup );
+            return new PartAccessor<>( pageCache, fs, fileLayout, recoveryCleanupWorkCollector, monitor, descriptor, readOnly );
         }
 
         private <KEY extends NativeIndexSingleValueKey<KEY>> void createEmptyIndex( TemporalIndexFiles.FileLayout<KEY> fileLayout )
         {
-            IndexPopulator populator = new TemporalIndexPopulator.PartPopulator<>( pageCache, fs, fileLayout, monitor, descriptor, tokenNameLookup );
+            IndexPopulator populator = new TemporalIndexPopulator.PartPopulator<>( pageCache, fs, fileLayout, monitor, descriptor );
             populator.create();
             populator.close( true );
         }

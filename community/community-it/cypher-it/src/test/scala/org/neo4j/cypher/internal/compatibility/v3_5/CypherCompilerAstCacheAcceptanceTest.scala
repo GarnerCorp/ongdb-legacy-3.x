@@ -71,15 +71,15 @@ class CypherCompilerAstCacheAcceptanceTest extends CypherFunSuite with GraphData
       cypher.CypherPlannerOption.default,
       CypherUpdateStrategy.default,
       () => 1)
-    createCompiler(planner, config)
+    createCompiler(planner, log, config)
   }
 
-  private def createCompiler(planner: CypherPlanner, config: CypherPlannerConfiguration):
+  private def createCompiler(planner: CypherPlanner, log: Log, config: CypherPlannerConfiguration):
   CypherCurrentCompiler[RuntimeContext] = {
     CypherCurrentCompiler(
       planner,
       CommunityRuntimeFactory.getRuntime(CypherRuntimeOption.default, disallowFallback = true),
-      CommunityRuntimeContextCreator(config),
+      CommunityRuntimeContextCreator(log, config),
       kernelMonitors)
 
   }
@@ -131,7 +131,7 @@ class CypherCompilerAstCacheAcceptanceTest extends CypherFunSuite with GraphData
       CypherUpdateStrategy.default,
       () => 1)
 
-    compiler3_4 = createCompiler(planner3_4, config3_4)
+    compiler3_4 = createCompiler(planner3_4, NullLog.getInstance, config3_4)
 
     kernelMonitors.addMonitorListener(counter)
 
@@ -246,13 +246,18 @@ class CypherCompilerAstCacheAcceptanceTest extends CypherFunSuite with GraphData
     counter.counts should equal(CacheCounts(hits = 0, misses = 2, flushes = 1, evicted = 1))
   }
 
-  test("should not evict query because of unrelated statistics change") {
+  // This test is only added to communicate that we're aware of this behaviour and consider it
+  // acceptable, because divergence in NodesAllCardinality will be very rare in a production system
+  // except for the initial population. It would be preferable to not evict here, but that would
+  // required changes that are too risky for a patch release.
+  test("it's ok to evict query because of total nodes change") {
     // given
     val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC)
     counter = new CacheCounter()
     compiler = createCompiler(plannerConfig(queryPlanTTL = 0), clock = clock)
     compiler.kernelMonitors.addMonitorListener(counter)
     val query: String = "match (n:Person) return n"
+    createLabeledNode("Person")
 
     // when
     runQuery(query)
@@ -261,6 +266,32 @@ class CypherCompilerAstCacheAcceptanceTest extends CypherFunSuite with GraphData
     counter.counts should equal(CacheCounts(hits = 0, misses = 1, flushes = 1, evicted = 0))
 
     // when
+    // we create enough nodes for NodesAllCardinality to trigger a replan
+    (0 until 5).foreach { _ => createNode() }
+    runQuery(query)
+
+    // then
+    counter.counts should equal(CacheCounts(hits = 0, misses = 2, flushes = 1, evicted = 1))
+  }
+
+  test("should not evict query because of unrelated statistics change") {
+    // given
+    val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC)
+    counter = new CacheCounter()
+    compiler = createCompiler(plannerConfig(queryPlanTTL = 0), clock = clock)
+    compiler.kernelMonitors.addMonitorListener(counter)
+    val query: String = "match (n:Person) return n"
+    (0 until 5).foreach { _ => createLabeledNode("Person") }
+
+    // when
+    runQuery(query)
+
+    // then
+    counter.counts should equal(CacheCounts(hits = 0, misses = 1, flushes = 1, evicted = 0))
+
+    // when
+    // we create enough nodes for NodesLabelCardinality("Dog") to trigger a replan
+    // but not NodesAllCardinality or NodesLabelCardinality("Person")
     (0 until 5).foreach { _ => createLabeledNode("Dog") }
     runQuery(query)
 
@@ -286,7 +317,7 @@ class CypherCompilerAstCacheAcceptanceTest extends CypherFunSuite with GraphData
 
     // then
     logProvider.assertExactly(
-      inLog(logName).info(s"Discarded stale query from the query cache after 0 seconds: $query")
+      inLog(logName).debug(s"Discarded stale plan from the plan cache after 0 seconds: $query")
     )
   }
 

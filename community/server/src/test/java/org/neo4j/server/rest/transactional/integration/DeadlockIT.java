@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -74,7 +74,7 @@ public class DeadlockIT extends AbstractRestFunctionalTestBase
                 quotedJson( "{ 'statements': [ { 'statement': 'MATCH (n:Second) SET n.prop=1' } ] }" ));
 
         // Then
-        assertThat( deadlock.get( "errors" ).get( 0 ).get( "code" ).asText(),
+        assertThat( deadlock.get( "errors" ).get( 0 ).get( "code" ).getTextValue(),
                 equalTo( DeadlockDetected.code().serialize() ) );
     }
 

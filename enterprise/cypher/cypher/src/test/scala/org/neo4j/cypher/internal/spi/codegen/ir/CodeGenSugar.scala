@@ -1,23 +1,26 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB Enterprise Edition. The included source
+ * This file is part of Neo4j Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause,as found
- * in the associated LICENSE.txt file.
+ * Commons Clause, as found in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
+ *
+ * Neo4j object code can be licensed independently from the source
+ * under separate terms from the AGPL. Inquiries can be directed to:
+ * licensing@neo4j.com
+ *
+ * More information is also available at:
+ * https://neo4j.com/licensing/
  */
-package org.neo4j.cypher.internal.compiled_runtime.v3_6.codegen.ir
+package org.neo4j.cypher.internal.compiled_runtime.v3_5.codegen.ir
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -25,10 +28,10 @@ import org.mockito.Mockito._
 import org.neo4j.cypher.internal.RewindableExecutionResult
 import org.neo4j.cypher.internal.codegen.QueryExecutionTracer
 import org.neo4j.cypher.internal.codegen.profiling.ProfilingTracer
-import org.neo4j.cypher.internal.compatibility.v3_6.runtime.executionplan.Provider
-import org.neo4j.cypher.internal.compiler.v3_6.planner.LogicalPlanConstructionTestSupport
+import org.neo4j.cypher.internal.compatibility.v3_5.runtime.executionplan.Provider
+import org.neo4j.cypher.internal.compiler.v3_5.planner.LogicalPlanConstructionTestSupport
 import org.neo4j.cypher.internal.executionplan.{GeneratedQuery, GeneratedQueryExecution}
-import org.neo4j.cypher.internal.planner.v3_6.spi.{CostBasedPlannerName, GraphStatistics, PlanContext, InstrumentedGraphStatistics}
+import org.neo4j.cypher.internal.planner.v3_5.spi.{CostBasedPlannerName, GraphStatistics, PlanContext, InstrumentedGraphStatistics}
 
 import org.neo4j.cypher.internal.runtime._
 import org.neo4j.cypher.internal.runtime.compiled.codegen._
@@ -37,7 +40,7 @@ import org.neo4j.cypher.internal.runtime.compiled.{CompiledExecutionResult, Comp
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
 import org.neo4j.cypher.internal.runtime.interpreted.{TransactionBoundQueryContext, TransactionalContextWrapper}
 import org.neo4j.cypher.internal.spi.codegen.GeneratedQueryStructure
-import org.neo4j.cypher.internal.v3_6.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.v3_5.logical.plans.LogicalPlan
 import org.neo4j.cypher.result.QueryResult.QueryResultVisitor
 import org.neo4j.cypher.result.{QueryProfile, QueryResult, RuntimeResult}
 import org.neo4j.graphdb.GraphDatabaseService
@@ -50,10 +53,10 @@ import org.neo4j.kernel.impl.query.clientconnection.ClientConnectionInfo
 import org.neo4j.time.Clocks
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues.EMPTY_MAP
-import org.neo4j.cypher.internal.v3_6.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.v3_6.util.TaskCloser
-import org.neo4j.cypher.internal.v3_6.util.attribution.Id
+import org.neo4j.cypher.internal.v3_5.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.v3_5.util.TaskCloser
+import org.neo4j.cypher.internal.v3_5.util.attribution.Id
 import org.scalatest.mock.MockitoSugar
 
 trait CodeGenSugar extends MockitoSugar with LogicalPlanConstructionTestSupport with AstConstructionTestSupport {

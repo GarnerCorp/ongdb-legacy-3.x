@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -65,7 +65,7 @@ import static org.neo4j.helpers.collection.Iterables.count;
 public class TestShortestPath extends Neo4jAlgoTestCase
 {
     // Attempt at recreating this issue without cypher
-    // https://github.com/graphfoundation/ongdb/issues/4160
+    // https://github.com/neo4j/neo4j/issues/4160
     @Test
     public void shouldAbortAsSoonAsPossible()
     {

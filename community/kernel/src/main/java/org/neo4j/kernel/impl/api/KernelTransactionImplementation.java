@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -665,7 +665,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     if ( hooksState != null && hooksState.failed() )
                     {
                         Throwable cause = hooksState.failure();
-                        throw new TransactionFailureException( Status.Transaction.TransactionHookFailed, cause, cause.getMessage() );
+                        throw new TransactionFailureException( Status.Transaction.TransactionHookFailed, cause, "" );
                     }
                 }
                 finally
@@ -721,7 +721,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     success = true;
                     TransactionToApply batch = new TransactionToApply( transactionRepresentation,
                             versionContextSupplier.getVersionContext() );
-                    txId = commitProcess.commit( batch, commitEvent, INTERNAL );
+                    txId = transactionId = commitProcess.commit( batch, commitEvent, INTERNAL );
                     commitTime = timeCommitted;
                 }
             }
@@ -741,7 +741,6 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             }
             else
             {
-                transactionId = txId;
                 afterCommit( txId );
             }
         }

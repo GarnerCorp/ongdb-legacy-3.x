@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.IOLimiter;
 import org.neo4j.io.pagecache.PageCache;
@@ -51,10 +50,9 @@ import static org.neo4j.kernel.impl.index.schema.fusion.FusionIndexSampler.combi
 class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopulator<SpatialIndexKey,NativeIndexValue>> implements IndexPopulator
 {
     SpatialIndexPopulator( StoreIndexDescriptor descriptor, SpatialIndexFiles spatialIndexFiles, PageCache pageCache,
-            FileSystemAbstraction fs, IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration,
-            TokenNameLookup tokenNameLookup )
+            FileSystemAbstraction fs, IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration )
     {
-        super( new PartFactory( pageCache, fs, spatialIndexFiles, descriptor, monitor, configuration, tokenNameLookup ) );
+        super( new PartFactory( pageCache, fs, spatialIndexFiles, descriptor, monitor, configuration ) );
     }
 
     @Override
@@ -164,9 +162,9 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
         private final CoordinateReferenceSystem crs;
 
         PartPopulator( PageCache pageCache, FileSystemAbstraction fs, SpatialIndexFiles.SpatialFileLayout fileLayout, IndexProvider.Monitor monitor,
-                StoreIndexDescriptor descriptor, SpaceFillingCurveConfiguration configuration, TokenNameLookup tokenNameLookup )
+                StoreIndexDescriptor descriptor, SpaceFillingCurveConfiguration configuration )
         {
-            super( pageCache, fs, fileLayout.getIndexFile(), fileLayout.layout, monitor, descriptor, NO_HEADER_WRITER, tokenNameLookup );
+            super( pageCache, fs, fileLayout.getIndexFile(), fileLayout.layout, monitor, descriptor, NO_HEADER_WRITER );
             this.configuration = configuration;
             this.settings = fileLayout.settings;
             this.crs = fileLayout.spatialFile.crs;
@@ -229,10 +227,9 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
         private final StoreIndexDescriptor descriptor;
         private final IndexProvider.Monitor monitor;
         private final SpaceFillingCurveConfiguration configuration;
-        private final TokenNameLookup tokenNameLookup;
 
         PartFactory( PageCache pageCache, FileSystemAbstraction fs, SpatialIndexFiles spatialIndexFiles, StoreIndexDescriptor descriptor,
-                IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration, TokenNameLookup tokenNameLookup )
+                IndexProvider.Monitor monitor, SpaceFillingCurveConfiguration configuration )
         {
             this.pageCache = pageCache;
             this.fs = fs;
@@ -240,7 +237,6 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
             this.descriptor = descriptor;
             this.monitor = monitor;
             this.configuration = configuration;
-            this.tokenNameLookup = tokenNameLookup;
         }
 
         @Override
@@ -251,7 +247,7 @@ class SpatialIndexPopulator extends SpatialIndexCache<WorkSyncedNativeIndexPopul
 
         private WorkSyncedNativeIndexPopulator<SpatialIndexKey,NativeIndexValue> create( SpatialIndexFiles.SpatialFileLayout fileLayout )
         {
-            PartPopulator populator = new PartPopulator( pageCache, fs, fileLayout, monitor, descriptor, configuration, tokenNameLookup );
+            PartPopulator populator = new PartPopulator( pageCache, fs, fileLayout, monitor, descriptor, configuration );
             populator.create();
             return new WorkSyncedNativeIndexPopulator<>( populator );
         }

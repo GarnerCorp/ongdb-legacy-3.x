@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -173,8 +173,8 @@ public class IndexTxStateUpdater
         // and already loaded values that we can get from the map of materialized values.
         for ( int k = 0; k < indexPropertyIds.length; k++ )
         {
-            values[k] = indexPropertyIds[k] == changedPropertyKeyId ? changedValue : materializedValues.getIfAbsent( indexPropertyIds[k], () -> NO_VALUE );
-            if ( values[k] == NO_VALUE )
+            values[k] = indexPropertyIds[k] == changedPropertyKeyId ? changedValue : materializedValues.get( indexPropertyIds[k] );
+            if ( values[k] == null )
             {
                 missing++;
             }
@@ -188,7 +188,7 @@ public class IndexTxStateUpdater
             while ( missing > 0 && propertyCursor.next() )
             {
                 int k = ArrayUtils.indexOf( indexPropertyIds, propertyCursor.propertyKey() );
-                if ( k >= 0 && values[k] == NO_VALUE )
+                if ( k >= 0 && values[k] == null )
                 {
                     int propertyKeyId = indexPropertyIds[k];
                     boolean thisIsTheChangedProperty = propertyKeyId == changedPropertyKeyId;

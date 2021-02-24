@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,8 +19,6 @@
  */
 package org.neo4j.dbms.archive;
 
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -28,7 +26,6 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
@@ -37,7 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.Random;
 
 import org.neo4j.test.extension.Inject;
@@ -46,11 +42,8 @@ import org.neo4j.test.rule.TestDirectory;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.neo4j.dbms.archive.TestUtils.withPermissions;
 
 @ExtendWith( TestDirectoryExtension.class )
@@ -94,24 +87,6 @@ class LoaderTest
 
         IncorrectFormat incorrectFormat = assertThrows( IncorrectFormat.class, () -> new Loader().load( archive, destination, destination ) );
         assertEquals( archive.toString(), incorrectFormat.getMessage() );
-    }
-
-    @Test
-    void shouldGiveAClearErrorMessageIfTheArchiveEntryPointsToRandomPlace() throws IOException, IncorrectFormat
-    {
-        Path archive = testDirectory.file( "the-archive.dump" ).toPath();
-        final File testFile = testDirectory.file( "testFile" );
-        try ( TarArchiveOutputStream tar = new TarArchiveOutputStream(
-                new GzipCompressorOutputStream( Files.newOutputStream( archive, StandardOpenOption.CREATE_NEW ) ) ) )
-        {
-            ArchiveEntry archiveEntry = tar.createArchiveEntry( testFile, "../../../../etc/shadow" );
-            tar.putArchiveEntry( archiveEntry );
-            tar.closeArchiveEntry();
-        }
-        Path destination = testDirectory.file( "the-destination" ).toPath();
-        final InvalidDumpEntryException exception =
-                assertThrows( InvalidDumpEntryException.class, () -> new Loader().load( archive, destination, destination ) );
-        assertThat( exception.getMessage(), containsString( "points to a location outside of the destination database." ) );
     }
 
     @Test
@@ -175,7 +150,6 @@ class LoaderTest
         Files.createDirectories( destination.getParent() );
         try ( Closeable ignored = withPermissions( destination.getParent(), emptySet() ) )
         {
-            assumeFalse( destination.getParent().toFile().canWrite() );
             AccessDeniedException exception = assertThrows( AccessDeniedException.class, () -> new Loader().load( archive, destination, destination ) );
             assertEquals( destination.getParent().toString(), exception.getMessage() );
         }
@@ -192,7 +166,6 @@ class LoaderTest
         Files.createDirectories( txLogsDirectory.getParent() );
         try ( Closeable ignored = withPermissions( txLogsDirectory.getParent(), emptySet() ) )
         {
-            assumeFalse( txLogsDirectory.getParent().toFile().canWrite() );
             AccessDeniedException exception = assertThrows( AccessDeniedException.class, () -> new Loader().load( archive, destination, txLogsDirectory ) );
             assertEquals( txLogsDirectory.getParent().toString(), exception.getMessage() );
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -20,9 +20,9 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.v3_6.util.AssertionRunner.Thunk
-import org.neo4j.cypher.internal.v3_6.util.Foldable._
-import org.neo4j.cypher.internal.v3_6.util.{AssertionRunner, InternalException}
+import org.neo4j.cypher.internal.v3_5.util.AssertionRunner.Thunk
+import org.neo4j.cypher.internal.v3_5.util.Foldable._
+import org.neo4j.cypher.internal.v3_5.util.{AssertionRunner, InternalException}
 
 object OwningPipeAsserter {
 

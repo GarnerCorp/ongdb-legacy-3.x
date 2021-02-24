@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,6 +26,8 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InOrder;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,6 +60,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -264,11 +267,35 @@ public class ConfigTest
         verify( log ).warn( "Config file [%s] does not exist.", confFile );
     }
 
+    @Test
+    public void shouldLogIfConfigFileCouldNotBeRead() throws IOException
+    {
+        Log log = mock( Log.class );
+        File confFile = testDirectory.file( "test.conf" );
+        assertTrue( confFile.createNewFile() );
+        assumeTrue( confFile.setReadable( false ) );
+
+        Config config = Config.fromFile( confFile ).withNoThrowOnFileLoadFailure().build();
+
+        config.setLogger( log );
+
+        verify( log ).error( "Unable to load config file [%s]: %s", confFile, confFile + " (Permission denied)" );
+    }
+
     @Test( expected = ConfigLoadIOException.class )
     public void mustThrowIfConfigFileCouldNotBeFound()
     {
         File confFile = testDirectory.file( "test.conf" );
 
+        Config.fromFile( confFile ).build();
+    }
+
+    @Test( expected = ConfigLoadIOException.class )
+    public void mustThrowIfConfigFileCoutNotBeRead() throws IOException
+    {
+        File confFile = testDirectory.file( "test.conf" );
+        assertTrue( confFile.createNewFile() );
+        assumeTrue( confFile.setReadable( false ) );
         Config.fromFile( confFile ).build();
     }
 

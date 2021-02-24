@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -39,10 +39,6 @@ public abstract class FulltextIndexReader implements IndexReader
      * @return A {@link ScoreEntityIterator} over the results
      */
     public abstract ScoreEntityIterator query( String query ) throws ParseException;
-
-    public abstract ScoreEntityIterator query( String query, FulltextQueryConfig fulltextQueryConfig ) throws ParseException;
-
-    public abstract CountResult queryForCount( String query ) throws ParseException;
 
     @Override
     public IndexSampler createSampler()

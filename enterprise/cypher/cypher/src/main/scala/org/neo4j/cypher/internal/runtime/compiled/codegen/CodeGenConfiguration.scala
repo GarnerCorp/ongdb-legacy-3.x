@@ -1,27 +1,30 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB Enterprise Edition. The included source
+ * This file is part of Neo4j Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause,as found
- * in the associated LICENSE.txt file.
+ * Commons Clause, as found in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
+ *
+ * Neo4j object code can be licensed independently from the source
+ * under separate terms from the AGPL. Inquiries can be directed to:
+ * licensing@neo4j.com
+ *
+ * More information is also available at:
+ * https://neo4j.com/licensing/
  */
 package org.neo4j.cypher.internal.runtime.compiled.codegen
 
 import java.nio.file.{Path, Paths}
 
-import org.neo4j.cypher.internal.v3_6.util.InternalException
+import org.neo4j.cypher.internal.v3_5.util.InternalException
 
 /**
   * Configuration modes for code generation
@@ -43,13 +46,13 @@ case object ByteCodeMode extends CodeGenMode
  *
   * @param mode The mode of code generation
   * @param showSource if `true` source code is stored and returned
-  * @param packageName The name of the v3_6 the produced code should belong to
+  * @param packageName The name of the v3_5 the produced code should belong to
   */
 case class CodeGenConfiguration(mode: CodeGenMode = CodeGenMode.default,
                                 showSource: Boolean = false,
                                 showByteCode: Boolean = false,
                                 saveSource: Option[Path] = None,
-                                packageName: String = "org.neo4j.cypher.internal.compiler.v3_6.generated"
+                                packageName: String = "org.neo4j.cypher.internal.compiler.v3_5.generated"
                                )
 
 object CodeGenConfiguration {

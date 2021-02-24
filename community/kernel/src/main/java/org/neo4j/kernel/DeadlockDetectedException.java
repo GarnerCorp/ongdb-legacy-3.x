@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,7 +21,6 @@ package org.neo4j.kernel;
 
 import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
-import org.neo4j.util.DocumentationURLs;
 
 /**
  * Signals that a deadlock between two or more transactions has been detected.
@@ -42,7 +41,7 @@ public class DeadlockDetectedException extends TransientTransactionFailureExcept
                 "between these transactions. This exception was thrown instead of ending up in that deadlock.\n" +
                 "\n" +
                 "See the deadlock section in the Neo4j Java developer reference for how to avoid this: " +
-                DocumentationURLs.TRANSACTION_DEADLOCK + "\n" +
+                "https://neo4j.com/docs/java-reference/current/#transactions-deadlocks\n" +
                 "\n" +
                 "Details: '" + message + "'.", cause );
     }

@@ -1,9 +1,9 @@
 # Copyright (c) 2002-2018 "Neo4j,"
 # Neo4j Sweden AB [http://neo4j.com]
 #
-# This file is part of ONgDB.
+# This file is part of Neo4j.
 #
-# ONgDB is free software: you can redistribute it and/or modify
+# Neo4j is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
@@ -40,7 +40,7 @@ System.Int32
 non-zero = an error occured
 
 .NOTES
-Only supported on version 3.x ONgDB Community and Enterprise Edition databases
+Only supported on version 3.x Neo4j Community and Enterprise Edition databases
 
 #>
 function Invoke-Neo4jAdmin

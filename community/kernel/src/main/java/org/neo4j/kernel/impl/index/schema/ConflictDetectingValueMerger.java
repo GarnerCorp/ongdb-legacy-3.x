@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -46,7 +46,7 @@ abstract class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VAL
     }
 
     @Override
-    public MergeResult merge( KEY existingKey, KEY newKey, VALUE existingValue, VALUE newValue )
+    public VALUE merge( KEY existingKey, KEY newKey, VALUE existingValue, VALUE newValue )
     {
         if ( existingKey.getEntityId() != newKey.getEntityId() )
         {
@@ -54,7 +54,7 @@ abstract class ConflictDetectingValueMerger<KEY extends NativeIndexKey<KEY>, VAL
             existingNodeId = existingKey.getEntityId();
             addedNodeId = newKey.getEntityId();
         }
-        return MergeResult.UNCHANGED;
+        return null;
     }
 
     /**

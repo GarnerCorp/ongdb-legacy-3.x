@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -32,8 +32,6 @@ import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.impl.store.format.standard.StandardV2_3;
 import org.neo4j.kernel.impl.store.format.standard.StandardV3_0;
-import org.neo4j.kernel.impl.store.format.standard.StandardV3_4;
-import org.neo4j.kernel.impl.store.format.standard.StandardV3_6;
 import org.neo4j.kernel.impl.util.monitoring.ProgressReporter;
 
 import static org.mockito.Mockito.mock;
@@ -64,24 +62,6 @@ public class SchemaIndexMigratorTest
                 StandardV3_0.STORE_VERSION );
 
         migrator.moveMigratedFiles( migrationLayout, databaseLayout, StandardV2_3.STORE_VERSION, StandardV3_0.STORE_VERSION );
-
-        verify( fs ).deleteRecursively( indexProviderRootDirectory );
-    }
-
-    @Test
-    public void schemaAndLabelIndexesRemovedAfterSuccessfulMigration36() throws IOException
-    {
-        IndexDirectoryStructure directoryStructure = mock( IndexDirectoryStructure.class );
-        File indexProviderRootDirectory = databaseLayout.file( "just-some-directory" );
-        when( directoryStructure.rootDirectory() ).thenReturn( indexProviderRootDirectory );
-        when( indexProvider.directoryStructure() ).thenReturn( directoryStructure );
-        when( indexProvider.getProviderDescriptor() )
-                .thenReturn( new IndexProviderDescriptor( "key", "version" ) );
-
-        migrator.migrate( databaseLayout, migrationLayout, progressReporter, StandardV3_4.STORE_VERSION,
-                          StandardV3_6.STORE_VERSION );
-
-        migrator.moveMigratedFiles( migrationLayout, databaseLayout, StandardV3_4.STORE_VERSION, StandardV3_6.STORE_VERSION );
 
         verify( fs ).deleteRecursively( indexProviderRootDirectory );
     }

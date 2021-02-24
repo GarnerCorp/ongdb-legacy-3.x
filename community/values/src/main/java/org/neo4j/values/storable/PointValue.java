@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -36,7 +36,6 @@ import org.neo4j.values.virtual.MapValue;
 
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
-import static org.neo4j.values.utils.ValueMath.HASH_CONSTANT;
 
 public class PointValue extends ScalarValue implements Point, Comparable<PointValue>
 {
@@ -249,8 +248,8 @@ public class PointValue extends ScalarValue implements Point, Comparable<PointVa
     public int computeHash()
     {
         int result = 1;
-        result = HASH_CONSTANT * result + NumberValues.hash( crs.getCode() );
-        result = HASH_CONSTANT * result + NumberValues.hash( coordinate );
+        result = 31 * result + NumberValues.hash( crs.getCode() );
+        result = 31 * result + NumberValues.hash( coordinate );
         return result;
     }
 

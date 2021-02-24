@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.index.schema;
 
 import java.io.File;
 
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -32,9 +31,9 @@ import static org.neo4j.index.internal.gbptree.GBPTree.NO_HEADER_WRITER;
 class NumberIndexPopulator extends NativeIndexPopulator<NumberIndexKey,NativeIndexValue>
 {
     NumberIndexPopulator( PageCache pageCache, FileSystemAbstraction fs, File storeFile, IndexLayout<NumberIndexKey,NativeIndexValue> layout,
-            IndexProvider.Monitor monitor, StoreIndexDescriptor descriptor, TokenNameLookup tokenNameLookup )
+            IndexProvider.Monitor monitor, StoreIndexDescriptor descriptor )
     {
-        super( pageCache, fs, storeFile, layout, monitor, descriptor, NO_HEADER_WRITER, tokenNameLookup );
+        super( pageCache, fs, storeFile, layout, monitor, descriptor, NO_HEADER_WRITER );
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,10 +19,10 @@
  */
 package org.neo4j.server.rest.domain;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonLocation;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.JsonLocation;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -70,7 +70,7 @@ public class JsonHelper
         {
             return OBJECT_MAPPER.readValue( json, Object.class );
         }
-        catch ( com.fasterxml.jackson.core.JsonParseException e )
+        catch ( org.codehaus.jackson.JsonParseException e )
         {
             String message = e.getMessage().split( "\\r?\\n" )[0];
             JsonLocation location = e.getLocation();

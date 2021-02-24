@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -102,17 +102,5 @@ public abstract class TokenRecord extends AbstractBaseRecord
     protected void additionalToString( StringBuilder buf )
     {
         // default: nothing additional
-    }
-
-    @Override
-    public TokenRecord clone()
-    {
-        TokenRecord clone = (TokenRecord) super.clone();
-        clone.nameRecords = new ArrayList<>( nameRecords.size() );
-        for ( DynamicRecord record : nameRecords )
-        {
-            nameRecords.add( record.clone() );
-        }
-        return clone;
     }
 }

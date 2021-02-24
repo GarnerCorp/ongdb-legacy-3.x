@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -161,7 +161,7 @@ public class ResourceInjectionTest
     {
         // Given
         CallableUserFunction proc =
-                compiler.compileFunction( FunctionWithInjectedAPI.class, false ).get( 0 );
+                compiler.compileFunction( FunctionWithInjectedAPI.class).get( 0 );
 
         // When
         Object out = proc.apply( new BasicContext(), new AnyValue[0] );
@@ -180,7 +180,7 @@ public class ResourceInjectionTest
                 "which is not a known injectable component." );
 
         // Then
-        compiler.compileFunction( FunctionWithUnknownAPI.class, false );
+        compiler.compileFunction( FunctionWithUnknownAPI.class );
     }
 
     @Test
@@ -188,7 +188,7 @@ public class ResourceInjectionTest
     {
         //When
         List<CallableUserFunction> procList =
-                compiler.compileFunction( FunctionWithUnsafeAPI.class, false );
+                compiler.compileFunction( FunctionWithUnsafeAPI.class);
         verify( log ).warn( notAvailableMessage( "org.neo4j.kernel.impl.proc.listCoolPeople" ) );
 
         assertThat( procList.size(), equalTo( 1 ) );
@@ -255,7 +255,7 @@ public class ResourceInjectionTest
     public void shouldFailNicelyWhenAllUsesUnsafeAPI() throws Throwable
     {
         //When
-        compiler.compileFunction( FunctionsAndProcedureUnsafe.class, false );
+        compiler.compileFunction( FunctionsAndProcedureUnsafe.class );
         compiler.compileProcedure( FunctionsAndProcedureUnsafe.class, null, false );
         compiler.compileAggregationFunction( FunctionsAndProcedureUnsafe.class );
         // Then

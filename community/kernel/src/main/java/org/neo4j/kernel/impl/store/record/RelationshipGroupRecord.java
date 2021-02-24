@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -184,13 +184,16 @@ public class RelationshipGroupRecord extends AbstractBaseRecord
                ",next=" + next +
                ",used=" + inUse() +
                ",owner=" + getOwningNode() +
-               secondaryUnitToString() + "]";
+               ",secondaryUnitId=" + getSecondaryUnitId() + "]";
     }
 
     @Override
     public RelationshipGroupRecord clone()
     {
-        return (RelationshipGroupRecord) super.clone();
+        RelationshipGroupRecord clone = new RelationshipGroupRecord( getId() ).initialize( inUse(), type, firstOut,
+                firstIn, firstLoop, owningNode, next );
+        clone.setSecondaryUnitId( getSecondaryUnitId() );
+        return clone;
     }
 
     @Override

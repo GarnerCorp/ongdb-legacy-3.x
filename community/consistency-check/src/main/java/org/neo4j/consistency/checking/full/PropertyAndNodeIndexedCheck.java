@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -52,7 +52,6 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 import static java.lang.String.format;
-import static org.neo4j.values.storable.NoValue.NO_VALUE;
 
 /**
  * Checks nodes and how they're indexed in one go. Reports any found inconsistencies.
@@ -215,7 +214,7 @@ public class PropertyAndNodeIndexedCheck implements RecordCheck<NodeRecord, Cons
         for ( int i = 0; i < indexPropertyIds.length; i++ )
         {
             PropertyBlock propertyBlock = propertyMap.get( indexPropertyIds[i] );
-            values[i] = propertyBlock != null ? propertyReader.propertyValue( propertyBlock ) : NO_VALUE;
+            values[i] = propertyReader.propertyValue( propertyBlock );
         }
         return values;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -179,17 +179,15 @@ object Neo4jExceptionToExecutionFailed {
     else if (msg.matches(semanticError("RETURN \\* is not allowed when there are no identifiers in scope")))
       NO_VARIABLES_IN_SCOPE
     else if (msg.matches(semanticError("Procedure call does not provide the required number of arguments.+")))
-      INVALID_NUMBER_OF_ARGUMENTS
-    else if (msg.matches(semanticError("Procedure call provides too many arguments.+")))
-      INVALID_NUMBER_OF_ARGUMENTS
+      "InvalidNumberOfArguments"
     else if (msg.matches("Expected a parameter named .+"))
-      MISSING_PARAMETER
+      "MissingParameter"
     else if (msg.startsWith("Procedure call cannot take an aggregating function as argument, please add a 'WITH' to your statement."))
-      INVALID_AGGREGATION
-    else if (msg.startsWith("Procedure call inside a query does not support passing arguments implicitly"))
-      INVALID_ARGUMENT_PASSING_MODE
+      "InvalidAggregation"
+    else if (msg.startsWith("Procedure call inside a query does not support passing arguments implicitly (pass explicitly after procedure name instead)"))
+      "InvalidArgumentPassingMode"
     else if (msg.matches("There is no procedure with the name `.+` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed."))
-      PROCEDURE_NOT_FOUND
+      "ProcedureNotFound"
     else
       msg
   }

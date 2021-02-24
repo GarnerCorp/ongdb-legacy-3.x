@@ -1,13 +1,10 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB.
+ * This file is part of Neo4j.
  *
- * ONgDB is free software: you can redistribute it and/or modify
+ * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -24,14 +21,14 @@ package org.neo4j.cypher.internal.runtime.slotted.pipes
 
 import java.util.concurrent.{Callable, Executors, Future}
 
-import org.neo4j.cypher.internal.compatibility.v3_6.runtime.SlotConfiguration
+import org.neo4j.cypher.internal.compatibility.v3_5.runtime.SlotConfiguration
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Literal
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.{Pipe, QueryState}
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, QueryStateHelper}
 import org.neo4j.cypher.internal.runtime.slotted.SlottedExecutionContext
-import org.neo4j.cypher.internal.v3_6.util.attribution.Id
-import org.neo4j.cypher.internal.v3_6.util.symbols.CTNode
-import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_5.util.attribution.Id
+import org.neo4j.cypher.internal.v3_5.util.symbols.CTNode
+import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.result.QueryResult
 import org.neo4j.cypher.result.QueryResult.Record
 import org.neo4j.values.AnyValue

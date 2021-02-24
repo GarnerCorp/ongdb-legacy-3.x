@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -196,7 +196,7 @@ public class BigStoreIT implements RelationshipType
         }
         if ( SystemUtils.IS_OS_MAC_OSX )
         {
-            // This test cannot be run on macOS because macOS doesn't support sparse files
+            // This test cannot be run on Mac OS X because Mac OS X doesn't support sparse files
             return false;
         }
 

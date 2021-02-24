@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,10 +22,10 @@ package org.neo4j.cypher.internal.runtime.interpreted
 import java.net.URL
 
 import org.eclipse.collections.api.iterator.LongIterator
-import org.neo4j.cypher.internal.planner.v3_6.spi.{IndexDescriptor, KernelStatisticProvider}
+import org.neo4j.cypher.internal.planner.v3_5.spi.{IndexDescriptor, KernelStatisticProvider}
 import org.neo4j.cypher.internal.runtime._
-import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection
-import org.neo4j.cypher.internal.v3_6.logical.plans.{IndexOrder, QualifiedName}
+import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
+import org.neo4j.cypher.internal.v3_5.logical.plans.{IndexOrder, QualifiedName}
 import org.neo4j.graphdb.{Path, PropertyContainer}
 import org.neo4j.internal.kernel.api.helpers.RelationshipSelectionCursor
 import org.neo4j.internal.kernel.api.procs.ProcedureCallContext

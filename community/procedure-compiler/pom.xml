@@ -1,9 +1,8 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>org.graphfoundation.ongdb</groupId>
+        <groupId>org.neo4j</groupId>
         <artifactId>parent</artifactId>
-        <version>3.6.2-SNAPSHOT</version>
+        <version>3.5.12</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -14,17 +13,17 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>procedure-compiler-parent</artifactId>
-    <version>3.6.2-SNAPSHOT</version>
+    <version>3.5.12</version>
     <packaging>pom</packaging>
 
-    <name>ONgDB - Procedure Compiler Parent POM</name>
-    <description>ONgDB Stored Procedure compile-time annotation processor</description>
-    <url>https://ongdb.graphfoundation.org/${project.artifactId}/${project.version}</url>
+    <name>Neo4j - Procedure Compiler Parent POM</name>
+    <description>Neo4j Stored Procedure compile-time annotation processor</description>
+    <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
 
     <scm>
-        <connection>scm:git:git://github.com/graphfoundation/ongdb.git</connection>
-        <developerConnection>scm:git:git@github.com:graphfoundation/ongdb.git</developerConnection>
-        <url>https://github.com/graphfoundation/ongdb</url>
+        <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
+        <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
+        <url>https://github.com/neo4j/neo4j</url>
     </scm>
 
     <licenses>

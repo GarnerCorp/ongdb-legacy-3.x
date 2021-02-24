@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -38,7 +38,7 @@ public class StandardV3_4 extends BaseRecordFormats
 {
     public static final String STORE_VERSION = StoreVersion.STANDARD_V3_4.versionString();
     public static final RecordFormats RECORD_FORMATS = new StandardV3_4();
-    public static final String NAME = "standardV3_4_0";
+    public static final String NAME = "standard";
 
     public StandardV3_4()
     {

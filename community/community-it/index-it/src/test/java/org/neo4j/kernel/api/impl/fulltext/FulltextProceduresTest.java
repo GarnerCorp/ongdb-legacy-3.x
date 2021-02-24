@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -34,7 +34,6 @@ import org.junit.rules.Timeout;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -53,8 +52,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.neo4j.consistency.ConsistencyCheckService;
-import org.neo4j.consistency.ConsistencyCheckTool;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -393,27 +390,6 @@ public class FulltextProceduresTest
             assertQueryFindsIds( db, false, typedSwedishRelationships, "and", englishRels );
             assertQueryFindsIds( db, false, typedSwedishRelationships, "ett", noResults );
             assertQueryFindsIds( db, false, typedSwedishRelationships, "apa", swedishRels );
-        }
-    }
-
-    @Test
-    public void mustFailToCreateIndexWithUnknownAnalyzer()
-    {
-        db = createDatabase();
-        try ( Transaction ignore = db.beginTx() )
-        {
-            String label = array( LABEL.name() );
-            String props = array( PROP );
-            String analyzer = props + ", {analyzer: 'blablalyzer'}";
-            try
-            {
-                db.execute( format( NODE_CREATE, "my_index", label, analyzer ) ).close();
-                fail( "Expected query to fail." );
-            }
-            catch ( QueryExecutionException e )
-            {
-                assertThat( e.getMessage(), containsString( "blablalyzer" ) );
-            }
         }
     }
 
@@ -811,7 +787,7 @@ public class FulltextProceduresTest
     }
 
     @Test
-    public void fulltextIndexMustIgnoreNonStringNonNumberPropertiesForUpdate()
+    public void fulltextIndexMustIgnoreNonStringPropertiesForUpdate()
     {
         db = createDatabase();
 
@@ -825,7 +801,7 @@ public class FulltextProceduresTest
 
         awaitIndexesOnline();
 
-        List<Value> values = generateRandomNonStringNonNumberValues();
+        List<Value> values = generateRandomNonStringValues();
 
         try ( Transaction tx = db.beginTx() )
         {
@@ -867,11 +843,11 @@ public class FulltextProceduresTest
     }
 
     @Test
-    public void fulltextIndexMustIgnoreNonStringNonNumberPropertiesForPopulation()
+    public void fulltextIndexMustIgnoreNonStringPropertiesForPopulation()
     {
         db = createDatabase();
 
-        List<Value> values = generateRandomNonStringNonNumberValues();
+        List<Value> values = generateRandomNonStringValues();
 
         try ( Transaction tx = db.beginTx() )
         {
@@ -1224,7 +1200,7 @@ public class FulltextProceduresTest
         try ( Transaction tx = db.beginTx() )
         {
             try ( Result result = db.execute( format( QUERY_NODES, "nodes", "value" ) );
-                  Stream<Map<String,Object>> stream = result.stream() )
+                  Stream<Map<String,Object>> stream = result.stream(); )
             {
                 assertThat( stream.count(), is( nodeCount ) );
             }
@@ -1930,7 +1906,7 @@ public class FulltextProceduresTest
     }
 
     @Test
-    public void eventuallyConsistentIndexMustNotIncludeEntitiesAddedInTransaction()
+    public void eventuallyConsistenIndexMustNotIncludeEntitiesAddedInTransaction()
     {
         db = createDatabase();
         try ( Transaction tx = db.beginTx() )
@@ -2503,244 +2479,6 @@ public class FulltextProceduresTest
         }
     }
 
-    @Test
-    public void fulltextIndexMustWorkAfterRestartWithTxStateChanges()
-    {
-        // Create node and relationship fulltext indexes
-        db = createDatabase();
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.execute( format( NODE_CREATE, "nodes", array( LABEL.name() ), array( PROP ) ) ).close();
-            createSimpleRelationshipIndex();
-            tx.success();
-        }
-        awaitIndexesOnline();
-
-        // Restart
-        db.shutdown();
-        db = createDatabase();
-
-        // Query node
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.createNode(); // Tx state changed
-            db.execute( format( QUERY_NODES, "nodes", "*" ) ).close();
-            tx.success();
-        }
-
-        // Query relationship
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.createNode(); // Tx state changed
-            db.execute( format( QUERY_RELS, "rels", "*" ) ).close();
-            tx.success();
-        }
-    }
-
-    @Test
-    public void relationshipIndexAndDetachDelete() throws Exception
-    {
-        db = createDatabase();
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.execute( format( RELATIONSHIP_CREATE, "rels", array( REL.name() ), array( PROP ) ) ).close();
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.schema().awaitIndexesOnline( 1, TimeUnit.MINUTES );
-            tx.success();
-        }
-        long nodeId;
-        long relId;
-        try ( Transaction tx = db.beginTx() )
-        {
-            Node node = db.createNode();
-            nodeId = node.getId();
-            Relationship rel = node.createRelationshipTo( node, REL );
-            relId = rel.getId();
-            rel.setProperty( PROP, "blabla" );
-            tx.success();
-        }
-
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla", relId );
-            db.execute( "match (n) where id(n) = " + nodeId + " detach delete n" ).close();
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla" );
-            tx.success();
-        }
-
-        db.shutdown();
-        String[] args = new String[]{testDirectory.databaseDir().getAbsolutePath()};
-        ConsistencyCheckService.Result result = ConsistencyCheckTool.runConsistencyCheckTool( args, System.out, System.err );
-        System.out.flush();
-        System.err.flush();
-        if ( !result.isSuccessful() )
-        {
-            Files.lines( result.reportFile().toPath() ).forEach( System.out::println );
-        }
-        assertTrue( result.isSuccessful() );
-    }
-
-    @Test
-    public void relationshipIndexAndDetachDeleteWithRestart() throws Exception
-    {
-        db = createDatabase();
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.execute( format( RELATIONSHIP_CREATE, "rels", array( REL.name() ), array( PROP ) ) ).close();
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.schema().awaitIndexesOnline( 1, TimeUnit.MINUTES );
-            tx.success();
-        }
-        long nodeId;
-        long relId;
-        try ( Transaction tx = db.beginTx() )
-        {
-            Node node = db.createNode();
-            nodeId = node.getId();
-            Relationship rel = node.createRelationshipTo( node, REL );
-            relId = rel.getId();
-            rel.setProperty( PROP, "blabla" );
-            tx.success();
-        }
-
-        db.shutdown();
-        db = createDatabase();
-
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla", relId );
-            db.execute( "match (n) where id(n) = " + nodeId + " detach delete n" ).close();
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla" );
-            tx.success();
-        }
-
-        db.shutdown();
-        String[] args = new String[]{testDirectory.databaseDir().getAbsolutePath()};
-        ConsistencyCheckService.Result result = ConsistencyCheckTool.runConsistencyCheckTool( args, System.out, System.err );
-        System.out.flush();
-        System.err.flush();
-        if ( !result.isSuccessful() )
-        {
-            Files.lines( result.reportFile().toPath() ).forEach( System.out::println );
-        }
-        assertTrue( result.isSuccessful() );
-    }
-
-    @Test
-    public void relationshipIndexAndPropertyRemove() throws Exception
-    {
-        db = createDatabase();
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.execute( format( RELATIONSHIP_CREATE, "rels", array( REL.name() ), array( PROP ) ) ).close();
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.schema().awaitIndexesOnline( 1, TimeUnit.MINUTES );
-            tx.success();
-        }
-        long relId;
-        try ( Transaction tx = db.beginTx() )
-        {
-            Node node = db.createNode();
-            Relationship rel = node.createRelationshipTo( node, REL );
-            relId = rel.getId();
-            rel.setProperty( PROP, "blabla" );
-            tx.success();
-        }
-
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla", relId );
-            Relationship rel = db.getRelationshipById( relId );
-            rel.removeProperty( PROP );
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla" );
-            tx.success();
-        }
-
-        db.shutdown();
-        String[] args = new String[]{testDirectory.databaseDir().getAbsolutePath()};
-        ConsistencyCheckService.Result result = ConsistencyCheckTool.runConsistencyCheckTool( args, System.out, System.err );
-        System.out.flush();
-        System.err.flush();
-        if ( !result.isSuccessful() )
-        {
-            Files.lines( result.reportFile().toPath() ).forEach( System.out::println );
-        }
-        assertTrue( result.isSuccessful() );
-    }
-
-    @Test
-    public void relationshipIndexAndPropertyRemoveWithRestart() throws Exception
-    {
-        db = createDatabase();
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.execute( format( RELATIONSHIP_CREATE, "rels", array( REL.name() ), array( PROP ) ) ).close();
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            db.schema().awaitIndexesOnline( 1, TimeUnit.MINUTES );
-            tx.success();
-        }
-        long relId;
-        try ( Transaction tx = db.beginTx() )
-        {
-            Node node = db.createNode();
-            Relationship rel = node.createRelationshipTo( node, REL );
-            relId = rel.getId();
-            rel.setProperty( PROP, "blabla" );
-            tx.success();
-        }
-
-        db.shutdown();
-        db = createDatabase();
-
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla", relId );
-            Relationship rel = db.getRelationshipById( relId );
-            rel.removeProperty( PROP );
-            tx.success();
-        }
-        try ( Transaction tx = db.beginTx() )
-        {
-            assertQueryFindsIds( db, false, "rels", "blabla" );
-            tx.success();
-        }
-
-        db.shutdown();
-        String[] args = new String[]{testDirectory.databaseDir().getAbsolutePath()};
-        ConsistencyCheckService.Result result = ConsistencyCheckTool.runConsistencyCheckTool( args, System.out, System.err );
-        System.out.flush();
-        System.err.flush();
-        if ( !result.isSuccessful() )
-        {
-            Files.lines( result.reportFile().toPath() ).forEach( System.out::println );
-        }
-        assertTrue( result.isSuccessful() );
-    }
-
     private void assertNoIndexSeeks( Result result )
     {
         assertThat( result.stream().count(), is( 1L ) );
@@ -2859,12 +2597,6 @@ public class FulltextProceduresTest
     private List<Value> generateRandomNonStringValues()
     {
         Predicate<Value> nonString = v -> v.valueGroup() != ValueGroup.TEXT;
-        return generateRandomValues( nonString );
-    }
-
-    private List<Value> generateRandomNonStringNonNumberValues()
-    {
-        Predicate<Value> nonString = v -> v.valueGroup() != ValueGroup.TEXT && v.valueGroup() != ValueGroup.NUMBER;
         return generateRandomValues( nonString );
     }
 

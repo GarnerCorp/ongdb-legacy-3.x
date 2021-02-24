@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,7 +19,7 @@
  */
 package org.neo4j.server.rest.transactional.integration;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.codehaus.jackson.JsonNode;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -34,8 +34,10 @@ import java.time.ZonedDateTime;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
+import org.neo4j.kernel.impl.store.GeometryType;
 import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 import org.neo4j.server.rest.domain.JsonParseException;
 import org.neo4j.test.server.HTTP;
@@ -58,6 +60,8 @@ import static org.neo4j.server.rest.transactional.integration.TransactionMatcher
 import static org.neo4j.server.rest.transactional.integration.TransactionMatchers.rowContainsDeletedEntitiesInPath;
 import static org.neo4j.server.rest.transactional.integration.TransactionMatchers.rowContainsNoDeletedEntities;
 import static org.neo4j.test.server.HTTP.RawPayload.quotedJson;
+import static org.neo4j.values.storable.CoordinateReferenceSystem.WGS84;
+import static org.neo4j.values.storable.Values.pointValue;
 
 public class QueryResultsSerializationTest extends AbstractRestFunctionalTestBase
 {

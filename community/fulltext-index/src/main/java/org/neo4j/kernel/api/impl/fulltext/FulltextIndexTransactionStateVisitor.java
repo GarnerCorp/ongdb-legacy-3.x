@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -41,7 +41,6 @@ import org.neo4j.storageengine.api.txstate.TxStateVisitor;
 import org.neo4j.values.storable.Value;
 
 import static org.neo4j.kernel.api.impl.fulltext.LuceneFulltextDocumentStructure.documentRepresentingProperties;
-import static org.neo4j.kernel.api.impl.fulltext.LuceneFulltextDocumentStructure.documentRepresentingPropertiesWithSort;
 
 /**
  * A {@link TxStateVisitor} that adds all entities to a {@link TransactionStateLuceneIndexWriter}, that matches the index according to the
@@ -178,15 +177,7 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter
         {
             try
             {
-                if ( descriptor.sortPropertyNames() == null || descriptor.sortPropertyNames().isEmpty() )
-                {
-                    writer.addDocument( documentRepresentingProperties( id, descriptor.propertyNames(), propertyValues ) );
-                }
-                else
-                {
-                    writer.addDocument( documentRepresentingPropertiesWithSort( id, descriptor.propertyNames(), propertyValues, descriptor.sortPropertyNames(),
-                                                                                descriptor.sortTypes() ) );
-                }
+                writer.addDocument( documentRepresentingProperties( id, descriptor.propertyNames(), propertyValues ) );
             }
             catch ( IOException e )
             {

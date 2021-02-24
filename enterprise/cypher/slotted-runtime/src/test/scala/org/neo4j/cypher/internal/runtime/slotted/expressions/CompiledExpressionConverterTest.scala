@@ -1,13 +1,10 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB.
+ * This file is part of Neo4j.
  *
- * ONgDB is free software: you can redistribute it and/or modify
+ * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,15 +19,15 @@
  */
 package org.neo4j.cypher.internal.runtime.slotted.expressions
 
-import org.neo4j.cypher.internal.compatibility.v3_6.runtime.PhysicalPlanningAttributes.{ArgumentSizes, SlotConfigurations}
-import org.neo4j.cypher.internal.compatibility.v3_6.runtime.SlotAllocation.PhysicalPlan
-import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
+import org.neo4j.cypher.internal.compatibility.v3_5.runtime.PhysicalPlanningAttributes.{ArgumentSizes, SlotConfigurations}
+import org.neo4j.cypher.internal.compatibility.v3_5.runtime.SlotAllocation.PhysicalPlan
+import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.ExpressionConverters
 import org.neo4j.logging.BufferingLog
-import org.neo4j.cypher.internal.v3_6.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.v3_6.expressions.{Add, StringLiteral}
-import org.neo4j.cypher.internal.v3_6.util.attribution.Id
-import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_5.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.v3_5.expressions.{Add, StringLiteral}
+import org.neo4j.cypher.internal.v3_5.util.attribution.Id
+import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
 
 class CompiledExpressionConverterTest extends CypherFunSuite with AstConstructionTestSupport {
 

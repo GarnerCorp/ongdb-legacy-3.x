@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -289,31 +288,23 @@ public class NodeRelationshipCacheTest
     public void shouldVisitChangedNodes()
     {
         // GIVEN
-        int nodes = 100;
+        int nodes = 10;
         int typeId = 10;
-        int chunkSize = 10;
-        List<Long> changedNodes = new ArrayList<>();
-        cache = new NodeRelationshipCache( NumberArrayFactory.HEAP, 2, chunkSize, base );
+        cache = new NodeRelationshipCache( NumberArrayFactory.HEAP, 2, 100, base );
         cache.setNodeCount( nodes );
         for ( long nodeId = 0; nodeId < nodes; nodeId++ )
         {
-            if ( nodeId >= chunkSize && nodeId < 2 * chunkSize )
-            {
-                // One chunk without any changes
-                continue;
-            }
             cache.incrementCount( nodeId );
             if ( random.nextBoolean() )
             {
                 cache.incrementCount( nodeId );
             }
-            changedNodes.add( nodeId );
         }
         MutableLongSet keySparseChanged = new LongHashSet();
         MutableLongSet keyDenseChanged = new LongHashSet();
         for ( int i = 0; i < nodes / 2; i++ )
         {
-            long nodeId = random.among( changedNodes );
+            long nodeId = random.nextLong( nodes );
             cache.getAndPutRelationship( nodeId, typeId, Direction.OUTGOING, random.nextLong( 1_000_000 ), false );
             boolean dense = cache.isDense( nodeId );
             (dense ? keyDenseChanged : keySparseChanged).add( nodeId );

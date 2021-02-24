@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -35,8 +35,8 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-import org.neo4j.cypher.internal.v3_6.util.CypherTypeException;
-import org.neo4j.cypher.internal.v3_6.util.IncomparableValuesException;
+import org.neo4j.cypher.internal.v3_5.util.CypherTypeException;
+import org.neo4j.cypher.internal.v3_5.util.IncomparableValuesException;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
@@ -137,8 +137,8 @@ public abstract class CompiledConversionUtils
         }
         else if ( value instanceof IntStream )
         {
-            //IntStream is used only for storing booleans
-            return ((IntStream) value).mapToObj( i -> i == 0 ? Boolean.FALSE : Boolean.TRUE ).collect( Collectors.toSet() );
+            IntStream stream = (IntStream) value;
+            return stream.boxed().collect( Collectors.toSet() );
         }
         else if ( value instanceof DoubleStream )
         {

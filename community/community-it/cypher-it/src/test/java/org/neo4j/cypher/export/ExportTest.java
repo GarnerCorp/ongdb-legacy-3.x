@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -242,14 +242,6 @@ public class ExportTest
     @Test
     public void testExportIndex()
     {
-        gdb.schema().indexFor( Label.label( "Foo" ) ).on( "bar" ).create();
-        assertEquals( "create index on :`Foo`(`bar`);" + lineSeparator() , doExportGraph( gdb ) );
-    }
-
-    @Test
-    public void testExportFullTextIndex()
-    {
-        gdb.execute( "CALL db.index.fulltext.createRelationshipIndex('MyCoolRelFulltextIndex', ['REL'], ['rel_value'])").close();
         gdb.schema().indexFor( Label.label( "Foo" ) ).on( "bar" ).create();
         assertEquals( "create index on :`Foo`(`bar`);" + lineSeparator() , doExportGraph( gdb ) );
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -94,7 +94,7 @@ public class LabelsAcceptanceTest
         MY_OTHER_LABEL
     }
 
-    /** https://github.com/graphfoundation/ongdb/issues/1279 */
+    /** https://github.com/neo4j/neo4j/issues/1279 */
     @Test
     public void shouldInsertLabelsWithoutDuplicatingThem()
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -46,7 +46,6 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.event.TransactionEventHandler;
-import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.LoginContext;
@@ -62,13 +61,10 @@ import org.neo4j.test.rule.RandomRule;
 import org.neo4j.util.concurrent.BinaryLatch;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.helpers.collection.MapUtil.genericMap;
@@ -305,18 +301,6 @@ public class TransactionEventsIT
         {
             assertEquals( 0, handler.get() );
         }
-    }
-
-    @Test
-    public void exceptionMessageShouldGetPassedThrough()
-    {
-        final String message = "some message from a transaction event handler";
-        db.registerTransactionEventHandler( getBeforeCommitHandler( transactionData ->
-        {
-            throw new RuntimeException( message );
-        } ) );
-        expectedException.expectCause( both( hasMessage( equalTo( message ) ) ).and( instanceOf( TransactionFailureException.class ) ) );
-        runTransaction();
     }
 
     private TransactionEventHandler.Adapter<Object> getBeforeCommitHandler( Consumer<TransactionData> dataConsumer )

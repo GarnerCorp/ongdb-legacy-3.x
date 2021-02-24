@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.{DurationValue, NumberValue, Values}
-import org.neo4j.cypher.internal.v3_6.util.CypherTypeException
+import org.neo4j.cypher.internal.v3_5.util.CypherTypeException
 
 trait NumericOrDurationAggregationExpression {
   trait AggregatingType

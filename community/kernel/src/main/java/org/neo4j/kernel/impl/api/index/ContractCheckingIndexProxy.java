@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -35,7 +35,7 @@ import org.neo4j.kernel.impl.api.index.updater.DelegatingIndexUpdater;
  *
  * @see org.neo4j.kernel.impl.api.index.IndexProxy
  */
-class ContractCheckingIndexProxy extends DelegatingIndexProxy
+public class ContractCheckingIndexProxy extends DelegatingIndexProxy
 {
     /**
      * State machine for {@link IndexProxy proxies}
@@ -63,10 +63,10 @@ class ContractCheckingIndexProxy extends DelegatingIndexProxy
     private final AtomicReference<State> state;
     private final AtomicInteger openCalls;
 
-    ContractCheckingIndexProxy( IndexProxy delegate )
+    public ContractCheckingIndexProxy( IndexProxy delegate, boolean started )
     {
         super( delegate );
-        this.state = new AtomicReference<>( State.INIT );
+        this.state = new AtomicReference<>( started ? State.STARTED : State.INIT );
         this.openCalls = new AtomicInteger( 0 );
     }
 
@@ -121,16 +121,14 @@ class ContractCheckingIndexProxy extends DelegatingIndexProxy
     @Override
     public void force( IOLimiter ioLimiter ) throws IOException
     {
-        if ( tryOpenCall( "force" ) )
+        openCall( "force" );
+        try
         {
-            try
-            {
-                super.force( ioLimiter );
-            }
-            finally
-            {
-                closeCall();
-            }
+            super.force( ioLimiter );
+        }
+        finally
+        {
+            closeCall();
         }
     }
 
@@ -207,22 +205,6 @@ class ContractCheckingIndexProxy extends DelegatingIndexProxy
         {
             throw new IllegalStateException( "Cannot call " + name + "() when index state is " + state.get() );
         }
-    }
-
-    private boolean tryOpenCall( String name )
-    {
-        // do not open call unless we are in STARTED
-        if ( State.STARTED == state.get() )
-        {
-            // increment openCalls for closers to see
-            openCalls.incrementAndGet();
-            if ( State.STARTED == state.get() )
-            {
-                return true;
-            }
-            openCalls.decrementAndGet();
-        }
-        return false;
     }
 
     private void closeCall()

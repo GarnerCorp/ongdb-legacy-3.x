@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,10 +19,7 @@
  */
 package org.neo4j.kernel.impl.store.record;
 
-import org.apache.commons.lang3.exception.CloneFailedException;
-
 import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -232,27 +229,19 @@ public class PropertyBlock implements Cloneable
     @Override
     public PropertyBlock clone()
     {
-        try
+        PropertyBlock result = new PropertyBlock();
+        if ( valueBlocks != null )
         {
-            PropertyBlock clone = (PropertyBlock) super.clone();
-            if ( valueBlocks != null )
-            {
-                clone.valueBlocks = valueBlocks.clone();
-            }
-            if ( valueRecords != null )
-            {
-                clone.valueRecords = new ArrayList<>( valueRecords.size() );
-                for ( DynamicRecord valueRecord : valueRecords )
-                {
-                    clone.valueRecords.add( valueRecord.clone() );
-                }
-            }
-            return clone;
+            result.valueBlocks = valueBlocks.clone();
         }
-        catch ( CloneNotSupportedException e )
+        if ( valueRecords != null )
         {
-            throw new CloneFailedException( e );
+            for ( DynamicRecord valueRecord : valueRecords )
+            {
+                result.addValueRecord( valueRecord.clone() );
+            }
         }
+        return result;
     }
 
     public boolean hasSameContentsAs( PropertyBlock other )

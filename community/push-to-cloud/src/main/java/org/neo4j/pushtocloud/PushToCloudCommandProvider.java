@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,8 +52,8 @@ public class PushToCloudCommandProvider extends AdminCommand.Provider
     @Override
     public String description()
     {
-        return "Push your local database to a Neo4j Aura instance. The database must be shutdown in order to take a dump to upload. " +
-                "The target location is your Neo4j Aura Bolt URI. You will be asked your Neo4j Cloud username and password during " +
+        return "Push your local database to a Neo4j cloud instance. The database must be shutdown in order to take a dump to upload. " +
+                "The target location is your Neo4j Cloud Bolt URI. You will be asked your Neo4j Cloud username and password during " +
                 "the push-to-cloud operation.";
     }
 

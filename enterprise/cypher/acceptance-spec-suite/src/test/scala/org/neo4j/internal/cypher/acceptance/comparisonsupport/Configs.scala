@@ -1,21 +1,24 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB Enterprise Edition. The included source
+ * This file is part of Neo4j Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause,as found
- * in the associated LICENSE.txt file.
+ * Commons Clause, as found in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
+ *
+ * Neo4j object code can be licensed independently from the source
+ * under separate terms from the AGPL. Inquiries can be directed to:
+ * licensing@neo4j.com
+ *
+ * More information is also available at:
+ * https://neo4j.com/licensing/
  */
 package org.neo4j.internal.cypher.acceptance.comparisonsupport
 
@@ -29,19 +32,19 @@ import org.neo4j.internal.cypher.acceptance.comparisonsupport.Runtimes.SlottedWi
 import org.neo4j.internal.cypher.acceptance.comparisonsupport.Versions.V2_3
 import org.neo4j.internal.cypher.acceptance.comparisonsupport.Versions.V3_1
 import org.neo4j.internal.cypher.acceptance.comparisonsupport.Versions.V3_4
-import org.neo4j.internal.cypher.acceptance.comparisonsupport.Versions.V3_6
+import org.neo4j.internal.cypher.acceptance.comparisonsupport.Versions.V3_5
 
 object Configs {
 
   // Configurations with runtimes
-  def Compiled: TestConfiguration = TestConfiguration(V3_4 -> V3_6, Planners.all, Runtimes(CompiledSource, CompiledBytecode))
+  def Compiled: TestConfiguration = TestConfiguration(V3_4 -> V3_5, Planners.all, Runtimes(CompiledSource, CompiledBytecode))
 
-  def Morsel: TestConfiguration = TestConfiguration(V3_4 -> V3_6, Planners.all, Runtimes(Runtimes.Morsel))
+  def Morsel: TestConfiguration = TestConfiguration(V3_4 -> V3_5, Planners.all, Runtimes(Runtimes.Morsel))
 
   def InterpretedRuntime: TestConfiguration =
     TestConfiguration(Versions.all, Planners.all, Runtimes(Interpreted))
 
-  def SlottedRuntime: TestConfiguration = TestConfiguration(V3_4 -> V3_6, Planners.all, Runtimes(Slotted, SlottedWithCompiledExpressions))
+  def SlottedRuntime: TestConfiguration = TestConfiguration(V3_4 -> V3_5, Planners.all, Runtimes(Slotted, SlottedWithCompiledExpressions))
 
   def InterpretedAndSlotted: TestConfiguration = InterpretedRuntime + SlottedRuntime
 
@@ -68,7 +71,7 @@ object Configs {
 
   def Version3_4: TestConfiguration = TestConfiguration(V3_4, Planners.all, Runtimes.all)
 
-  def Version3_5: TestConfiguration = TestConfiguration(V3_6, Planners.all, Runtimes.all)
+  def Version3_5: TestConfiguration = TestConfiguration(V3_5, Planners.all, Runtimes.all)
 
   /**
     * Configs which support CREATE, DELETE, SET, REMOVE, MERGE etc.
@@ -83,7 +86,7 @@ object Configs {
   def All: TestConfiguration =
     TestConfiguration(Versions.all, Planners.all, Runtimes.all) -
       // No rule planner after 3.1
-      TestConfiguration(V3_4 -> V3_6, Rule, Runtimes.all) -
+      TestConfiguration(V3_4 -> V3_5, Rule, Runtimes.all) -
       // No slotted runtime before 3.4
       TestConfiguration(V2_3 -> V3_1, Planners.all, Runtimes(Slotted, SlottedWithCompiledExpressions)) -
       // No slotted runtime with compiled expressions before 3.5

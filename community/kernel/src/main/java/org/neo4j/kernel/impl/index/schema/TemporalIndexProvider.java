@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -27,7 +27,6 @@ import org.neo4j.internal.kernel.api.IndexCapability;
 import org.neo4j.internal.kernel.api.IndexOrder;
 import org.neo4j.internal.kernel.api.IndexValueCapability;
 import org.neo4j.internal.kernel.api.InternalIndexState;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -65,23 +64,21 @@ public class TemporalIndexProvider extends IndexProvider
     }
 
     @Override
-    public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory,
-            TokenNameLookup tokenNameLookup )
+    public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory )
     {
         if ( readOnly )
         {
             throw new UnsupportedOperationException( "Can't create populator for read only index" );
         }
         TemporalIndexFiles files = new TemporalIndexFiles( directoryStructure(), descriptor, fs );
-        return new TemporalIndexPopulator( descriptor, samplingConfig, files, pageCache, fs, monitor, tokenNameLookup );
+        return new TemporalIndexPopulator( descriptor, samplingConfig, files, pageCache, fs, monitor );
     }
 
     @Override
-    public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig,
-            TokenNameLookup tokenNameLookup ) throws IOException
+    public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig ) throws IOException
     {
         TemporalIndexFiles files = new TemporalIndexFiles( directoryStructure(), descriptor, fs );
-        return new TemporalIndexAccessor( descriptor, samplingConfig, pageCache, fs, recoveryCleanupWorkCollector, monitor, files, readOnly, tokenNameLookup );
+        return new TemporalIndexAccessor( descriptor, samplingConfig, pageCache, fs, recoveryCleanupWorkCollector, monitor, files, readOnly );
     }
 
     @Override

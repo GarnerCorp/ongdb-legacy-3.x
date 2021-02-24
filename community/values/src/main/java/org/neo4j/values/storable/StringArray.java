@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -26,8 +26,6 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.ValueMapper;
 
 import static java.lang.String.format;
-import static org.neo4j.values.storable.NoValue.NO_VALUE;
-import static org.neo4j.values.utils.ValueMath.HASH_CONSTANT;
 
 public class StringArray extends TextArray
 {
@@ -72,12 +70,7 @@ public class StringArray extends TextArray
     @Override
     public int computeHash()
     {
-        int result = 1;
-        for ( String element : value )
-        {
-            result = HASH_CONSTANT * result + (element == null ? NO_VALUE.hashCode() : Values.stringValue( element ).hashCode());
-        }
-        return result;
+        return Arrays.hashCode( value );
     }
 
     @Override

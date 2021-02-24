@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -30,7 +30,6 @@ import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.checking.AccessCheckingPageCache;
 import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
@@ -179,27 +178,15 @@ public class PageCacheRule extends ExternalResource
         return getPageCache( fs, config() );
     }
 
-    public PageCache getPageCache( FileSystemAbstraction fs, PageCacheConfig overriddenConfig )
-    {
-        SingleFilePageSwapperFactory factory = new SingleFilePageSwapperFactory();
-        factory.open( fs, Configuration.EMPTY );
-        return getPageCache( factory, overriddenConfig );
-    }
-
-    public PageCache getPageCache( PageSwapperFactory swapperFactory )
-    {
-        return getPageCache( swapperFactory, config() );
-    }
-
     /**
      * Opens a new {@link PageCache} with the provided file system and config.
      *
-     * @param factory {@link PageSwapperFactory} to use for the {@link PageCache}.
+     * @param fs {@link FileSystemAbstraction} to use for the {@link PageCache}.
      * @param overriddenConfig specific {@link PageCacheConfig} overriding config provided in {@link PageCacheRule}
      * constructor, if any.
      * @return the opened {@link PageCache}.
      */
-    public PageCache getPageCache( PageSwapperFactory factory, PageCacheConfig overriddenConfig )
+    public PageCache getPageCache( FileSystemAbstraction fs, PageCacheConfig overriddenConfig )
     {
         closeExistingPageCache();
         Integer pageSize = selectConfig( baseConfig.pageSize, overriddenConfig.pageSize, null );
@@ -209,6 +196,8 @@ public class PageCacheRule extends ExternalResource
                 overriddenConfig.pageCursorTracerSupplier,
                 PageCursorTracerSupplier.NULL );
 
+        SingleFilePageSwapperFactory factory = new SingleFilePageSwapperFactory();
+        factory.open( fs, Configuration.EMPTY );
         VersionContextSupplier contextSupplier = EmptyVersionContextSupplier.EMPTY;
         MemoryAllocator mman = MemoryAllocator.createAllocator( selectConfig( baseConfig.memory, overriddenConfig.memory, "8 MiB" ),
                 new LocalMemoryTracker() );

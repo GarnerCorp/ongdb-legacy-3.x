@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -173,36 +173,6 @@ class MemoryAllocatorTest
 
         allocator.close();
         assertEquals( 0, memoryTracker.usedDirectMemory() );
-    }
-
-    @Test
-    void allAllocatedMemoryMustBeAccessibleForAllAlignments() throws Exception
-    {
-        // This test relies on the native access bounds checks that are enabled in Unsafeutil during tests.
-        int k512 = (int) ByteUnit.kibiBytes( 512 );
-        int maxAlign = PageCache.PAGE_SIZE >> 2;
-        for ( int align = 1; align <= maxAlign; align += Long.BYTES )
-        {
-            for ( int alloc = PageCache.PAGE_SIZE; alloc <= k512; alloc += PageCache.PAGE_SIZE )
-            {
-                createAllocator( "2 MiB" );
-                long addr = allocator.allocateAligned( alloc, align );
-                int i = 0;
-                try
-                {
-                    // This must not throw any bad access exceptions.
-                    UnsafeUtil.getLong( addr + i ); // Start of allocation.
-                    i = alloc - Long.BYTES;
-                    UnsafeUtil.getLong( addr + i ); // End of allocation.
-                }
-                catch ( Throwable e )
-                {
-                    throw new Exception( String.format(
-                            "Access failed at offset %s (%x) into allocated address %s (%x) of size %s (align %s).",
-                            i, i, addr, addr, alloc, align ), e );
-                }
-            }
-        }
     }
 
     private void closeAllocator()

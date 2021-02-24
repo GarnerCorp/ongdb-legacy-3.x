@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.javacompat;
 import org.neo4j.cypher.internal.CommunityCompilerFactory;
 import org.neo4j.cypher.internal.CypherConfiguration;
 import org.neo4j.cypher.internal.compatibility.CypherRuntimeConfiguration;
-import org.neo4j.cypher.internal.compiler.v3_6.CypherPlannerConfiguration;
+import org.neo4j.cypher.internal.compiler.v3_5.CypherPlannerConfiguration;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.helpers.Service;

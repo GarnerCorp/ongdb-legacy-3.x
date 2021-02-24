@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,7 +24,7 @@ import org.mockito.Mockito.{times, verify, verifyNoMoreInteractions, when}
 import org.neo4j.cypher.internal.QueryCache.ParameterTypeMap
 import org.neo4j.helpers.collection.Pair
 import org.neo4j.kernel.impl.query.TransactionalContext
-import org.neo4j.cypher.internal.v3_6.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.v3_5.util.test_helpers.CypherFunSuite
 import org.scalatest.mock.MockitoSugar
 
 class QueryCacheTest extends CypherFunSuite {

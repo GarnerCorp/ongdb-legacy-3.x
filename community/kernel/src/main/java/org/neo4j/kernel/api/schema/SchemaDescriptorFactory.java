@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -57,30 +57,6 @@ public class SchemaDescriptorFactory
             throw new IllegalArgumentException( "Cannot create schemadescriptor of type :" + entityType );
         }
         return new MultiTokenSchemaDescriptor( entityTokens, entityType, propertyIds );
-    }
-
-    public static MultiTokenSchemaDescriptor multiToken( int[] entityTokens, EntityType entityType, int[] propertyIds, int[] sortIds, int[] sortTypes )
-    {
-       return multiTokenSort( entityTokens, entityType, propertyIds, sortIds, sortTypes );
-    }
-
-    public static MultiTokenSchemaDescriptor multiTokenSort( int[] entityTokens, EntityType entityType, int[] propertyIds, int[] sortIds,
-                                                             int[] sortTypes )
-    {
-        validatePropertyIds( propertyIds );
-        validatePropertyIds( sortIds );
-        switch ( entityType )
-        {
-        case NODE:
-            validateLabelIds( entityTokens );
-            break;
-        case RELATIONSHIP:
-            validateRelationshipTypeIds( entityTokens );
-            break;
-        default:
-            throw new IllegalArgumentException( "Cannot create schemadescriptor of type :" + entityType );
-        }
-        return new MultiTokenSchemaDescriptor( entityTokens, entityType, propertyIds, sortIds, sortTypes );
     }
 
     private static void validatePropertyIds( int[] propertyIds )

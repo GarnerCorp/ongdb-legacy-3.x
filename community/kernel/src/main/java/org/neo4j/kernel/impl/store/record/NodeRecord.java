@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -153,7 +153,7 @@ public class NodeRecord extends PrimitiveRecord
                ",prop=" + getNextProp() +
                ",labels=" + parseLabelsField( this ) +
                "," + lightHeavyInfo +
-               secondaryUnitToString() + "]";
+               ",secondaryUnitId=" + getSecondaryUnitId() + "]";
     }
 
     @Override
@@ -165,8 +165,10 @@ public class NodeRecord extends PrimitiveRecord
     @Override
     public NodeRecord clone()
     {
-        NodeRecord clone = (NodeRecord) super.clone();
-        if ( !dynamicLabelRecords.isEmpty() )
+        NodeRecord clone = new NodeRecord( getId() ).initialize( inUse(), nextProp, dense, nextRel, labels );
+        clone.isLight = isLight;
+
+        if ( dynamicLabelRecords.size() > 0 )
         {
             List<DynamicRecord> clonedLabelRecords = new ArrayList<>( dynamicLabelRecords.size() );
             for ( DynamicRecord labelRecord : dynamicLabelRecords )
@@ -175,10 +177,7 @@ public class NodeRecord extends PrimitiveRecord
             }
             clone.dynamicLabelRecords = clonedLabelRecords;
         }
-        else
-        {
-            clone.dynamicLabelRecords = emptyList();
-        }
+        clone.setSecondaryUnitId( getSecondaryUnitId() );
         return clone;
     }
 }

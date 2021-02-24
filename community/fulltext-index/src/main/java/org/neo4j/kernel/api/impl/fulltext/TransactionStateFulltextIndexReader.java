@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -49,31 +49,6 @@ class TransactionStateFulltextIndexReader extends FulltextIndexReader
         iterator = iterator.filter( entry -> !modifiedEntityIdsInThisTransaction.contains( entry.entityId() ) );
         iterator = mergeIterators( asList( iterator, nearRealTimeReader.query( query ) ) );
         return iterator;
-    }
-
-    @Override
-    public ScoreEntityIterator query( String query, FulltextQueryConfig queryConfig ) throws ParseException
-    {
-        ScoreEntityIterator iterator = baseReader.query( query, queryConfig );
-        iterator = iterator.filter( entry -> !modifiedEntityIdsInThisTransaction.contains( entry.entityId() ) );
-        iterator = mergeIterators( asList( iterator, nearRealTimeReader.query( query, queryConfig ) ) );
-        return iterator;
-    }
-
-    /**
-     * Used to determine the count when the queried documents have been changed within the transaction.
-     *
-     * Currently relies on actually querying (searching) Lucene, retrieving a ScoreEntityIterator, and then counting the results.
-     * Although this solution does work, could this be improved? Avoid querying for documents and traversing an iterator?
-     *
-     * Seems like there is no good way to determine the updated count of documents without searching the changed documents.
-     * Is it not possible determine updated count from the baseRead and nearRealTimeReader counts alone? Necessary to search Lucene?
-     */
-    @Override
-    public CountResult queryForCount( String query ) throws ParseException
-    {
-        long count = query( query ).stream().count();
-        return new CountResult( count );
     }
 
     @Override

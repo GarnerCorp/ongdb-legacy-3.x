@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -2241,7 +2241,7 @@ abstract class SeekCursorTestBase<KEY, VALUE>
 
     private void insert( long key, long value, PageCursor cursor ) throws IOException
     {
-        treeLogic.insert( cursor, structurePropagation, key( key ), value( value ), overwrite(), true, stableGeneration,
+        treeLogic.insert( cursor, structurePropagation, key( key ), value( value ), overwrite(), stableGeneration,
                 unstableGeneration );
         handleAfterChange();
     }

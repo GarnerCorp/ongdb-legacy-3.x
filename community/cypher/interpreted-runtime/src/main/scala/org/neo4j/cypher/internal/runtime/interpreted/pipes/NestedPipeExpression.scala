@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,11 +19,11 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
-import org.neo4j.cypher.internal.v3_6.util.InputPosition
-import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticCheck
-import org.neo4j.cypher.internal.v3_6.expressions.Expression
-import org.neo4j.cypher.internal.v3_6.expressions.Expression.SemanticContext
-import org.neo4j.cypher.internal.v3_6.ast.semantics.SemanticCheckResult
+import org.neo4j.cypher.internal.v3_5.util.InputPosition
+import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticCheck
+import org.neo4j.cypher.internal.v3_5.expressions.Expression
+import org.neo4j.cypher.internal.v3_5.expressions.Expression.SemanticContext
+import org.neo4j.cypher.internal.v3_5.ast.semantics.SemanticCheckResult
 
 case class NestedPipeExpression(pipe: Pipe, projection: Expression)(val position: InputPosition) extends Expression {
   def semanticCheck(ctx: SemanticContext): SemanticCheck = SemanticCheckResult.success

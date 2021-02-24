@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -23,7 +23,6 @@ import java.io.File;
 import java.nio.file.OpenOption;
 import java.util.Arrays;
 
-import org.neo4j.helpers.Exceptions;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
@@ -35,7 +34,6 @@ import org.neo4j.kernel.impl.store.record.RecordLoad;
 import org.neo4j.kernel.impl.util.Bits;
 import org.neo4j.logging.LogProvider;
 
-import static java.lang.String.format;
 import static org.neo4j.kernel.impl.store.NoStoreHeaderFormat.NO_STORE_HEADER_FORMAT;
 
 /**
@@ -100,15 +98,7 @@ public class NodeStore extends CommonAbstractStore<NodeRecord,NoStoreHeader>
         }
 
         // Load any dynamic labels and populate the node record
-        try
-        {
-            node.setLabelField( node.getLabelField(), dynamicLabelStore.getRecords( firstDynamicLabelRecord, RecordLoad.NORMAL ) );
-        }
-        catch ( InvalidRecordException e )
-        {
-            Exceptions.setMessage( e, format( "Error loading dynamic label records for %s | %s", node, e.getMessage() ) );
-            throw e;
-        }
+        node.setLabelField( node.getLabelField(), dynamicLabelStore.getRecords( firstDynamicLabelRecord, RecordLoad.NORMAL ) );
     }
 
     @Override

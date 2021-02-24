@@ -1,21 +1,24 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB Enterprise Edition. The included source
+ * This file is part of Neo4j Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause, as found
- * in the associated LICENSE.txt file.
+ * Commons Clause, as found in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
+ *
+ * Neo4j object code can be licensed independently from the source
+ * under separate terms from the AGPL. Inquiries can be directed to:
+ * licensing@neo4j.com
+ *
+ * More information is also available at:
+ * https://neo4j.com/licensing/
  */
 package org.neo4j.kernel.api;
 
@@ -48,7 +51,6 @@ import org.neo4j.graphdb.schema.Schema.IndexState;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.IndexCapability;
 import org.neo4j.internal.kernel.api.InternalIndexState;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.internal.kernel.api.schema.IndexProviderDescriptor;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -60,6 +62,8 @@ import org.neo4j.kernel.api.index.IndexEntryUpdate;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
+import org.neo4j.kernel.impl.index.schema.ByteBufferFactory;
+import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.extension.ExtensionType;
 import org.neo4j.kernel.extension.KernelExtensionFactory;
@@ -70,12 +74,10 @@ import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
 import org.neo4j.kernel.impl.factory.OperationalMode;
 import org.neo4j.kernel.impl.ha.ClusterManager;
 import org.neo4j.kernel.impl.ha.ClusterManager.ManagedCluster;
-import org.neo4j.kernel.impl.index.schema.ByteBufferFactory;
 import org.neo4j.kernel.impl.index.schema.fusion.FusionIndexProvider;
 import org.neo4j.kernel.impl.spi.KernelContext;
 import org.neo4j.kernel.impl.storemigration.StoreMigrationParticipant;
 import org.neo4j.kernel.lifecycle.Lifecycle;
-import org.neo4j.storageengine.api.NodePropertyAccessor;
 import org.neo4j.storageengine.api.schema.IndexSample;
 import org.neo4j.storageengine.api.schema.StoreIndexDescriptor;
 import org.neo4j.test.DoubleLatch;
@@ -150,8 +152,8 @@ public class SchemaIndexHaIT
         // GIVEN a cluster of 3
         ControlledGraphDatabaseFactory dbFactory = new ControlledGraphDatabaseFactory();
         ManagedCluster cluster = clusterRule.withDbFactory( dbFactory )
-                                            .withSharedSetting( GraphDatabaseSettings.default_schema_provider, CONTROLLED_PROVIDER_DESCRIPTOR.name() )
-                                            .startCluster();
+                .withSharedSetting( GraphDatabaseSettings.default_schema_provider, CONTROLLED_PROVIDER_DESCRIPTOR.name() )
+                .startCluster();
         HighlyAvailableGraphDatabase firstMaster = cluster.getMaster();
 
         // where the master gets some data created as well as an index
@@ -204,9 +206,8 @@ public class SchemaIndexHaIT
         ControlledGraphDatabaseFactory dbFactory = new ControlledGraphDatabaseFactory( IS_MASTER );
 
         ManagedCluster cluster = clusterRule.withDbFactory( dbFactory )
-                                            .withSharedSetting( GraphDatabaseSettings.default_schema_provider,
-                                                                NativeLuceneFusionIndexProviderFactory20.DESCRIPTOR.name() )
-                                            .startCluster();
+                .withSharedSetting( GraphDatabaseSettings.default_schema_provider, NativeLuceneFusionIndexProviderFactory20.DESCRIPTOR.name() )
+                .startCluster();
 
         try
         {
@@ -269,8 +270,8 @@ public class SchemaIndexHaIT
         ControlledGraphDatabaseFactory dbFactory = new ControlledGraphDatabaseFactory();
 
         ManagedCluster cluster = clusterRule.withDbFactory( dbFactory )
-                                            .withSharedSetting( GraphDatabaseSettings.default_schema_provider, CONTROLLED_PROVIDER_DESCRIPTOR.name() )
-                                            .startCluster();
+                .withSharedSetting( GraphDatabaseSettings.default_schema_provider, CONTROLLED_PROVIDER_DESCRIPTOR.name() )
+                .startCluster();
         cluster.await( allSeesAllAsAvailable(), 120 );
 
         HighlyAvailableGraphDatabase slave = cluster.getAnySlave();
@@ -312,7 +313,7 @@ public class SchemaIndexHaIT
     }
 
     private void proceedAsNormalWithIndexPopulationOnAllSlavesExcept( ControlledGraphDatabaseFactory dbFactory, ManagedCluster cluster,
-                                                                      HighlyAvailableGraphDatabase slaveToIgnore )
+            HighlyAvailableGraphDatabase slaveToIgnore )
     {
         for ( HighlyAvailableGraphDatabase db : cluster.getAllMembers() )
         {
@@ -407,7 +408,7 @@ public class SchemaIndexHaIT
         for ( Map.Entry<Object,Node> entry : expectedData.entrySet() )
         {
             assertEquals( asSet( entry.getValue() ),
-                          asUniqueSet( db.findNodes( single( index.getLabels() ), single( index.getPropertyKeys() ), entry.getKey() ) ) );
+                    asUniqueSet( db.findNodes( single( index.getLabels() ), single( index.getPropertyKeys() ), entry.getKey() ) ) );
         }
     }
 
@@ -504,18 +505,16 @@ public class SchemaIndexHaIT
         }
 
         @Override
-        public IndexPopulator getPopulator( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory,
-                                            TokenNameLookup tokenNameLookup )
-        {
-            IndexPopulator populator = delegate.getPopulator( descriptor, samplingConfig, bufferFactory, tokenNameLookup );
+        public IndexPopulator getPopulator(StoreIndexDescriptor descriptor,
+            IndexSamplingConfig samplingConfig, ByteBufferFactory bufferFactory) {
+            IndexPopulator populator = delegate.getPopulator( descriptor, samplingConfig, bufferFactory );
             return new ControlledIndexPopulator( populator, latch );
         }
 
         @Override
-        public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig, TokenNameLookup tokenNameLookup )
-                throws IOException
+        public IndexAccessor getOnlineAccessor( StoreIndexDescriptor descriptor, IndexSamplingConfig samplingConfig ) throws IOException
         {
-            return delegate.getOnlineAccessor( descriptor, samplingConfig, tokenNameLookup );
+            return delegate.getOnlineAccessor( descriptor, samplingConfig );
         }
 
         @Override
@@ -546,11 +545,8 @@ public class SchemaIndexHaIT
     interface IndexProviderDependencies
     {
         GraphDatabaseService db();
-
         Config config();
-
         PageCache pageCache();
-
         RecoveryCleanupWorkCollector recoveryCleanupWorkCollector();
     }
 
@@ -578,7 +574,7 @@ public class SchemaIndexHaIT
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector = deps.recoveryCleanupWorkCollector();
 
             FusionIndexProvider fusionIndexProvider = NativeLuceneFusionIndexProviderFactory20.create( pageCache, databaseDirectory, fs, monitor,
-                                                                                                       config, operationalMode, recoveryCleanupWorkCollector );
+                    config, operationalMode, recoveryCleanupWorkCollector );
 
             if ( injectLatchPredicate.test( deps.db() ) )
             {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,10 +22,10 @@ package org.neo4j.cypher.internal.runtime
 import java.net.URL
 
 import org.eclipse.collections.api.iterator.LongIterator
-import org.neo4j.cypher.internal.planner.v3_6.spi.{IdempotentResult, IndexDescriptor, KernelStatisticProvider, TokenContext}
-import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection
-import org.neo4j.cypher.internal.v3_6.logical.plans.{IndexOrder, QualifiedName}
-import org.neo4j.cypher.internal.v3_6.util.EntityNotFoundException
+import org.neo4j.cypher.internal.planner.v3_5.spi.{IdempotentResult, IndexDescriptor, KernelStatisticProvider, TokenContext}
+import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
+import org.neo4j.cypher.internal.v3_5.logical.plans.{IndexOrder, QualifiedName}
+import org.neo4j.cypher.internal.v3_5.util.EntityNotFoundException
 import org.neo4j.graphdb.{Path, PropertyContainer}
 import org.neo4j.internal.kernel.api._
 import org.neo4j.internal.kernel.api.helpers.RelationshipSelectionCursor

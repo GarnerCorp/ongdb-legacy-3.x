@@ -4,9 +4,9 @@
     Copyright (c) 2002-2017 "Neo Technology,"
     Network Engine for Objects in Lund AB [http://neotechnology.com]
 
-    This file is part of ONgDB.
+    This file is part of Neo4j.
 
-    ONgDB is free software: you can redistribute it and/or modify
+    Neo4j is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
     published by the Free Software Foundation, either version 3 of the
     License, or (at your option) any later version.
@@ -118,8 +118,8 @@
       <useProjectArtifact>false</useProjectArtifact>
       <useStrictFiltering>true</useStrictFiltering>
       <includes>
-        <include>org.graphfoundation.ongdb:*</include>
         <include>org.neo4j:*</include>
+		<include>org.graphfoundation.ongdb:*</include>
         <include>jline:jline</include>
         <include>org.apache.lucene:lucene-core</include>
         <include>org.apache.lucene:lucene-analyzers-common</include>
@@ -136,7 +136,7 @@
       </includes>
       <excludes>
         <exclude>*:pom:*</exclude>
-        <exclude>org.graphfoundation.ongdb:ongdb-enterprise:jar</exclude>
+        <exclude>org.graphfoundation.ongdb:neo4j-enterprise:jar</exclude>
         <!--<exclude>org.neo4j:neo4j</exclude>-->
       </excludes>
     </dependencySet>
@@ -148,8 +148,8 @@
       <useProjectArtifact>false</useProjectArtifact>
       <useStrictFiltering>true</useStrictFiltering>
       <excludes>
-        <exclude>org.graphfoundation.ongdb:*</exclude>
         <exclude>org.neo4j:*</exclude>
+		<exclude>org.graphfoundation.ongdb:*</exclude>
         <exclude>jline:jline</exclude>
         <exclude>org.apache.lucene:*</exclude>
         <exclude>io.netty:netty</exclude>

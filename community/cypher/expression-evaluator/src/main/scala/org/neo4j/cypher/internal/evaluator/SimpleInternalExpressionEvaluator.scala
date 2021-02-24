@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.evaluator
 
-import org.neo4j.cypher.internal.planner.v3_6.spi.TokenContext
+import org.neo4j.cypher.internal.planner.v3_5.spi.TokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.{CommunityExpressionConverter, ExpressionConverters}
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.v3_6.ast._
-import org.neo4j.cypher.internal.v3_6.expressions.{Expression, Variable}
-import org.neo4j.cypher.internal.v3_6.parser.CypherParser
-import org.neo4j.cypher.internal.v3_6.util.attribution.Id
+import org.neo4j.cypher.internal.v3_5.ast._
+import org.neo4j.cypher.internal.v3_5.expressions.{Expression, Variable}
+import org.neo4j.cypher.internal.v3_5.parser.CypherParser
+import org.neo4j.cypher.internal.v3_5.util.attribution.Id
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualValues
 

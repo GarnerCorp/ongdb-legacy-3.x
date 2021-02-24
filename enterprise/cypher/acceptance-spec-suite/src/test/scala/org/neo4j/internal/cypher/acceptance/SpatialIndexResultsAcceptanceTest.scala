@@ -1,21 +1,24 @@
 /*
- * Copyright (c) 2018-2020 "Graph Foundation"
- * Graph Foundation, Inc. [https://graphfoundation.org]
- *
  * Copyright (c) 2002-2018 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
- * This file is part of ONgDB Enterprise Edition. The included source
+ * This file is part of Neo4j Enterprise Edition. The included source
  * code can be redistributed and/or modified under the terms of the
  * GNU AFFERO GENERAL PUBLIC LICENSE Version 3
  * (http://www.fsf.org/licensing/licenses/agpl-3.0.html) with the
- * Commons Clause,as found
- * in the associated LICENSE.txt file.
+ * Commons Clause, as found in the associated LICENSE.txt file.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
+ *
+ * Neo4j object code can be licensed independently from the source
+ * under separate terms from the AGPL. Inquiries can be directed to:
+ * licensing@neo4j.com
+ *
+ * More information is also available at:
+ * https://neo4j.com/licensing/
  */
 package org.neo4j.internal.cypher.acceptance
 
@@ -224,7 +227,7 @@ class SpatialIndexResultsAcceptanceTest extends IndexingTestSupport {
     graph.execute("MATCH (p:Place) SET p.location = point({latitude: 56.7, longitude: 12.78, crs: 'WGS-84'}) RETURN p.location as point")
     graph.execute("CREATE (p:Place) SET p.location = point({latitude: 40.7, longitude: -35.78, crs: 'WGS-84'})")
 
-    val configuration = TestConfiguration(Versions(Versions.V3_4, Versions.V3_6), Planners.Cost,
+    val configuration = TestConfiguration(Versions(Versions.V3_4, Versions.V3_5), Planners.Cost,
                                           Runtimes(Runtimes.Interpreted, Runtimes.Slotted, Runtimes.SlottedWithCompiledExpressions))
     val query = "MATCH (p:Place) WHERE p.location = point({latitude: 56.7, longitude: 12.78, crs: 'WGS-84'}) RETURN p.location as point"
 
@@ -269,7 +272,7 @@ class SpatialIndexResultsAcceptanceTest extends IndexingTestSupport {
     graph.execute("MATCH (p:Place) SET p.location = point({x: 1.2, y: 3.4, z: 5.6}) RETURN p.location as point")
     graph.execute("CREATE (p:Place) SET p.location = point({x: 1.2, y: 3.4, z: 5.601})")
 
-    val configuration = TestConfiguration(Versions(Versions.V3_4, Versions.V3_6),
+    val configuration = TestConfiguration(Versions(Versions.V3_4, Versions.V3_5),
                                           Planners(Planners.Cost),
                                           Runtimes(Runtimes.Interpreted, Runtimes.Slotted, Runtimes.SlottedWithCompiledExpressions))
     // When

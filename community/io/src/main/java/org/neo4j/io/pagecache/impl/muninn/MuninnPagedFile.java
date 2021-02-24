@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -255,17 +255,6 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable
             // We need to do a vacuum of the cache, fully evicting all pages that have freed swapper ids.
             // We cannot reuse those swapper ids until there are no more pages using them.
             pageCache.vacuum( getSwappers() );
-        }
-        long filePageId = -1; // Start at -1 because we increment at the *start* of the chunk-loop iteration.
-        int[][] tt = this.translationTable;
-        for ( int[] chunk : tt )
-        {
-            for ( int i = 0; i < chunk.length; i++ )
-            {
-                filePageId++;
-                long offset = computeChunkOffset( filePageId );
-                UnsafeUtil.putIntVolatile( chunk, offset, UNMAPPED_TTE );
-            }
         }
     }
 

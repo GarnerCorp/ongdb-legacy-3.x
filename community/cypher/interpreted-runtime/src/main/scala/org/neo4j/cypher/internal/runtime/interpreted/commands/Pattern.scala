@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -24,10 +24,10 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.True
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
 import org.neo4j.cypher.internal.runtime.interpreted.GraphElementPropertyFunctions
 import org.neo4j.cypher.internal.runtime.interpreted.symbols.TypeSafe
-import org.neo4j.cypher.internal.v3_6.util.UnNamedNameGenerator
-import org.neo4j.cypher.internal.v3_6.util.symbols._
-import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection
-import org.neo4j.cypher.internal.v3_6.expressions.SemanticDirection.{INCOMING, OUTGOING}
+import org.neo4j.cypher.internal.v3_5.util.UnNamedNameGenerator
+import org.neo4j.cypher.internal.v3_5.util.symbols._
+import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection
+import org.neo4j.cypher.internal.v3_5.expressions.SemanticDirection.{INCOMING, OUTGOING}
 
 import scala.collection.{Map, Seq}
 trait Pattern extends TypeSafe with AstNode[Pattern] {

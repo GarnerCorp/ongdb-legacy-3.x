@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -41,14 +41,12 @@ import org.neo4j.consistency.store.RecordAccess;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.helpers.progress.ProgressListener;
 import org.neo4j.helpers.progress.ProgressMonitorFactory;
-import org.neo4j.internal.kernel.api.TokenNameLookup;
 import org.neo4j.kernel.api.direct.DirectStoreAccess;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.labelscan.LabelScanStore;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.annotations.ReporterFactory;
 import org.neo4j.kernel.impl.api.CountsAccessor;
-import org.neo4j.kernel.impl.api.NonTransactionalTokenNameLookup;
 import org.neo4j.kernel.impl.api.index.sampling.IndexSamplingConfig;
 import org.neo4j.kernel.impl.store.RecordStore;
 import org.neo4j.kernel.impl.store.StoreAccess;
@@ -167,19 +165,18 @@ public class FullCheck
         ProgressMonitorFactory.MultiPartBuilder progress = progressFactory.multipleParts(
                 "Full Consistency Check" );
         final StoreAccess nativeStores = directStoreAccess.nativeStores();
-        TokenNameLookup tokenNameLookup = new NonTransactionalTokenNameLookup( directStoreAccess.tokenHolders(), true /*include token ids too*/ );
         try ( IndexAccessors indexes =
-                      new IndexAccessors( directStoreAccess.indexes(), nativeStores.getSchemaStore(), samplingConfig, tokenNameLookup ) )
+                      new IndexAccessors( directStoreAccess.indexes(), nativeStores.getSchemaStore(), samplingConfig ) )
         {
             MultiPassStore.Factory multiPass = new MultiPassStore.Factory(
                     decorator, recordAccess, cacheAccess, report, reportMonitor );
             ConsistencyCheckTasks taskCreator = new ConsistencyCheckTasks( progress, processEverything,
-                    nativeStores, statistics, cacheAccess, directStoreAccess.labelScanStore(), indexes, tokenNameLookup,
+                    nativeStores, statistics, cacheAccess, directStoreAccess.labelScanStore(), indexes, directStoreAccess.tokenHolders(),
                     multiPass, reporter, threads );
 
             if ( checkIndexStructure )
             {
-                consistencyCheckIndexStructure( directStoreAccess.labelScanStore(), indexes, report, progressFactory );
+                consistencyCheckIndexStructure( directStoreAccess.labelScanStore(), indexes, reporter, progressFactory );
             }
 
             List<ConsistencyCheckerTask> tasks =
@@ -203,7 +200,7 @@ public class FullCheck
     }
 
     private static void consistencyCheckIndexStructure( LabelScanStore labelScanStore, IndexAccessors indexes,
-            InconsistencyReport report, ProgressMonitorFactory progressMonitorFactory )
+            ConsistencyReporter report, ProgressMonitorFactory progressMonitorFactory )
     {
         final long schemaIndexCount = Iterables.count( indexes.onlineRules() );
         final long additionalCount = 1; // LabelScanStore
@@ -217,21 +214,21 @@ public class FullCheck
         listener.done();
     }
 
-    private static void consistencyCheckLabelScanStore( LabelScanStore labelScanStore, InconsistencyReport report, ProgressListener listener )
+    private static void consistencyCheckLabelScanStore( LabelScanStore labelScanStore, ConsistencyReporter report, ProgressListener listener )
     {
-        ConsistencyReporter.FormattingDocumentedHandler handler = ConsistencyReporter.formattingHandler( report, RecordType.LABEL_SCAN_DOCUMENT );
+        ConsistencyReporter.FormattingDocumentedHandler handler = report.formattingHandler( RecordType.LABEL_SCAN_DOCUMENT );
         ReporterFactory proxyFactory = new ReporterFactory( handler );
         labelScanStore.consistencyCheck( proxyFactory );
         handler.updateSummary();
         listener.add( 1 );
     }
 
-    private static void consistencyCheckSchemaIndexes( IndexAccessors indexes, InconsistencyReport report, ProgressListener listener )
+    private static void consistencyCheckSchemaIndexes( IndexAccessors indexes, ConsistencyReporter report, ProgressListener listener )
     {
         List<StoreIndexDescriptor> rulesToRemove = new ArrayList<>();
         for ( StoreIndexDescriptor onlineRule : indexes.onlineRules() )
         {
-            ConsistencyReporter.FormattingDocumentedHandler handler = ConsistencyReporter.formattingHandler( report, RecordType.INDEX );
+            ConsistencyReporter.FormattingDocumentedHandler handler = report.formattingHandler( RecordType.INDEX );
             ReporterFactory reporterFactory = new ReporterFactory( handler );
             IndexAccessor accessor = indexes.accessorFor( onlineRule );
             if ( !accessor.consistencyCheck( reporterFactory ) )

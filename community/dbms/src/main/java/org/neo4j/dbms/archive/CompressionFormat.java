@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -21,12 +21,10 @@ package org.neo4j.dbms.archive;
 
 import com.github.luben.zstd.ZstdInputStream;
 import com.github.luben.zstd.ZstdOutputStream;
-import com.github.luben.zstd.util.Native;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -77,30 +75,4 @@ public enum CompressionFormat
 
     public abstract OutputStream compress( OutputStream stream ) throws IOException;
     public abstract InputStream decompress( InputStream stream ) throws IOException;
-
-    public static CompressionFormat selectCompressionFormat()
-    {
-        return selectCompressionFormat( null );
-    }
-
-    public static CompressionFormat selectCompressionFormat( PrintStream output )
-    {
-        try
-        {
-            Native.load(); // Try to load ZSTD
-            if ( Native.isLoaded() )
-            {
-                return ZSTD;
-            }
-        }
-        catch ( Throwable t )
-        {
-            if ( output != null )
-            {
-                output.println( "Failed to load " + ZSTD.name() + ": " + t.getMessage() );
-                output.println( "Fallback to " + GZIP.name() );
-            }
-        }
-        return GZIP; // fallback
-    }
 }

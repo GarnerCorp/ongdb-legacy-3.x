@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2020 "Neo4j,"
+ * Copyright (c) 2002-2019 "Neo4j,"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j.
@@ -22,7 +22,6 @@ package org.neo4j.commandline.dbms;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -54,7 +53,6 @@ import org.neo4j.scheduler.JobScheduler;
 import static java.lang.String.format;
 import static org.neo4j.commandline.Util.canonicalPath;
 import static org.neo4j.commandline.arguments.common.Database.ARG_DATABASE;
-import static org.neo4j.dbms.archive.CompressionFormat.selectCompressionFormat;
 import static org.neo4j.graphdb.factory.GraphDatabaseSettings.database_path;
 import static org.neo4j.graphdb.factory.GraphDatabaseSettings.logical_logs_location;
 import static org.neo4j.kernel.impl.scheduler.JobSchedulerFactory.createInitialisedScheduler;
@@ -68,14 +66,12 @@ public class DumpCommand implements AdminCommand
     private final Path homeDir;
     private final Path configDir;
     private final Dumper dumper;
-    private final PrintStream output;
 
-    public DumpCommand( Path homeDir, Path configDir, Dumper dumper, PrintStream output )
+    public DumpCommand( Path homeDir, Path configDir, Dumper dumper )
     {
         this.homeDir = homeDir;
         this.configDir = configDir;
         this.dumper = dumper;
-        this.output = output;
     }
 
     @Override
@@ -148,10 +144,9 @@ public class DumpCommand implements AdminCommand
         Path databasePath = databaseLayout.databaseDirectory().toPath();
         try
         {
-            CompressionFormat format = selectCompressionFormat( output );
             File storeLockFile = databaseLayout.getStoreLayout().storeLockFile();
             Predicate<Path> pathPredicate = path -> Objects.equals( path.getFileName().toString(), storeLockFile.getName() );
-            dumper.dump( databasePath, transactionalLogsDirectory, archive, format, pathPredicate );
+            dumper.dump( databasePath, transactionalLogsDirectory, archive, CompressionFormat.ZSTD, pathPredicate );
         }
         catch ( FileAlreadyExistsException e )
         {
