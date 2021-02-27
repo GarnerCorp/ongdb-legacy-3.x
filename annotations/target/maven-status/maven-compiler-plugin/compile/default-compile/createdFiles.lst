@@ -1,0 +1,16 @@
+org/neo4j/annotations/documented/ReporterFactory.class
+org/neo4j/annotations/AnnotationConstants.class
+org/neo4j/annotations/api/PublicApiAnnotationProcessor.class
+org/neo4j/annotations/api/PublicApiDoclet.class
+org/neo4j/annotations/api/PublicApi.class
+org/neo4j/annotations/documented/Documented.class
+org/neo4j/annotations/documented/DocumentedUtils.class
+org/neo4j/annotations/api/PublicApiDoclet$FilteringDocletEnvironment.class
+org/neo4j/annotations/service/Service.class
+org/neo4j/annotations/documented/ReporterFactories.class
+org/neo4j/annotations/api/IgnoreApiCheck.class
+org/neo4j/annotations/service/ServiceProvider.class
+org/neo4j/annotations/service/ServiceAnnotationProcessor.class
+org/neo4j/annotations/documented/Warning.class
+org/neo4j/annotations/api/PublicApiAnnotationProcessor$1.class
+org/neo4j/annotations/documented/ReporterFactories$ThrowingInvocationHandler.class

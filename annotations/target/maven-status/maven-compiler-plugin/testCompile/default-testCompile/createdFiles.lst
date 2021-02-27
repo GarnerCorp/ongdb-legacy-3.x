@@ -1,0 +1,3 @@
+org/neo4j/annotations/service/ServiceAnnotationProcessorTest.class
+org/neo4j/annotations/AnnotationTestHelper.class
+org/neo4j/annotations/api/PublicApiAnnotationProcessorTest.class
